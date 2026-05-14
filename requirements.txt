@@ -1,0 +1,19 @@
+# 项目依赖清单
+# 安装方法：在终端运行  pip install -r requirements.txt
+
+# 数据处理与机器学习
+pandas>=1.5.0
+numpy>=1.24.0
+scikit-learn>=1.3.0
+
+# 化学信息学（核心库，用于处理分子结构）
+rdkit>=2023.9.0
+
+# 可视化
+matplotlib>=3.7.0
+
+# 网页应用部署
+streamlit>=1.28.0
+
+# 模型保存与加载
+joblib>=1.3.0
