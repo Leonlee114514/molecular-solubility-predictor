@@ -676,17 +676,43 @@ if st.session_state.predicted_smiles and st.session_state.predicted_logS is not 
             import matplotlib.pyplot as plt
             import matplotlib.font_manager as fm
             import numpy as np
+            import glob
 
-            # 强制重新扫描系统字体（让 packages.txt 安装的新字体生效）
+            # 强制重新扫描系统字体
             fm.fontManager = fm.FontManager()
 
-            # 设置中文字体
-            plt.rcParams['font.sans-serif'] = [
-                'Noto Sans CJK SC',
-                'WenQuanYi Micro Hei',
-                'DejaVu Sans'
-            ]
+            # 显式添加 packages.txt 安装的 Noto / 文泉驿字体（.ttc 集合文件）
+            font_paths = (
+                glob.glob('/usr/share/fonts/opentype/noto/*.ttc') +
+                glob.glob('/usr/share/fonts/truetype/noto/*.ttc') +
+                glob.glob('/usr/share/fonts/noto-cjk/*.ttc') +
+                glob.glob('/usr/share/fonts/truetype/wqy/*.ttf') +
+                glob.glob('/usr/share/fonts/opentype/source-han-sans/*.otf')
+            )
+            for fp in font_paths:
+                try:
+                    fm.fontManager.addfont(fp)
+                except Exception:
+                    pass
+
+            # 查找中文字体（按优先级）
+            chinese_font = None
+            for font in fm.fontManager.ttflist:
+                if font.name in ('Noto Sans CJK SC', 'Noto Sans CJK'):
+                    chinese_font = font.name
+                    break
+                if 'WenQuanYi' in font.name or 'Source Han Sans SC' in font.name:
+                    chinese_font = font.name
+                    break
+
+            if chinese_font:
+                plt.rcParams['font.family'] = chinese_font
+            else:
+                print("Chinese font not found. Available fonts:",
+                      [f.name for f in fm.fontManager.ttflist[:30]])
+
             plt.rcParams['axes.unicode_minus'] = False
+
 
 
             shap_vals = np.array(st.session_state.shap_values)
