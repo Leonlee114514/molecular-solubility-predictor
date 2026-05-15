@@ -377,7 +377,7 @@ def explain_with_kimi(smiles, prediction, features, shap_features=None, shap_val
 
 请用中文回答，分四段:
 1. **溶解度结论**：直接复述上述程序判定结论——该分子属于「{solubility_level}」。绝对不要解释判断过程，绝对不要比较数字大小。
-2. **SHAP 关键洞察**：结合 SHAP 分析结果，指出对该分子溶解度影响最大的 1-2 个结构特征，说明它们是推动易溶还是难溶。引用具体贡献值。
+2. **SHAP 分析**：结合 SHAP 分析结果，指出对该分子溶解度影响最大的 1-2 个结构特征，说明它们是推动易溶还是难溶。引用具体贡献值。
 3. **化学原理解释**：从分子结构角度（极性、氢键、疏水性）解释为什么这些特征会产生这样的影响。引用分子性质数据（如 LogP、TPSA 等）。
 4. **生活类比**：举一个高中生能听懂的生活中的类比帮助理解。
 
@@ -786,7 +786,7 @@ if st.session_state.predicted_smiles and st.session_state.predicted_logS is not 
 
         # ========== Kimi AI 解释（手动触发）==========
         st.divider()
-        st.subheader("🧠 AI Chemistry Explanation (Powered by Kimi)")
+        st.subheader("🧠 AI Chemistry Explanation")
         
         if st.session_state.ai_explanation:
             st.markdown(st.session_state.ai_explanation)
@@ -794,9 +794,9 @@ if st.session_state.predicted_smiles and st.session_state.predicted_logS is not 
                 st.session_state.ai_explanation = None
                 st.rerun()
         else:
-            st.caption("💡 AI 解释需要手动调用（消耗 API 额度）")
-            if st.button("🧠 生成 AI 解释（手动调用 Kimi）", key="gen_ai"):
-                with st.spinner("🤖 Kimi 正在分析分子结构..."):
+            st.caption("AI 解释需要手动调用（消耗 API 额度）")
+            if st.button("生成 AI 解释", key="gen_ai"):
+                with st.spinner("正在分析分子结构..."):
                     explanation = explain_with_kimi(
                         st.session_state.predicted_smiles,
                         prediction,
@@ -811,7 +811,7 @@ if st.session_state.predicted_smiles and st.session_state.predicted_logS is not 
 st.divider()
 st.markdown("""
 <div style='text-align: center; color: gray; font-size: 0.9em;'>
-Built with ❤️ by a high school chemistry enthusiast | 
+Built by a Leonlee | 
 ML: Random Forest + RDKit (V2: 11,000+ molecules) | AI: Kimi (Moonshot AI) | DB: 100+ local + PubChem API
 </div>
 """, unsafe_allow_html=True)
