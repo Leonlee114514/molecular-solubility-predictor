@@ -4,11 +4,11 @@ channels:
   - defaults
 dependencies:
   - python=3.11
-  - rdkit=2023.9
+  - rdkit=2023.09
+  - numpy<<2          # ← 关键：锁定 NumPy 1.x
   - pip
   - pip:
     - streamlit>=1.40.0
-    - numpy>=1.24.0
     - scikit-learn>=1.3.0
     - joblib>=1.3.0
     - openai>=1.0.0
