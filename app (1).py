@@ -674,15 +674,20 @@ if st.session_state.predicted_smiles and st.session_state.predicted_logS is not 
 
         if "shap_values" in st.session_state:
             import matplotlib.pyplot as plt
+            import matplotlib.font_manager as fm
             import numpy as np
 
-            # 设置中文字体（适配 Linux 服务器）
+            # 强制重新扫描系统字体（让 packages.txt 安装的新字体生效）
+            fm.fontManager = fm.FontManager()
+
+            # 设置中文字体
             plt.rcParams['font.sans-serif'] = [
                 'Noto Sans CJK SC',
                 'WenQuanYi Micro Hei',
                 'DejaVu Sans'
             ]
             plt.rcParams['axes.unicode_minus'] = False
+
 
             shap_vals = np.array(st.session_state.shap_values)
             names = st.session_state.shap_names
