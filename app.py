@@ -14,9 +14,11 @@ import openai
 from dotenv import load_dotenv
 import os
 
-# 加载环境变量
+# 加载环境变量（本地开发用）
 load_dotenv()
-KIMI_API_KEY = os.getenv("KIMI_API_KEY")
+
+# 优先读取 Streamlit Secrets（Cloud 部署），其次读取 .env（本地开发）
+KIMI_API_KEY = st.secrets.get("KIMI_API_KEY") or os.getenv("KIMI_API_KEY")
 
 # ========== 本地分子库（100+ 分子，零网络依赖）==========
 MOLECULE_DB = {
@@ -674,9 +676,16 @@ if st.session_state.predicted_smiles and st.session_state.predicted_logS is not 
             import matplotlib.pyplot as plt
             import numpy as np
 
-            # 设置中文字体
-            plt.rcParams['font.sans-serif'] = ['SimHei', 'Microsoft YaHei', 'Arial Unicode MS', 'DejaVu Sans']
+            # 设置中文字体（适配 Linux 服务器）
+            plt.rcParams['font.sans-serif'] = [
+                'Noto Sans CJK SC',
+                'WenQuanYi Micro Hei',
+                'DejaVu Sans'
+            ]
             plt.rcParams['axes.unicode_minus'] = False
+
+
+
 
             shap_vals = np.array(st.session_state.shap_values)
             names = st.session_state.shap_names
