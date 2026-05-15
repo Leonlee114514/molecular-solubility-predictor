@@ -289,6 +289,10 @@ def load_model():
 try:
     model, descriptor_names = load_model()
     model_ready = True
+
+    # ===== 初始化 SHAP Explainer =====
+    import shap
+    explainer = shap.TreeExplainer(model)
 except Exception as e:
     st.error(f"❌ 模型加载失败: {e}")
     st.info("请先运行 'python train_model_v2.py' 训练模型")
@@ -313,33 +317,74 @@ def compute_features(smiles_string):
     
     rdBase.DisableLog("rdApp.warning")
     fp = AllChem.GetMorganFingerprintAsBitVect(mol, radius=2, nBits=1024)
-    rdBase.EnableLog("rdApp.warning")
     fp_array = np.zeros((1,), dtype=int)
     AllChem.DataStructs.ConvertToNumpyArray(fp, fp_array)
+    rdBase.EnableLog("rdApp.warning")
     return features, fp_array
 
 # ========== Kimi AI 解释 ==========
-def explain_with_kimi(smiles, prediction, features):
+def explain_with_kimi(smiles, prediction, features, shap_features=None, shap_values=None):
+
     if not KIMI_API_KEY:
         return "⚠️ 未配置 Kimi API Key。请在 .env 文件中写入：KIMI_API_KEY=sk-你的密钥"
-    
-    prompt = f"""你是一位擅长AP Chemistry教学的老师，正在向高中生解释分子溶解度。
+
+    # 在代码里精确判断溶解度等级（避免 LLM 数值比较错误）
+    if prediction > 0:
+        solubility_level = "易溶于水"
+        solubility_desc = "logS > 0，属于高溶解度"
+    elif prediction > -2:
+        solubility_level = "中等溶解"
+        solubility_desc = "-2 < logS ≤ 0，属于中等溶解度"
+    else:
+        solubility_level = "难溶于水"
+        solubility_desc = "logS ≤ -2，属于低溶解度"
+
+    # 构建 SHAP 洞察文本
+    shap_text = ""
+    if shap_features and shap_values and len(shap_features) == len(shap_values):
+        import numpy as np
+        abs_vals = np.abs(np.array(shap_values))
+        sorted_idx = np.argsort(abs_vals)[::-1][:5]
+        top_features = [shap_features[i] for i in sorted_idx]
+        top_vals = [shap_values[i] for i in sorted_idx]
+        shap_lines = []
+        for name, val in zip(top_features, top_vals):
+            direction = "推动易溶" if val > 0 else "推动难溶"
+            shap_lines.append(f"- {name}: 贡献值 {val:+.3f}（{direction}）")
+        shap_text = "\n".join(shap_lines)
+
+    prompt = f"""你是一位擅长AP Chemistry教学的老师，正在向高中生解释分子溶解度。你的解释需要结合机器学习模型的 SHAP 可解释性分析结果。
 
 分子 SMILES: {smiles}
 模型预测的水溶解度 (logS): {prediction:.2f}
-关键分子性质:
+
+【分子基本性质】
 - 分子量: {features['MolWt']:.1f} g/mol
 - 极性表面积 (TPSA): {features['TPSA']:.1f} Å²
 - 氢键供体数: {features['NumHDonors']}
 - 氢键受体数: {features['NumHAcceptors']}
 - 脂水分配系数 (LogP): {features['LogP']:.2f}
 
-请用中文回答，分三段:
-1. 这个分子在水中是易溶还是难溶？给出结论。
-2. 从分子结构角度解释原因（极性、氢键、疏水性）。引用上面的具体数据。
-3. 举一个生活中的类比帮助理解。
+【SHAP 模型可解释性分析 - 影响预测的关键结构特征】
+{shap_text if shap_text else "（SHAP 分析暂不可用）"}
 
-要求: 准确、简洁、有亲和力，每段不超过3句话。"""
+【已由程序精确判定的溶解度结论（严禁修改或重新判断）】
+该分子的预测溶解度 logS = {prediction:.3f}，判定结果为：**{solubility_level}**。
+判定依据：{solubility_desc}。
+⚠️ 重要：你不需要、也不应该做任何数值大小比较（尤其注意负数比较非常容易出错，例如 -1.87 > -2）。上述结论已由程序精确计算得出，你只需在回答中直接复述这一结论。
+
+请用中文回答，分四段:
+1. **溶解度结论**：直接复述上述程序判定结论——该分子属于「{solubility_level}」。绝对不要解释判断过程，绝对不要比较数字大小。
+2. **SHAP 关键洞察**：结合 SHAP 分析结果，指出对该分子溶解度影响最大的 1-2 个结构特征，说明它们是推动易溶还是难溶。引用具体贡献值。
+3. **化学原理解释**：从分子结构角度（极性、氢键、疏水性）解释为什么这些特征会产生这样的影响。引用分子性质数据（如 LogP、TPSA 等）。
+4. **生活类比**：举一个高中生能听懂的生活中的类比帮助理解。
+
+要求:
+- 准确、简洁、有亲和力
+- 第1段绝对不允许出现任何数值比较或阈值判断，只准复述结论
+- 第2段必须引用 SHAP 贡献值中的具体数字
+- 第3段必须引用分子性质数据中的具体数字
+- 每段不超过3句话"""
 
     try:
         client = openai.OpenAI(
@@ -524,6 +569,19 @@ if predict_button and model_ready:
             
             st.session_state.predicted_smiles = current
             st.session_state.predicted_logS = float(prediction)
+
+            # ===== 计算 SHAP 值 =====
+            shap_values = explainer.shap_values(X_input)[0]
+            desc_shap = shap_values[:8]
+            fp_shap_sum = shap_values[8:].sum()
+            combined_shap = list(desc_shap) + [fp_shap_sum]
+            combined_names = [
+                "分子量 (MolWt)", "脂水分配系数 (LogP)", "氢键供体 (H-Donors)",
+                "氢键受体 (H-Acceptors)", "极性表面积 (TPSA)", "可旋转键 (Rotatable Bonds)",
+                "芳香环 (Aromatic Rings)", "脂肪环 (Aliphatic Rings)", "摩根指纹 (Morgan FP)"
+            ]
+            st.session_state.shap_values = combined_shap
+            st.session_state.shap_names = combined_names
             st.session_state.ai_explanation = None
 
 # ========== 显示预测结果 ==========
@@ -606,7 +664,117 @@ if st.session_state.predicted_smiles and st.session_state.predicted_logS is not 
         - **H-Bond Donors/Acceptors** tell us how well the molecule can form hydrogen bonds with water.
         - **LogP** measures lipophilicity. Lower LogP means the molecule prefers water over oil.
         """)
-        
+
+        # ========== SHAP 可解释性分析 ==========
+        st.divider()
+        st.subheader("🔍 为什么是这个预测结果？")
+        st.caption("基于 SHAP (SHapley Additive exPlanations) 分析每个特征对预测的贡献")
+
+        if "shap_values" in st.session_state:
+            import matplotlib.pyplot as plt
+            import numpy as np
+
+            # 设置中文字体
+            plt.rcParams['font.sans-serif'] = ['SimHei', 'Microsoft YaHei', 'Arial Unicode MS', 'DejaVu Sans']
+            plt.rcParams['axes.unicode_minus'] = False
+
+            shap_vals = np.array(st.session_state.shap_values)
+            names = st.session_state.shap_names
+
+            # 按绝对值排序取 Top 8
+            abs_vals = np.abs(shap_vals)
+            sorted_idx = np.argsort(abs_vals)[::-1][:8]
+            top_shap = shap_vals[sorted_idx]
+            top_names = [names[i] for i in sorted_idx]
+
+            # 颜色
+            colors = ['#ff0051' if v > 0 else '#008bfb' for v in top_shap]
+
+            # 画图
+            fig, ax = plt.subplots(figsize=(8, 4.5))
+            bars = ax.barh(range(len(top_shap)), top_shap, color=colors, edgecolor="white", height=0.6)
+            ax.invert_yaxis()
+
+            for i, (bar, val) in enumerate(zip(bars, top_shap)):
+                width = bar.get_width()
+                # 正值标签放右侧外部；负值标签放条形内部，避免与Y轴文字重叠
+                if width >= 0:
+                    label_x = width + 0.05
+                    align = "left"
+                    text_color = "black"
+                else:
+                    label_x = width + 0.12  # 放在条形内部，从左侧向右偏移
+                    align = "left"
+                    text_color = "white"
+                ax.text(label_x, i, f"{val:+.3f}", va="center", ha=align, fontsize=10, fontweight="bold", color=text_color)
+
+            ax.set_yticks(range(len(top_names)))
+            ax.set_yticklabels(top_names, fontsize=11)
+            ax.axvline(x=0, color="black", linewidth=0.8)
+            ax.set_xlabel("对溶解度的贡献值 (logS)", fontsize=11)
+
+            # 兼容 expected_value 各种结构
+            ev = explainer.expected_value
+            if isinstance(ev, (list, tuple, np.ndarray)):
+                base_value = float(np.array(ev).flatten()[0])
+            else:
+                base_value = float(ev)
+            ax.set_title(f"预测值: {prediction:.3f}  (基准值: {base_value:.3f})", fontsize=12, pad=10)
+
+            ax.spines["top"].set_visible(False)
+            ax.spines["right"].set_visible(False)
+            ax.spines["left"].set_visible(False)
+
+            from matplotlib.patches import Patch
+            legend_elements = [
+                Patch(facecolor="#ff0051", label="推动易溶 (正贡献)"),
+                Patch(facecolor="#008bfb", label="推动难溶 (负贡献)")
+            ]
+            ax.legend(handles=legend_elements, loc="lower right", fontsize=9)
+
+            plt.tight_layout()
+            st.pyplot(fig, width="stretch")
+            plt.close(fig)
+
+            # 文字解读（与预测值一致）
+            if prediction > 0:
+                solubility_level = "易溶于水"
+            elif prediction > -2:
+                solubility_level = "中等溶解"
+            else:
+                solubility_level = "难溶于水"
+
+            supporting = []
+            resisting = []
+            for i in range(min(3, len(top_names))):
+                name = top_names[i]
+                val = top_shap[i]
+                if prediction <= -2:
+                    if val < 0:
+                        supporting.append("**" + name + "**（" + f"{val:.3f}" + "）")
+                    else:
+                        resisting.append("**" + name + "**（+" + f"{val:.3f}" + "）")
+                elif prediction >= 0:
+                    if val > 0:
+                        supporting.append("**" + name + "**（+" + f"{val:.3f}" + "）")
+                    else:
+                        resisting.append("**" + name + "**（" + f"{val:.3f}" + "）")
+                else:
+                    direction = "推动易溶" if val > 0 else "推动难溶"
+                    supporting.append("**" + name + "**（" + f"{val:+.3f}" + "，" + direction + "）")
+
+            parts = ["💡 **关键洞察**：模型预测该分子 **" + solubility_level + "**（logS = " + f"{prediction:.3f}" + "）。"]
+            if supporting:
+                parts.append("推动这一结果的主要因素：" + ", ".join(supporting) + "。")
+            if resisting:
+                target = "更易溶" if prediction <= -2 else "更难溶"
+                parts.append("但以下因素在抵抗这一趋势、试图让分子" + target + "：" + ", ".join(resisting) + "。")
+            shift = abs(prediction - base_value)
+            direction = "向上" if prediction > base_value else "向下"
+            parts.append("相比训练集平均分子（基准值 " + f"{base_value:.3f}" + "），该分子的结构特征将预测值" + direction + "拉动了 " + f"{shift:.3f}" + " 个单位。")
+            insight_text = " ".join(parts)
+            st.info(insight_text)
+
         # ========== Kimi AI 解释（手动触发）==========
         st.divider()
         st.subheader("🧠 AI Chemistry Explanation (Powered by Kimi)")
@@ -623,7 +791,9 @@ if st.session_state.predicted_smiles and st.session_state.predicted_logS is not 
                     explanation = explain_with_kimi(
                         st.session_state.predicted_smiles,
                         prediction,
-                        features
+                        features,
+                        shap_features=st.session_state.get("shap_names"),
+                        shap_values=st.session_state.get("shap_values")
                     )
                 st.session_state.ai_explanation = explanation
                 st.rerun()
