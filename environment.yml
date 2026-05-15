@@ -5,10 +5,10 @@ channels:
 dependencies:
   - python=3.11
   - rdkit=2023.09
-  - numpy<<2          # conda 侧锁定
+  - numpy<<2
   - pip
   - pip:
-    - numpy<<2        # ← 新增：强制 pip 侧也锁定 1.x
+    - numpy<<2
     - streamlit>=1.40.0
     - scikit-learn>=1.3.0
     - joblib>=1.3.0
