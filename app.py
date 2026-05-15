@@ -7,7 +7,7 @@
 import streamlit as st
 import numpy as np
 import joblib
-from rdkit import Chem
+from rdkit import Chem, rdBase
 from rdkit.Chem import Descriptors, AllChem, Draw
 
 import openai
@@ -311,7 +311,9 @@ def compute_features(smiles_string):
     features['NumAromaticRings'] = Descriptors.NumAromaticRings(mol)
     features['NumAliphaticRings'] = Descriptors.NumAliphaticRings(mol)
     
+    rdBase.DisableLog("rdApp.warning")
     fp = AllChem.GetMorganFingerprintAsBitVect(mol, radius=2, nBits=1024)
+    rdBase.EnableLog("rdApp.warning")
     fp_array = np.zeros((1,), dtype=int)
     AllChem.DataStructs.ConvertToNumpyArray(fp, fp_array)
     return features, fp_array
@@ -496,7 +498,7 @@ if smiles_input != st.session_state.get("smiles_input_box", ""):
 # ========== 预测按钮 ==========
 btn_col1, btn_col2, btn_col3 = st.columns([1, 1, 1])
 with btn_col2:
-    predict_button = st.button("🔮 Predict Solubility", use_container_width=True)
+    predict_button = st.button("🔮 Predict Solubility", width="stretch")
 
 # ========== 执行预测 ==========
 if predict_button and model_ready:
@@ -548,7 +550,7 @@ if st.session_state.predicted_smiles and st.session_state.predicted_logS is not 
         
         with col_left:
             if img is not None:
-                st.image(img, caption="Molecular Structure", use_container_width=True)
+                st.image(img, caption="Molecular Structure", width="stretch")
             else:
                 st.info("无法显示结构图")
         
