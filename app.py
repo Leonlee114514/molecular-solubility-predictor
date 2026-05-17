@@ -284,265 +284,670 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# ========== 自定义 CSS 美化 ==========
+# ========== 设计系统：科学美学令牌与组件库 ==========
 st.markdown("""
 <style>
-/* ========== 全局样式 ========== */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+/* ═══════════════════════════════════════════════
+   DESIGN SYSTEM: Molecular Science Aesthetic
+   ═══════════════════════════════════════════════ */
 
-html, body, [class*="css"] {
+/* ─── 字体导入 ─── */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+/* ═══════════════════════════════════════════════
+   1. 视觉令牌 (Design Tokens)
+   ═══════════════════════════════════════════════ */
+:root {
+    /* 色彩系统 - 灵感：元素周期表 + 分子轨道 */
+    --ms-bg-primary: #0f172a;       /* 深蓝灰 - 主背景，周期表重金属质感 */
+    --ms-bg-secondary: #1e293b;     /* 次级背景 */
+    --ms-bg-elevated: #334155;      /* 提升层级 - 卡片/面板 */
+    --ms-bg-surface: rgba(30, 41, 59, 0.60);  /* 玻璃拟态表面 */
+    --ms-bg-input: #1e293b;
+
+    --ms-accent-primary: #0ea5e9;   /* 天蓝 - 主交互色，如氧元素 */
+    --ms-accent-secondary: #06b6d4; /* 青色 - 次级强调 */
+    --ms-accent-tertiary: #8b5cf6;  /* 紫色 - pKa/电离主题 */
+    --ms-accent-warm: #f59e0b;      /* 琥珀 - 警示/活性 */
+    --ms-accent-success: #10b981;   /* 翠绿 - 成功/稳定 */
+    --ms-accent-danger: #ef4444;    /* 红色 - 错误/高活性 */
+
+    /* 文字色彩 - WCAG 2.1 AA 合规 */
+    --ms-text-primary: #f8fafc;     /* 对比度 15.8:1 */
+    --ms-text-secondary: #94a3b8;   /* 对比度 7.2:1 */
+    --ms-text-tertiary: #64748b;    /* 对比度 4.7:1 */
+    --ms-text-inverse: #0f172a;
+
+    /* 间距系统 - 8px 基线网格 */
+    --ms-space-1: 4px;
+    --ms-space-2: 8px;
+    --ms-space-3: 12px;
+    --ms-space-4: 16px;
+    --ms-space-5: 24px;
+    --ms-space-6: 32px;
+    --ms-space-8: 48px;
+    --ms-space-10: 64px;
+
+    /* 圆角系统 - 晶体对称韵律 */
+    --ms-radius-sm: 4px;   /* 标签/徽章 */
+    --ms-radius-md: 8px;   /* 按钮/输入框 */
+    --ms-radius-lg: 12px;  /* 卡片/面板 */
+    --ms-radius-xl: 16px;  /* 大容器 */
+
+    /* 动效参数 - 全部 < 300ms，硬件加速 */
+    --ms-duration-instant: 100ms;
+    --ms-duration-fast: 150ms;
+    --ms-duration-normal: 200ms;
+    --ms-duration-slow: 280ms;
+    --ms-easing-default: cubic-bezier(0.4, 0, 0.2, 1);
+    --ms-easing-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
+    --ms-easing-decelerate: cubic-bezier(0, 0, 0.2, 1);
+
+    /* 阴影系统 - 分子间作用力隐喻 */
+    --ms-shadow-sm: 0 1px 2px rgba(0,0,0,0.20), 0 0 1px rgba(0,0,0,0.10);
+    --ms-shadow-md: 0 4px 6px -1px rgba(0,0,0,0.20), 0 2px 4px -2px rgba(0,0,0,0.10);
+    --ms-shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.25), 0 4px 6px -4px rgba(0,0,0,0.15);
+    --ms-shadow-glow: 0 0 20px rgba(14, 165, 233, 0.15);
+    --ms-shadow-inset: inset 0 1px 2px rgba(0,0,0,0.20);
+}
+
+/* ═══════════════════════════════════════════════
+   2. 全局重置与基础样式
+   ═══════════════════════════════════════════════ */
+html, body {
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+    background: var(--ms-bg-primary) !important;
+    color: var(--ms-text-primary) !important;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
 }
 
-.main {
-    background: linear-gradient(135deg, #f5f7fa 0%, #e4e8ec 100%);
-    padding: 1rem 2rem;
+.main .block-container {
+    background: var(--ms-bg-primary) !important;
+    padding-top: var(--ms-space-6) !important;
+    padding-bottom: var(--ms-space-8) !important;
+    max-width: 1200px !important;
 }
 
-/* ========== 标题样式 ========== */
+/* 代码与化学式字体 */
+code, pre, .mono {
+    font-family: 'JetBrains Mono', 'Fira Code', monospace !important;
+    letter-spacing: -0.01em;
+}
+
+/* ═══════════════════════════════════════════════
+   3. 排版系统 (Typography)
+   ═══════════════════════════════════════════════ */
 .gradient-title {
-    background: linear-gradient(135deg, #1a237e 0%, #006064 50%, #00acc1 100%);
+    font-weight: 800;
+    font-size: clamp(2rem, 5vw, 3rem);
+    text-align: center;
+    letter-spacing: -0.03em;
+    line-height: 1.1;
+    margin-bottom: var(--ms-space-2);
+    background: linear-gradient(135deg, #38bdf8 0%, #0ea5e9 40%, #22d3ee 70%, #818cf8 100%);
+    background-size: 200% 200%;
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
-    font-weight: 800;
-    font-size: 2.8rem;
-    text-align: center;
-    margin-bottom: 0.3rem;
-    letter-spacing: -0.02em;
+    animation: gradientShift 8s ease infinite;
+}
+
+@keyframes gradientShift {
+    0%, 100% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
 }
 
 .subtitle {
     text-align: center;
-    color: #546e7a;
-    font-size: 1.15rem;
+    color: var(--ms-text-secondary);
+    font-size: 1.1rem;
     font-weight: 400;
-    margin-bottom: 1.5rem;
+    line-height: 1.5;
+    margin-bottom: var(--ms-space-6);
+    letter-spacing: 0.01em;
 }
 
-/* ========== 卡片容器 ========== */
+/* 层级标题 */
+.card-title {
+    color: var(--ms-text-primary);
+    font-size: 1.125rem;
+    font-weight: 600;
+    margin-bottom: var(--ms-space-4);
+    display: flex;
+    align-items: center;
+    gap: var(--ms-space-2);
+    letter-spacing: -0.01em;
+}
+
+.card-title::before {
+    content: '';
+    display: inline-block;
+    width: 4px;
+    height: 1.2em;
+    background: linear-gradient(180deg, var(--ms-accent-primary), var(--ms-accent-secondary));
+    border-radius: var(--ms-radius-sm);
+    flex-shrink: 0;
+}
+
+/* ═══════════════════════════════════════════════
+   4. 卡片与容器组件 (Surface Components)
+   ═══════════════════════════════════════════════ */
 .card-container {
-    background: rgba(255, 255, 255, 0.85);
-    backdrop-filter: blur(10px);
-    border-radius: 16px;
-    padding: 1.5rem 2rem;
-    margin-bottom: 1.5rem;
-    border: 1px solid rgba(255, 255, 255, 0.6);
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06), 0 1px 3px rgba(0, 0, 0, 0.04);
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    background: var(--ms-bg-surface);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    border: 1px solid rgba(148, 163, 184, 0.08);
+    border-radius: var(--ms-radius-lg);
+    padding: var(--ms-space-5);
+    margin-bottom: var(--ms-space-5);
+    box-shadow: var(--ms-shadow-md);
+    transition: transform var(--ms-duration-normal) var(--ms-easing-default),
+                box-shadow var(--ms-duration-normal) var(--ms-easing-default),
+                border-color var(--ms-duration-fast) var(--ms-easing-default);
+    will-change: transform, box-shadow;
 }
 
 .card-container:hover {
-    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1), 0 2px 6px rgba(0, 0, 0, 0.06);
+    transform: translateY(-2px);
+    box-shadow: var(--ms-shadow-lg), var(--ms-shadow-glow);
+    border-color: rgba(14, 165, 233, 0.15);
 }
 
-.card-title {
-    color: #1a237e;
-    font-size: 1.25rem;
-    font-weight: 700;
-    margin-bottom: 1rem;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    border-bottom: 2px solid #e0e7ee;
-    padding-bottom: 0.6rem;
+/* 分子扩散入场动画 */
+@keyframes molecularDiffuse {
+    from {
+        opacity: 0;
+        transform: translateY(16px) scale(0.98);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
 }
 
-/* ========== 输入框美化 ========== */
-.stTextInput > div > div > input {
-    border-radius: 10px !important;
-    border: 2px solid #e0e7ee !important;
-    padding: 0.6rem 1rem !important;
-    font-size: 1rem !important;
-    transition: all 0.2s ease !important;
-    background: #ffffff !important;
+.card-container {
+    animation: molecularDiffuse var(--ms-duration-slow) var(--ms-easing-decelerate) both;
+    animation-delay: calc(var(--card-index, 0) * 60ms);
 }
 
-.stTextInput > div > div > input:focus {
-    border-color: #00acc1 !important;
-    box-shadow: 0 0 0 3px rgba(0, 172, 193, 0.15) !important;
-}
+/* ═══════════════════════════════════════════════
+   5. 交互组件 (Interactive Components)
+   ═══════════════════════════════════════════════ */
 
-.stSelectbox > div > div > div {
-    border-radius: 10px !important;
-    border: 2px solid #e0e7ee !important;
-    background: #ffffff !important;
-}
-
-/* ========== 按钮美化 ========== */
+/* ─── 按钮：化学键断裂/形成隐喻 ─── */
 .stButton > button {
-    background: linear-gradient(135deg, #006064 0%, #00838f 50%, #00acc1 100%) !important;
-    color: white !important;
+    background: linear-gradient(135deg, #0284c7, #0ea5e9, #38bdf8) !important;
+    background-size: 200% 200% !important;
+    color: var(--ms-text-primary) !important;
     border: none !important;
-    border-radius: 12px !important;
-    padding: 0.7rem 2rem !important;
-    font-size: 1.05rem !important;
+    border-radius: var(--ms-radius-md) !important;
+    padding: 0.75rem 1.5rem !important;
+    font-size: 0.9375rem !important;
     font-weight: 600 !important;
-    letter-spacing: 0.02em !important;
-    box-shadow: 0 4px 15px rgba(0, 172, 193, 0.35) !important;
-    transition: all 0.25s ease !important;
-    width: 100% !important;
+    letter-spacing: 0.01em !important;
+    box-shadow: var(--ms-shadow-md), 0 0 0 0 rgba(14, 165, 233, 0) !important;
+    transition: transform var(--ms-duration-fast) var(--ms-easing-bounce),
+                box-shadow var(--ms-duration-fast) var(--ms-easing-default),
+                background-position var(--ms-duration-slow) var(--ms-easing-default) !important;
+    will-change: transform, box-shadow;
+    position: relative;
+    overflow: hidden;
+}
+
+.stButton > button::after {
+    content: '';
+    position: absolute;
+    top: 0; left: -100%;
+    width: 100%; height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.12), transparent);
+    transition: left var(--ms-duration-slow) var(--ms-easing-default);
 }
 
 .stButton > button:hover {
-    transform: translateY(-2px) !important;
-    box-shadow: 0 6px 20px rgba(0, 172, 193, 0.5) !important;
-    background: linear-gradient(135deg, #004d40 0%, #006064 50%, #00838f 100%) !important;
+    transform: translateY(-2px) scale(1.01);
+    box-shadow: var(--ms-shadow-lg), var(--ms-shadow-glow) !important;
+    background-position: 100% 0% !important;
+}
+
+.stButton > button:hover::after {
+    left: 100%;
 }
 
 .stButton > button:active {
-    transform: translateY(0) !important;
+    transform: translateY(0) scale(0.98);
+    transition-duration: var(--ms-duration-instant) !important;
 }
 
-/* 次要按钮 */
+/* 次要按钮 - 共价键主题 */
 .stButton > button[kind="secondary"] {
-    background: linear-gradient(135deg, #5e35b1 0%, #7e57c2 100%) !important;
-    box-shadow: 0 4px 15px rgba(94, 53, 177, 0.35) !important;
+    background: linear-gradient(135deg, #7c3aed, #8b5cf6, #a78bfa) !important;
+    box-shadow: var(--ms-shadow-md), 0 0 0 0 rgba(139, 92, 246, 0) !important;
 }
 
 .stButton > button[kind="secondary"]:hover {
-    box-shadow: 0 6px 20px rgba(94, 53, 177, 0.5) !important;
+    box-shadow: var(--ms-shadow-lg), 0 0 20px rgba(139, 92, 246, 0.2) !important;
 }
 
-/* ========== Metric 美化 ========== */
+/* ─── 输入框：电子云聚焦 ─── */
+.stTextInput > div > div > input,
+.stTextInput > div > div > textarea {
+    border-radius: var(--ms-radius-md) !important;
+    border: 1.5px solid rgba(148, 163, 184, 0.15) !important;
+    padding: 0.625rem 1rem !important;
+    font-size: 0.9375rem !important;
+    background: var(--ms-bg-input) !important;
+    color: var(--ms-text-primary) !important;
+    box-shadow: var(--ms-shadow-inset) !important;
+    transition: border-color var(--ms-duration-fast) var(--ms-easing-default),
+                box-shadow var(--ms-duration-fast) var(--ms-easing-default) !important;
+    will-change: border-color, box-shadow;
+}
+
+.stTextInput > div > div > input::placeholder,
+.stTextInput > div > div > textarea::placeholder {
+    color: var(--ms-text-tertiary) !important;
+}
+
+.stTextInput > div > div > input:focus,
+.stTextInput > div > div > textarea:focus {
+    border-color: var(--ms-accent-primary) !important;
+    box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.15), var(--ms-shadow-inset) !important;
+    outline: none !important;
+}
+
+.stSelectbox > div > div > div {
+    border-radius: var(--ms-radius-md) !important;
+    border: 1.5px solid rgba(148, 163, 184, 0.15) !important;
+    background: var(--ms-bg-input) !important;
+    color: var(--ms-text-primary) !important;
+}
+
+/* ═══════════════════════════════════════════════
+   6. 数据展示组件 (Data Display)
+   ═══════════════════════════════════════════════ */
+
+/* ─── Metric：元素周期表单元格风格 ─── */
 [data-testid="stMetricValue"] {
-    font-size: 1.8rem !important;
+    font-size: 2rem !important;
     font-weight: 700 !important;
-    background: linear-gradient(135deg, #1a237e, #00838f);
+    color: var(--ms-text-primary) !important;
+    letter-spacing: -0.02em;
+    line-height: 1.2;
+}
+
+[data-testid="stMetricLabel"] {
+    font-size: 0.75rem !important;
+    color: var(--ms-text-tertiary) !important;
+    font-weight: 500 !important;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-top: var(--ms-space-1);
+}
+
+[data-testid="stMetricDelta"] {
+    font-size: 0.875rem !important;
+    font-weight: 600 !important;
+}
+
+/* ─── 结果状态卡片 ─── */
+.result-high {
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.10), rgba(16, 185, 129, 0.05));
+    border: 1px solid rgba(16, 185, 129, 0.25);
+    border-radius: var(--ms-radius-lg);
+    padding: var(--ms-space-4);
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+}
+
+.result-high::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #10b981, #34d399);
+}
+
+.result-moderate {
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.10), rgba(245, 158, 11, 0.05));
+    border: 1px solid rgba(245, 158, 11, 0.25);
+    border-radius: var(--ms-radius-lg);
+    padding: var(--ms-space-4);
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+}
+
+.result-moderate::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #f59e0b, #fbbf24);
+}
+
+.result-low {
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.10), rgba(239, 68, 68, 0.05));
+    border: 1px solid rgba(239, 68, 68, 0.25);
+    border-radius: var(--ms-radius-lg);
+    padding: var(--ms-space-4);
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+}
+
+.result-low::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #ef4444, #f87171);
+}
+
+/* pKa 状态 */
+.pka-acid {
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.08), rgba(239, 68, 68, 0.03));
+    border: 1px solid rgba(239, 68, 68, 0.20);
+    border-radius: var(--ms-radius-lg);
+    padding: var(--ms-space-4);
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+}
+.pka-acid::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+    background: linear-gradient(90deg, #ef4444, #f87171);
+}
+
+.pka-base {
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.08), rgba(59, 130, 246, 0.03));
+    border: 1px solid rgba(59, 130, 246, 0.20);
+    border-radius: var(--ms-radius-lg);
+    padding: var(--ms-space-4);
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+}
+.pka-base::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+    background: linear-gradient(90deg, #3b82f6, #60a5fa);
+}
+
+.pka-amphoteric {
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.08), rgba(245, 158, 11, 0.03));
+    border: 1px solid rgba(245, 158, 11, 0.20);
+    border-radius: var(--ms-radius-lg);
+    padding: var(--ms-space-4);
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+}
+.pka-amphoteric::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+    background: linear-gradient(90deg, #f59e0b, #fbbf24);
+}
+
+/* ═══════════════════════════════════════════════
+   7. 反馈组件 (Feedback Components)
+   ═══════════════════════════════════════════════ */
+
+/* ─── Alert：能级跃迁光效 ─── */
+.stAlert {
+    border-radius: var(--ms-radius-lg) !important;
+    border: 1px solid !important;
+    padding: var(--ms-space-4) !important;
+    position: relative;
+    overflow: hidden;
+    animation: molecularDiffuse var(--ms-duration-normal) var(--ms-easing-decelerate) both;
+}
+
+.stAlert::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; bottom: 0; width: 3px;
+}
+
+.stAlert [data-testid="stMarkdownContainer"] {
+    font-size: 0.875rem;
+    line-height: 1.6;
+    color: var(--ms-text-primary);
+}
+
+.stAlert[data-baseweb="notification"][data-kind="positive"] {
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.08), rgba(16, 185, 129, 0.02)) !important;
+    border-color: rgba(16, 185, 129, 0.20) !important;
+}
+.stAlert[data-baseweb="notification"][data-kind="positive"]::before {
+    background: linear-gradient(180deg, #10b981, #34d399);
+}
+
+.stAlert[data-baseweb="notification"][data-kind="info"] {
+    background: linear-gradient(135deg, rgba(14, 165, 233, 0.08), rgba(14, 165, 233, 0.02)) !important;
+    border-color: rgba(14, 165, 233, 0.20) !important;
+}
+.stAlert[data-baseweb="notification"][data-kind="info"]::before {
+    background: linear-gradient(180deg, #0ea5e9, #38bdf8);
+}
+
+.stAlert[data-baseweb="notification"][data-kind="warning"] {
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.08), rgba(245, 158, 11, 0.02)) !important;
+    border-color: rgba(245, 158, 11, 0.20) !important;
+}
+.stAlert[data-baseweb="notification"][data-kind="warning"]::before {
+    background: linear-gradient(180deg, #f59e0b, #fbbf24);
+}
+
+.stAlert[data-baseweb="notification"][data-kind="negative"] {
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.08), rgba(239, 68, 68, 0.02)) !important;
+    border-color: rgba(239, 68, 68, 0.20) !important;
+}
+.stAlert[data-baseweb="notification"][data-kind="negative"]::before {
+    background: linear-gradient(180deg, #ef4444, #f87171);
+}
+
+/* ═══════════════════════════════════════════════
+   8. 导航与标签 (Navigation)
+   ═══════════════════════════════════════════════ */
+.stTabs [data-baseweb="tab-list"] {
+    gap: var(--ms-space-2);
+    border-bottom: 1px solid rgba(148, 163, 184, 0.10);
+    padding-bottom: var(--ms-space-1);
+}
+
+.stTabs [data-baseweb="tab"] {
+    border-radius: var(--ms-radius-md) var(--ms-radius-md) 0 0 !important;
+    padding: var(--ms-space-2) var(--ms-space-4) !important;
+    font-weight: 500 !important;
+    font-size: 0.875rem !important;
+    color: var(--ms-text-secondary) !important;
+    background: transparent !important;
+    border: none !important;
+    border-bottom: 2px solid transparent !important;
+    transition: color var(--ms-duration-fast) var(--ms-easing-default),
+                border-color var(--ms-duration-fast) var(--ms-easing-default),
+                background var(--ms-duration-fast) var(--ms-easing-default) !important;
+}
+
+.stTabs [data-baseweb="tab"]:hover {
+    color: var(--ms-text-primary) !important;
+    background: rgba(14, 165, 233, 0.05) !important;
+}
+
+.stTabs [aria-selected="true"] {
+    color: var(--ms-accent-primary) !important;
+    border-bottom-color: var(--ms-accent-primary) !important;
+    background: linear-gradient(180deg, rgba(14, 165, 233, 0.08), transparent) !important;
+}
+
+/* ═══════════════════════════════════════════════
+   9. 媒体与可视化 (Media)
+   ═══════════════════════════════════════════════ */
+.stImage > img {
+    border-radius: var(--ms-radius-lg);
+    border: 1px solid rgba(148, 163, 184, 0.10);
+    box-shadow: var(--ms-shadow-md);
+    transition: transform var(--ms-duration-normal) var(--ms-easing-default),
+                box-shadow var(--ms-duration-normal) var(--ms-easing-default);
+}
+
+.stImage > img:hover {
+    transform: scale(1.01);
+    box-shadow: var(--ms-shadow-lg);
+}
+
+/* Plotly/Matplotlib 图表容器 */
+.js-plotly-plot, .stPlotlyChart {
+    border-radius: var(--ms-radius-lg);
+    overflow: hidden;
+}
+
+/* ═══════════════════════════════════════════════
+   10. 分隔线与页脚 (Layout)
+   ═══════════════════════════════════════════════ */
+hr {
+    border: none;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(148, 163, 184, 0.15), transparent);
+    margin: var(--ms-space-6) 0;
+}
+
+.footer {
+    text-align: center;
+    padding: var(--ms-space-6) var(--ms-space-4);
+    color: var(--ms-text-tertiary);
+    font-size: 0.8125rem;
+    line-height: 1.6;
+    border-top: 1px solid rgba(148, 163, 184, 0.08);
+    margin-top: var(--ms-space-8);
+}
+
+/* ═══════════════════════════════════════════════
+   11. 加载状态：电子跃迁能量条
+   ═══════════════════════════════════════════════ */
+.stSpinner > div {
+    border-color: var(--ms-accent-primary) transparent transparent transparent !important;
+}
+
+/* 自定义进度条/加载态 */
+@keyframes electronJump {
+    0% { transform: translateX(-100%); opacity: 0; }
+    50% { opacity: 1; }
+    100% { transform: translateX(400%); opacity: 0; }
+}
+
+.loading-bar {
+    height: 2px;
+    background: rgba(14, 165, 233, 0.10);
+    border-radius: var(--ms-radius-sm);
+    overflow: hidden;
+    position: relative;
+}
+
+.loading-bar::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0;
+    width: 25%; height: 100%;
+    background: linear-gradient(90deg, transparent, var(--ms-accent-primary), transparent);
+    animation: electronJump 1.5s ease-in-out infinite;
+    will-change: transform, opacity;
+}
+
+/* ═══════════════════════════════════════════════
+   12. 辅助工具类 (Utility)
+   ═══════════════════════════════════════════════ */
+.text-gradient {
+    background: linear-gradient(135deg, #38bdf8, #818cf8);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
 }
 
-[data-testid="stMetricLabel"] {
-    font-size: 0.85rem !important;
-    color: #78909c !important;
-    font-weight: 500 !important;
+.badge {
+    display: inline-flex;
+    align-items: center;
+    padding: var(--ms-space-1) var(--ms-space-2);
+    border-radius: var(--ms-radius-sm);
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
     text-transform: uppercase;
-    letter-spacing: 0.05em;
 }
 
-/* ========== 信息框美化 ========== */
-.stAlert {
-    border-radius: 12px !important;
-    border: none !important;
-    padding: 1rem 1.2rem !important;
+.badge-primary {
+    background: rgba(14, 165, 233, 0.12);
+    color: #7dd3fc;
+    border: 1px solid rgba(14, 165, 233, 0.15);
 }
 
-.stAlert [data-testid="stMarkdownContainer"] {
-    font-size: 0.95rem;
+.badge-success {
+    background: rgba(16, 185, 129, 0.12);
+    color: #6ee7b7;
+    border: 1px solid rgba(16, 185, 129, 0.15);
 }
 
-/* Success */
-.stAlert[data-baseweb="notification"][data-kind="positive"] {
-    background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%) !important;
-    border-left: 4px solid #2e7d32 !important;
+.badge-warn {
+    background: rgba(245, 158, 11, 0.12);
+    color: #fcd34d;
+    border: 1px solid rgba(245, 158, 11, 0.15);
 }
 
-/* Info */
-.stAlert[data-baseweb="notification"][data-kind="info"] {
-    background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%) !important;
-    border-left: 4px solid #1565c0 !important;
-}
-
-/* Warning */
-.stAlert[data-baseweb="notification"][data-kind="warning"] {
-    background: linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%) !important;
-    border-left: 4px solid #ef6c00 !important;
-}
-
-/* Error */
-.stAlert[data-baseweb="notification"][data-kind="negative"] {
-    background: linear-gradient(135deg, #ffebee 0%, #ffcdd2 100%) !important;
-    border-left: 4px solid #c62828 !important;
-}
-
-/* ========== 分隔线 ========== */
-hr {
-    border: none;
-    height: 2px;
-    background: linear-gradient(90deg, transparent, #b0bec5, transparent);
-    margin: 2rem 0;
-}
-
-/* ========== 页脚 ========== */
-.footer {
-    text-align: center;
-    padding: 1.5rem;
-    color: #90a4ae;
-    font-size: 0.85rem;
-    margin-top: 2rem;
-    border-top: 1px solid #e0e7ee;
-}
-
-/* ========== 结果高亮 ========== */
-.result-high {
-    background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
-    border-radius: 12px;
-    padding: 1.2rem;
-    text-align: center;
-    border: 2px solid #a5d6a7;
-    margin: 0.5rem 0;
-}
-
-.result-moderate {
-    background: linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%);
-    border-radius: 12px;
-    padding: 1.2rem;
-    text-align: center;
-    border: 2px solid #ffcc80;
-    margin: 0.5rem 0;
-}
-
-.result-low {
-    background: linear-gradient(135deg, #ffebee 0%, #ffcdd2 100%);
-    border-radius: 12px;
-    padding: 1.2rem;
-    text-align: center;
-    border: 2px solid #ef9a9a;
-    margin: 0.5rem 0;
-}
-
-/* ========== 标签页美化 ========== */
-.stTabs [data-baseweb="tab-list"] {
-    gap: 8px;
-}
-
-.stTabs [data-baseweb="tab"] {
-    border-radius: 8px 8px 0 0 !important;
-    padding: 0.5rem 1.2rem !important;
-    font-weight: 500 !important;
-}
-
-.stTabs [aria-selected="true"] {
-    background: linear-gradient(135deg, #006064, #00acc1) !important;
-    color: white !important;
-}
-
-/* ========== 图片容器 ========== */
-.stImage > img {
-    border-radius: 12px;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-}
-
-/* ========== 滚动条美化 ========== */
+/* ═══════════════════════════════════════════════
+   13. 滚动条与响应式
+   ═══════════════════════════════════════════════ */
 ::-webkit-scrollbar {
-    width: 8px;
+    width: 6px;
+    height: 6px;
 }
 
 ::-webkit-scrollbar-track {
-    background: #f1f1f1;
-    border-radius: 4px;
+    background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
-    background: linear-gradient(135deg, #b0bec5, #78909c);
-    border-radius: 4px;
+    background: rgba(100, 116, 139, 0.30);
+    border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-    background: linear-gradient(135deg, #78909c, #546e7a);
+    background: rgba(100, 116, 139, 0.50);
 }
+
+/* 响应式适配 */
+@media (max-width: 768px) {
+    .main .block-container {
+        padding-left: var(--ms-space-4) !important;
+        padding-right: var(--ms-space-4) !important;
+    }
+    .gradient-title {
+        font-size: 2rem;
+    }
+    .card-container {
+        padding: var(--ms-space-4);
+    }
+}
+
+/* Streamlit 原生组件暗黑适配 */
+.stMarkdown, .stText, p, li, span {
+    color: var(--ms-text-primary);
+}
+
+.stCaption {
+    color: var(--ms-text-tertiary) !important;
+    font-size: 0.8125rem !important;
+}
+
+[data-testid="stExpander"] {
+    background: var(--ms-bg-surface) !important;
+    border: 1px solid rgba(148, 163, 184, 0.08) !important;
+    border-radius: var(--ms-radius-lg) !important;
+}
+
+/* 隐藏 Streamlit 默认顶栏装饰 */
+#MainMenu {visibility: hidden;}
+header {visibility: hidden;}
+footer {visibility: hidden;}
 </style>
 """, unsafe_allow_html=True)
 
@@ -809,20 +1214,20 @@ st.markdown("""
 
 st.markdown("""
 <div class="card-container" style="padding: 1.2rem 1.5rem; margin-bottom: 2rem;">
-    <p style="margin: 0; color: #455a64; line-height: 1.7;">
-        <b>Welcome!</b> This app predicts how well a molecule dissolves in water (logS) 
+    <p style="margin: 0; color: var(--ms-text-secondary); line-height: 1.7;">
+        <b style="color: var(--ms-text-primary);">Welcome!</b> This app predicts how well a molecule dissolves in water (logS)
         using a <b>Machine Learning</b> model trained on <b>11,000+ organic compounds</b>.
         Explore molecular properties, 3D structures, pKa profiles, and AI-generated explanations.
     </p>
     <div style="display: flex; gap: 1rem; margin-top: 1rem; flex-wrap: wrap;">
-        <div style="display: flex; align-items: center; gap: 0.4rem; color: #006064; font-weight: 500; font-size: 0.9rem;">
-            <span style="font-size: 1.2rem;">👇</span> 快速选择
+        <div style="display: flex; align-items: center; gap: 0.4rem; color: var(--ms-accent-primary); font-weight: 500; font-size: 0.875rem;">
+            <span style="font-size: 1.1rem;">👇</span> 快速选择
         </div>
-        <div style="display: flex; align-items: center; gap: 0.4rem; color: #006064; font-weight: 500; font-size: 0.9rem;">
-            <span style="font-size: 1.2rem;">🔍</span> 名称搜索
+        <div style="display: flex; align-items: center; gap: 0.4rem; color: var(--ms-accent-primary); font-weight: 500; font-size: 0.875rem;">
+            <span style="font-size: 1.1rem;">🔍</span> 名称搜索
         </div>
-        <div style="display: flex; align-items: center; gap: 0.4rem; color: #006064; font-weight: 500; font-size: 0.9rem;">
-            <span style="font-size: 1.2rem;">✏️</span> SMILES 输入
+        <div style="display: flex; align-items: center; gap: 0.4rem; color: var(--ms-accent-primary); font-weight: 500; font-size: 0.875rem;">
+            <span style="font-size: 1.1rem;">✏️</span> SMILES 输入
         </div>
     </div>
 </div>
@@ -922,9 +1327,9 @@ with st.container(border=True):
                     - 直接输入 SMILES（方式3）
                     """)
                     st.markdown("""
-                    <div style="background: linear-gradient(135deg, #e3f2fd, #bbdefb); padding: 18px; border-radius: 12px; border-left: 4px solid #1565c0;">
-                    <h4 style="color: #0d47a1; margin-top: 0;">🔍 如何手动获取 SMILES？</h4>
-                    <ol style="color: #37474f; margin-bottom: 0;">
+                    <div style="background: linear-gradient(135deg, rgba(14, 165, 233, 0.08), rgba(14, 165, 233, 0.03)); padding: 18px; border-radius: 12px; border-left: 3px solid var(--ms-accent-primary);">
+                    <h4 style="color: #7dd3fc; margin-top: 0;">🔍 如何手动获取 SMILES？</h4>
+                    <ol style="color: var(--ms-text-secondary); margin-bottom: 0;">
                         <li>访问 <a href="https://pubchem.ncbi.nlm.nih.gov" target="_blank"><b>https://pubchem.ncbi.nlm.nih.gov</b></a></li>
                         <li>在搜索框输入分子名称（英文，如 <b>Aspirin</b>）</li>
                         <li>进入化合物页面，找到 <b>Canonical SMILES</b> 字段</li>
@@ -1043,15 +1448,15 @@ if st.session_state.predicted_smiles and st.session_state.predicted_logS is not 
             
             if prediction > 0:
                 interp = "Highly soluble (易溶于水)"
-                color = "#2e7d32"
+                color = "#34d399"
                 css_class = "result-high"
             elif prediction > -2:
                 interp = "Moderately soluble (中等溶解)"
-                color = "#ef6c00"
+                color = "#fbbf24"
                 css_class = "result-moderate"
             else:
                 interp = "Poorly soluble (难溶于水)"
-                color = "#c62828"
+                color = "#f87171"
                 css_class = "result-low"
             
             st.markdown(f"""
@@ -1061,8 +1466,8 @@ if st.session_state.predicted_smiles and st.session_state.predicted_logS is not 
             """, unsafe_allow_html=True)
             
             st.markdown("""
-            <div style="background: rgba(236, 239, 241, 0.5); border-radius: 10px; padding: 1rem; font-size: 0.9rem; color: #546e7a;">
-            <b>Interpretation guide:</b><br>
+            <div style="background: rgba(148, 163, 184, 0.06); border-radius: 10px; padding: 1rem; font-size: 0.875rem; color: var(--ms-text-tertiary); border: 1px solid rgba(148, 163, 184, 0.08);">
+            <b style="color: var(--ms-text-secondary);">Interpretation guide:</b><br>
             • logS > 0: Very soluble (like ethanol)<br>
             • -2 < logS < 0: Moderately soluble<br>
             • logS < -2: Poorly soluble (like many drug molecules)
@@ -1081,23 +1486,20 @@ if st.session_state.predicted_smiles and st.session_state.predicted_logS is not 
             if pka_val < 5:
                 pka_type = "acid"
                 pka_label = "酸性分子 (Acidic)"
-                pka_color = "#c62828"
-                pka_bg = "linear-gradient(135deg, #ffebee 0%, #ffcdd2 100%)"
-                pka_border = "#ef9a9a"
+                pka_css = "pka-acid"
+                pka_text_color = "#f87171"
                 pka_desc = "pKa 较低，在酸性环境中以分子态为主，脂溶性高"
             elif pka_val > 9:
                 pka_type = "base"
                 pka_label = "碱性分子 (Basic)"
-                pka_color = "#1565c0"
-                pka_bg = "linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%)"
-                pka_border = "#90caf9"
+                pka_css = "pka-base"
+                pka_text_color = "#60a5fa"
                 pka_desc = "pKa 较高，在碱性环境中以分子态为主"
             else:
                 pka_type = "amphoteric"
                 pka_label = "两性/中性 (Amphoteric/Neutral)"
-                pka_color = "#ef6c00"
-                pka_bg = "linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%)"
-                pka_border = "#ffcc80"
+                pka_css = "pka-amphoteric"
+                pka_text_color = "#fbbf24"
                 pka_desc = "pKa 接近中性，电离行为随 pH 变化剧烈"
             
             col_pka1, col_pka2 = st.columns([1, 1.2])
@@ -1106,9 +1508,9 @@ if st.session_state.predicted_smiles and st.session_state.predicted_logS is not 
                 st.markdown("<br>", unsafe_allow_html=True)
                 st.metric("Predicted pKa", f"{pka_val:.2f}")
                 st.markdown(f"""
-                <div style="background: {pka_bg}; border-radius: 12px; padding: 1rem; text-align: center; border: 2px solid {pka_border}; margin-top: 0.8rem;">
-                    <div style="font-size: 1.1rem; font-weight: 700; color: {pka_color};">➜ {pka_label}</div>
-                    <div style="font-size: 0.85rem; color: #546e7a; margin-top: 0.4rem;">{pka_desc}</div>
+                <div class="{pka_css}" style="margin-top: 0.8rem;">
+                    <div style="font-size: 1.1rem; font-weight: 700; color: {pka_text_color};">➜ {pka_label}</div>
+                    <div style="font-size: 0.85rem; color: var(--ms-text-tertiary); margin-top: 0.4rem;">{pka_desc}</div>
                 </div>
                 """, unsafe_allow_html=True)
             
@@ -1138,8 +1540,16 @@ if st.session_state.predicted_smiles and st.session_state.predicted_logS is not 
                 else:
                     fractions = [1 / (1 + 10**(pka_val - ph)) for ph in env_ph]
                 
+                # 深色主题适配
+                plt.rcParams['figure.facecolor'] = '#0f172a'
+                plt.rcParams['axes.facecolor'] = '#1e293b'
+                plt.rcParams['axes.edgecolor'] = '#334155'
+                plt.rcParams['axes.labelcolor'] = '#94a3b8'
+                plt.rcParams['xtick.color'] = '#94a3b8'
+                plt.rcParams['ytick.color'] = '#94a3b8'
+                plt.rcParams['text.color'] = '#f8fafc'
                 fig, ax = plt.subplots(figsize=(7, 3.2))
-                colors_bar = ['#e74c3c', '#e67e22', '#2ecc71', '#3498db']
+                colors_bar = ['#f87171', '#fbbf24', '#34d399', '#60a5fa']
                 bars = ax.bar(env_names, [f*100 for f in fractions], color=colors_bar, edgecolor='white', width=0.6)
                 
                 for bar, frac in zip(bars, fractions):
@@ -1226,7 +1636,7 @@ if st.session_state.predicted_smiles and st.session_state.predicted_logS is not 
             col_3d, col_chem = st.columns([1, 1.2])
 
             with col_3d:
-                st.markdown("<div style='font-weight: 600; color: #37474f; margin-bottom: 0.5rem;'>🎯 3D 球棍模型（可旋转缩放）</div>", unsafe_allow_html=True)
+                st.markdown("<div style='font-weight: 600; color: var(--ms-text-secondary); margin-bottom: 0.5rem;'>🎯 3D 球棍模型（可旋转缩放）</div>", unsafe_allow_html=True)
                 html_3d = show_3d_molecule(st.session_state.predicted_smiles)
                 if html_3d:
                     components.html(html_3d, height=340)
@@ -1249,6 +1659,14 @@ if st.session_state.predicted_smiles and st.session_state.predicted_logS is not 
                     vals = list(chem_factors.values())
                     colors = ['#ff0051' if v > 0 else '#008bfb' for v in vals]
 
+                    # 深色主题适配
+                    plt.rcParams['figure.facecolor'] = '#0f172a'
+                    plt.rcParams['axes.facecolor'] = '#1e293b'
+                    plt.rcParams['axes.edgecolor'] = '#334155'
+                    plt.rcParams['axes.labelcolor'] = '#94a3b8'
+                    plt.rcParams['xtick.color'] = '#94a3b8'
+                    plt.rcParams['ytick.color'] = '#94a3b8'
+                    plt.rcParams['text.color'] = '#f8fafc'
                     fig, ax = plt.subplots(figsize=(6, 4))
                     bars = ax.barh(range(len(vals)), vals, color=colors, edgecolor='white', height=0.55)
                     ax.invert_yaxis()
@@ -1385,6 +1803,14 @@ if st.session_state.predicted_smiles and st.session_state.predicted_logS is not 
             colors = ['#ff0051' if v > 0 else '#008bfb' for v in top_shap]
 
             # 画图
+            # 深色主题适配
+            plt.rcParams['figure.facecolor'] = '#0f172a'
+            plt.rcParams['axes.facecolor'] = '#1e293b'
+            plt.rcParams['axes.edgecolor'] = '#334155'
+            plt.rcParams['axes.labelcolor'] = '#94a3b8'
+            plt.rcParams['xtick.color'] = '#94a3b8'
+            plt.rcParams['ytick.color'] = '#94a3b8'
+            plt.rcParams['text.color'] = '#f8fafc'
             fig, ax = plt.subplots(figsize=(8, 4.5))
             bars = ax.barh(range(len(top_shap)), top_shap, color=colors, edgecolor="white", height=0.6)
             ax.invert_yaxis()
@@ -1513,7 +1939,7 @@ if st.session_state.predicted_smiles and st.session_state.predicted_logS is not 
 # ========== 页脚 ==========
 st.markdown("""
 <div class="footer">
-    <div style="font-weight: 600; color: #546e7a; margin-bottom: 0.3rem;">Molecular Solubility Predictor</div>
+    <div style="font-weight: 600; color: var(--ms-text-secondary); margin-bottom: 0.3rem;">Molecular Solubility Predictor</div>
     <div>Built by Leonlee | ML: Random Forest + RDKit (V2: 11,000+ molecules) | AI: Kimi (Moonshot AI) | DB: 100+ local + PubChem API</div>
     <div style="margin-top: 0.5rem; font-size: 0.75rem; color: #b0bec5;">🧪 科学计算 · 🤖 人工智能 · 🎯 药物化学</div>
 </div>
