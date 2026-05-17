@@ -654,7 +654,135 @@ if st.session_state.predicted_smiles and st.session_state.predicted_logS is not 
             - -2 < logS < 0: Moderately soluble
             - logS < -2: Poorly soluble (like many drug molecules)
             """)
-        
+                # ========== pKa 预测结果 ==========
+        if "predicted_pka" in st.session_state:
+            st.divider()
+            st.subheader("⚡ pKa & Ionization Profile")
+            
+            pka_val = st.session_state.predicted_pka
+            
+            # 判断酸碱性倾向（简化版：pKa < 7 倾向酸性，>7 倾向碱性）
+            if pka_val < 5:
+                pka_type = "acid"
+                pka_label = "酸性分子 (Acidic)"
+                pka_color = "red"
+                pka_desc = "pKa 较低，在酸性环境中以分子态为主，脂溶性高"
+            elif pka_val > 9:
+                pka_type = "base"
+                pka_label = "碱性分子 (Basic)"
+                pka_color = "blue"
+                pka_desc = "pKa 较高，在碱性环境中以分子态为主"
+            else:
+                pka_type = "amphoteric"
+                pka_label = "两性/中性 (Amphoteric/Neutral)"
+                pka_color = "orange"
+                pka_desc = "pKa 接近中性，电离行为随 pH 变化剧烈"
+            
+            col_pka1, col_pka2 = st.columns([1, 1.2])
+            
+            with col_pka1:
+                st.metric("Predicted pKa", f"{pka_val:.2f}")
+                st.markdown(f"<h4 style='color: {pka_color};'>➜ {pka_label}</h4>", unsafe_allow_html=True)
+                st.caption(pka_desc)
+            
+            with col_pka2:
+                # 生理环境分布图
+                import matplotlib.pyplot as plt
+                import matplotlib.font_manager as fm
+                import glob
+                
+                # 复用字体设置（简化版，因为前面 SHAP 已经设置过，这里快速复用）
+                try:
+                    for font in fm.fontManager.ttflist:
+                        if font.name in ('Noto Sans CJK SC', 'Noto Sans CJK'):
+                            plt.rcParams['font.family'] = font.name
+                            break
+                except Exception:
+                    pass
+                plt.rcParams['axes.unicode_minus'] = False
+                
+                # 生理环境 pH 值
+                env_ph = [1.5, 4.5, 6.8, 7.4]
+                env_names = ['Stomach\n胃', 'Duodenum\n十二指肠', 'Small Intestine\n小肠', 'Blood/Brain\n血液/脑']
+                
+                # 计算分子态比例（Henderson-Hasselbalch 方程）
+                if pka_type == "acid":
+                    fractions = [1 / (1 + 10**(ph - pka_val)) for ph in env_ph]
+                else:
+                    fractions = [1 / (1 + 10**(pka_val - ph)) for ph in env_ph]
+                
+                fig, ax = plt.subplots(figsize=(7, 3.2))
+                colors_bar = ['#e74c3c', '#e67e22', '#2ecc71', '#3498db']
+                bars = ax.bar(env_names, [f*100 for f in fractions], color=colors_bar, edgecolor='white', width=0.6)
+                
+                for bar, frac in zip(bars, fractions):
+                    height = bar.get_height()
+                    ax.text(bar.get_x() + bar.get_width()/2., height + 2,
+                            f'{frac*100:.1f}%', ha='center', va='bottom', fontsize=10)
+                
+                ax.set_ylabel('分子态比例 (Unionized %)', fontsize=11)
+                ax.set_ylim(0, 105)
+                ax.set_title(f'不同生理环境下的分子态比例 | pKa = {pka_val:.2f}', fontsize=12)
+                ax.spines['top'].set_visible(False)
+                ax.spines['right'].set_visible(False)
+                plt.tight_layout()
+                st.pyplot(fig, width="stretch")
+                plt.close(fig)
+            
+            # 药理学洞察
+            st.divider()
+            st.subheader("💊 药理学分析")
+            
+            if pka_type == "acid":
+                if pka_val < 4:
+                    st.success("**胃吸收优势**：pKa < 4，在胃酸（pH 1.5）中大部分以分子态存在，脂溶性高，容易被胃黏膜吸收。代表药物：阿司匹林 (pKa 3.5)、布洛芬 (pKa 4.9)。")
+                else:
+                    st.info("**全肠道吸收**：pKa 中等，在胃和小肠中都有一定比例的分子态，吸收较均匀。注意：分子态比例高时脂溶性强，可能刺激胃黏膜。")
+            elif pka_type == "base":
+                if pka_val > 9:
+                    st.warning("**肠道吸收为主**：强碱性分子在胃中几乎完全电离，难以吸收；进入小肠（pH 6.8）后分子态增加，主要在小肠吸收。代表药物：二甲双胍 (pKa ~12.4)。")
+                else:
+                    st.info("**弱碱性分子**：在胃中少量电离，小肠中吸收良好。进入血液（pH 7.4）后可能部分电离，水溶性增加，有利于肾脏排泄。")
+            else:
+                st.info("**两性分子**：在不同 pH 环境下电离行为复杂，吸收部位取决于具体结构。可能需要特殊制剂（如肠溶片）来优化生物利用度。")
+            
+            # 溶解度 × pKa 联动分析
+            st.divider()
+            st.markdown("#### 🔗 溶解度 × pKa 联动分析")
+            
+            logS = prediction
+            parts = []
+            
+            if logS > 0:
+                parts.append("💧 **溶解度**：易溶于水，有利于溶出。")
+            elif logS > -2:
+                parts.append("💧 **溶解度**：中等，可能需要辅料助溶。")
+            else:
+                parts.append("💧 **溶解度**：较低，生物利用度可能受限。")
+            
+            if pka_type == "acid":
+                if pka_val < 4:
+                    parts.append(f"⚡ **pKa**：弱酸性 (pKa={pka_val:.1f})，胃吸收好，**空腹服用**效果更佳。")
+                else:
+                    parts.append(f"⚡ **pKa**：中等酸性 (pKa={pka_val:.1f})，全肠道吸收，对服药时间要求不高。")
+            elif pka_type == "base":
+                if pka_val > 9:
+                    parts.append(f"⚡ **pKa**：强碱性 (pKa={pka_val:.1f})，胃吸收差，**餐后服用**可减少胃刺激，主要在小肠吸收。")
+                else:
+                    parts.append(f"⚡ **pKa**：弱碱性 (pKa={pka_val:.1f})，小肠吸收为主，血液中有利于排泄。")
+            else:
+                parts.append(f"⚡ **pKa**：接近中性 (pKa={pka_val:.1f})，吸收行为较复杂。")
+            
+            # 综合判断
+            if logS > 0 and pka_type == "acid" and pka_val < 4:
+                parts.append("✅ **综合**：高溶解度 + 胃吸收优势 = **口服生物利用度极佳**，适合做成普通片剂。")
+            elif logS < -2 and pka_type == "base" and pka_val > 9:
+                parts.append("⚠️ **综合**：低溶解度 + 强碱性 = **口服吸收双重挑战**，可能需要肠溶片或注射剂型。")
+            elif logS > 0 and pka_type == "base" and pka_val > 9:
+                parts.append("✅ **综合**：高溶解度弥补了胃吸收劣势，进入小肠后吸收良好，总体生物利用度可接受。")
+            
+            st.info(" | ".join(parts))
+
         # ========== 分子描述符 ==========
         st.divider()
         st.subheader("📊 Molecular Descriptors")
