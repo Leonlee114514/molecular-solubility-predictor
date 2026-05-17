@@ -280,8 +280,271 @@ def search_pubchem_final(name, max_retries=3):
 st.set_page_config(
     page_title="Molecular Solubility Predictor",
     page_icon="🧪",
-    layout="centered"
+    layout="wide",
+    initial_sidebar_state="collapsed"
 )
+
+# ========== 自定义 CSS 美化 ==========
+st.markdown("""
+<style>
+/* ========== 全局样式 ========== */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+html, body, [class*="css"] {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+}
+
+.main {
+    background: linear-gradient(135deg, #f5f7fa 0%, #e4e8ec 100%);
+    padding: 1rem 2rem;
+}
+
+/* ========== 标题样式 ========== */
+.gradient-title {
+    background: linear-gradient(135deg, #1a237e 0%, #006064 50%, #00acc1 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    font-weight: 800;
+    font-size: 2.8rem;
+    text-align: center;
+    margin-bottom: 0.3rem;
+    letter-spacing: -0.02em;
+}
+
+.subtitle {
+    text-align: center;
+    color: #546e7a;
+    font-size: 1.15rem;
+    font-weight: 400;
+    margin-bottom: 1.5rem;
+}
+
+/* ========== 卡片容器 ========== */
+.card-container {
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(10px);
+    border-radius: 16px;
+    padding: 1.5rem 2rem;
+    margin-bottom: 1.5rem;
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06), 0 1px 3px rgba(0, 0, 0, 0.04);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.card-container:hover {
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1), 0 2px 6px rgba(0, 0, 0, 0.06);
+}
+
+.card-title {
+    color: #1a237e;
+    font-size: 1.25rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    border-bottom: 2px solid #e0e7ee;
+    padding-bottom: 0.6rem;
+}
+
+/* ========== 输入框美化 ========== */
+.stTextInput > div > div > input {
+    border-radius: 10px !important;
+    border: 2px solid #e0e7ee !important;
+    padding: 0.6rem 1rem !important;
+    font-size: 1rem !important;
+    transition: all 0.2s ease !important;
+    background: #ffffff !important;
+}
+
+.stTextInput > div > div > input:focus {
+    border-color: #00acc1 !important;
+    box-shadow: 0 0 0 3px rgba(0, 172, 193, 0.15) !important;
+}
+
+.stSelectbox > div > div > div {
+    border-radius: 10px !important;
+    border: 2px solid #e0e7ee !important;
+    background: #ffffff !important;
+}
+
+/* ========== 按钮美化 ========== */
+.stButton > button {
+    background: linear-gradient(135deg, #006064 0%, #00838f 50%, #00acc1 100%) !important;
+    color: white !important;
+    border: none !important;
+    border-radius: 12px !important;
+    padding: 0.7rem 2rem !important;
+    font-size: 1.05rem !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.02em !important;
+    box-shadow: 0 4px 15px rgba(0, 172, 193, 0.35) !important;
+    transition: all 0.25s ease !important;
+    width: 100% !important;
+}
+
+.stButton > button:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: 0 6px 20px rgba(0, 172, 193, 0.5) !important;
+    background: linear-gradient(135deg, #004d40 0%, #006064 50%, #00838f 100%) !important;
+}
+
+.stButton > button:active {
+    transform: translateY(0) !important;
+}
+
+/* 次要按钮 */
+.stButton > button[kind="secondary"] {
+    background: linear-gradient(135deg, #5e35b1 0%, #7e57c2 100%) !important;
+    box-shadow: 0 4px 15px rgba(94, 53, 177, 0.35) !important;
+}
+
+.stButton > button[kind="secondary"]:hover {
+    box-shadow: 0 6px 20px rgba(94, 53, 177, 0.5) !important;
+}
+
+/* ========== Metric 美化 ========== */
+[data-testid="stMetricValue"] {
+    font-size: 1.8rem !important;
+    font-weight: 700 !important;
+    background: linear-gradient(135deg, #1a237e, #00838f);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+[data-testid="stMetricLabel"] {
+    font-size: 0.85rem !important;
+    color: #78909c !important;
+    font-weight: 500 !important;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+/* ========== 信息框美化 ========== */
+.stAlert {
+    border-radius: 12px !important;
+    border: none !important;
+    padding: 1rem 1.2rem !important;
+}
+
+.stAlert [data-testid="stMarkdownContainer"] {
+    font-size: 0.95rem;
+}
+
+/* Success */
+.stAlert[data-baseweb="notification"][data-kind="positive"] {
+    background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%) !important;
+    border-left: 4px solid #2e7d32 !important;
+}
+
+/* Info */
+.stAlert[data-baseweb="notification"][data-kind="info"] {
+    background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%) !important;
+    border-left: 4px solid #1565c0 !important;
+}
+
+/* Warning */
+.stAlert[data-baseweb="notification"][data-kind="warning"] {
+    background: linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%) !important;
+    border-left: 4px solid #ef6c00 !important;
+}
+
+/* Error */
+.stAlert[data-baseweb="notification"][data-kind="negative"] {
+    background: linear-gradient(135deg, #ffebee 0%, #ffcdd2 100%) !important;
+    border-left: 4px solid #c62828 !important;
+}
+
+/* ========== 分隔线 ========== */
+hr {
+    border: none;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, #b0bec5, transparent);
+    margin: 2rem 0;
+}
+
+/* ========== 页脚 ========== */
+.footer {
+    text-align: center;
+    padding: 1.5rem;
+    color: #90a4ae;
+    font-size: 0.85rem;
+    margin-top: 2rem;
+    border-top: 1px solid #e0e7ee;
+}
+
+/* ========== 结果高亮 ========== */
+.result-high {
+    background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
+    border-radius: 12px;
+    padding: 1.2rem;
+    text-align: center;
+    border: 2px solid #a5d6a7;
+    margin: 0.5rem 0;
+}
+
+.result-moderate {
+    background: linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%);
+    border-radius: 12px;
+    padding: 1.2rem;
+    text-align: center;
+    border: 2px solid #ffcc80;
+    margin: 0.5rem 0;
+}
+
+.result-low {
+    background: linear-gradient(135deg, #ffebee 0%, #ffcdd2 100%);
+    border-radius: 12px;
+    padding: 1.2rem;
+    text-align: center;
+    border: 2px solid #ef9a9a;
+    margin: 0.5rem 0;
+}
+
+/* ========== 标签页美化 ========== */
+.stTabs [data-baseweb="tab-list"] {
+    gap: 8px;
+}
+
+.stTabs [data-baseweb="tab"] {
+    border-radius: 8px 8px 0 0 !important;
+    padding: 0.5rem 1.2rem !important;
+    font-weight: 500 !important;
+}
+
+.stTabs [aria-selected="true"] {
+    background: linear-gradient(135deg, #006064, #00acc1) !important;
+    color: white !important;
+}
+
+/* ========== 图片容器 ========== */
+.stImage > img {
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+/* ========== 滚动条美化 ========== */
+::-webkit-scrollbar {
+    width: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: linear-gradient(135deg, #b0bec5, #78909c);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(135deg, #78909c, #546e7a);
+}
+</style>
+""", unsafe_allow_html=True)
 
 # ========== 加载 V2 模型 ==========
 @st.cache_resource
@@ -484,74 +747,80 @@ if "ai_explanation" not in st.session_state:
     st.session_state.ai_explanation = None
 
 # ========== 网页界面 ==========
-st.title("🧪 Molecular Solubility Predictor")
-st.subheader("Predict Aqueous Solubility from Molecular Structure")
+st.markdown("""
+<h1 class="gradient-title">🧪 Molecular Solubility Predictor</h1>
+<p class="subtitle">Predict Aqueous Solubility from Molecular Structure with AI-Powered Insights</p>
+""", unsafe_allow_html=True)
 
 st.markdown("""
-**Welcome!** This app predicts how well a molecule dissolves in water (logS) 
-using a Machine Learning model trained on **11,000+ organic compounds**.
-
-**三种输入方式：**
-1. 👇 从下拉菜单快速选择（100+ 常见分子）
-2. 🔍 输入名称搜索（先查本地库，再查 PubChem API，无需手动切换）
-3. ✏️ 直接粘贴 SMILES 字符串
-""")
+<div class="card-container" style="padding: 1.2rem 1.5rem; margin-bottom: 2rem;">
+    <p style="margin: 0; color: #455a64; line-height: 1.7;">
+        <b>Welcome!</b> This app predicts how well a molecule dissolves in water (logS) 
+        using a <b>Machine Learning</b> model trained on <b>11,000+ organic compounds</b>.
+        Explore molecular properties, 3D structures, pKa profiles, and AI-generated explanations.
+    </p>
+    <div style="display: flex; gap: 1rem; margin-top: 1rem; flex-wrap: wrap;">
+        <div style="display: flex; align-items: center; gap: 0.4rem; color: #006064; font-weight: 500; font-size: 0.9rem;">
+            <span style="font-size: 1.2rem;">👇</span> 快速选择
+        </div>
+        <div style="display: flex; align-items: center; gap: 0.4rem; color: #006064; font-weight: 500; font-size: 0.9rem;">
+            <span style="font-size: 1.2rem;">🔍</span> 名称搜索
+        </div>
+        <div style="display: flex; align-items: center; gap: 0.4rem; color: #006064; font-weight: 500; font-size: 0.9rem;">
+            <span style="font-size: 1.2rem;">✏️</span> SMILES 输入
+        </div>
+    </div>
+</div>
+""", unsafe_allow_html=True)
 
 # ========== 输入区域 ==========
 
 # --- 方式1：下拉菜单 ---
-st.markdown("**方式 1：快速选择常见分子**")
-selected_molecule = st.selectbox(
-    "选择分子",
-    list(MOLECULE_DB.keys()),
-    index=0,
-    key="molecule_select"
-)
-
-if selected_molecule != list(MOLECULE_DB.keys())[0]:
-    new_smiles = MOLECULE_DB[selected_molecule]
-    if new_smiles != st.session_state.smiles_input_box:
-        st.session_state.smiles_input_box = new_smiles
-        st.session_state.predicted_smiles = None
-        st.session_state.predicted_logS = None
-        st.session_state.ai_explanation = None
-        st.rerun()
-
-# --- 方式2：三层搜索（本地 → PubChem → 引导）---
-st.markdown("**方式 2：名称搜索（本地库 + PubChem API）**")
-st.caption("💡 支持中英文，如 阿司匹林 / Aspirin / Ibuprofen / 咖啡因")
-search_col1, search_col2 = st.columns([3, 1])
-with search_col1:
-    search_name = st.text_input(
-        "输入名称",
-        placeholder="例如 阿司匹林 或 Aspirin",
-        key="search_name"
+with st.container(border=True):
+    st.markdown("""
+    <div class="card-title">👇 方式 1：快速选择常见分子</div>
+    """, unsafe_allow_html=True)
+    selected_molecule = st.selectbox(
+        "选择分子",
+        list(MOLECULE_DB.keys()),
+        index=0,
+        key="molecule_select",
+        label_visibility="collapsed"
     )
-with search_col2:
-    search_clicked = st.button("🔍 搜索", key="search_btn")
 
-if search_clicked and search_name:
-    query = search_name.strip().lower()
-    
-    # ===== 第一层：本地精确匹配 =====
-    if query in SEARCH_INDEX:
-        found_smiles = SEARCH_INDEX[query]
-        st.success(f"✅ 本地精确匹配：`{search_name}` → `{found_smiles}`")
-        if found_smiles != st.session_state.smiles_input_box:
-            st.session_state.smiles_input_box = found_smiles
+    if selected_molecule != list(MOLECULE_DB.keys())[0]:
+        new_smiles = MOLECULE_DB[selected_molecule]
+        if new_smiles != st.session_state.smiles_input_box:
+            st.session_state.smiles_input_box = new_smiles
             st.session_state.predicted_smiles = None
             st.session_state.predicted_logS = None
             st.session_state.ai_explanation = None
-        st.info("👇 点击下方的 **Predict** 按钮查看结果")
-    
-    else:
-        # ===== 第二层：本地模糊匹配 =====
-        matches = [k for k in SEARCH_INDEX.keys() if query in k or k in query]
-        if matches:
-            matches.sort(key=lambda x: (0 if x.startswith(query) else 1, len(x)))
-            best_match = matches[0]
-            found_smiles = SEARCH_INDEX[best_match]
-            st.success(f"✅ 本地模糊匹配：`{search_name}` → `{best_match}` → `{found_smiles}`")
+            st.rerun()
+
+# --- 方式2：三层搜索（本地 → PubChem → 引导）---
+with st.container(border=True):
+    st.markdown("""
+    <div class="card-title">🔍 方式 2：名称搜索（本地库 + PubChem API）</div>
+    """, unsafe_allow_html=True)
+    st.caption("💡 支持中英文，如 阿司匹林 / Aspirin / Ibuprofen / 咖啡因")
+    search_col1, search_col2 = st.columns([4, 1])
+    with search_col1:
+        search_name = st.text_input(
+            "输入名称",
+            placeholder="例如 阿司匹林 或 Aspirin",
+            key="search_name",
+            label_visibility="collapsed"
+        )
+    with search_col2:
+        search_clicked = st.button("🔍 搜索", key="search_btn", use_container_width=True)
+
+    if search_clicked and search_name:
+        query = search_name.strip().lower()
+        
+        # ===== 第一层：本地精确匹配 =====
+        if query in SEARCH_INDEX:
+            found_smiles = SEARCH_INDEX[query]
+            st.success(f"✅ 本地精确匹配：`{search_name}` → `{found_smiles}`")
             if found_smiles != st.session_state.smiles_input_box:
                 st.session_state.smiles_input_box = found_smiles
                 st.session_state.predicted_smiles = None
@@ -560,12 +829,13 @@ if search_clicked and search_name:
             st.info("👇 点击下方的 **Predict** 按钮查看结果")
         
         else:
-            # ===== 第三层：PubChem API（保留原有代码逻辑）=====
-            with st.spinner("🌐 本地未找到，正在查询 PubChem API..."):
-                found_smiles, status = search_pubchem_final(search_name)
-            
-            if found_smiles:
-                st.success(f"✅ PubChem 匹配：`{search_name}` → `{found_smiles}` ({status})")
+            # ===== 第二层：本地模糊匹配 =====
+            matches = [k for k in SEARCH_INDEX.keys() if query in k or k in query]
+            if matches:
+                matches.sort(key=lambda x: (0 if x.startswith(query) else 1, len(x)))
+                best_match = matches[0]
+                found_smiles = SEARCH_INDEX[best_match]
+                st.success(f"✅ 本地模糊匹配：`{search_name}` → `{best_match}` → `{found_smiles}`")
                 if found_smiles != st.session_state.smiles_input_box:
                     st.session_state.smiles_input_box = found_smiles
                     st.session_state.predicted_smiles = None
@@ -574,45 +844,65 @@ if search_clicked and search_name:
                 st.info("👇 点击下方的 **Predict** 按钮查看结果")
             
             else:
-                # ===== 第四层：失败引导 =====
-                st.error(f"❌ 未找到：`{search_name}`")
-                st.info("尝试建议：")
-                st.markdown("""
-                - 检查拼写（如 **Aspirin** 而非 **Aspriin**）
-                - 尝试更常见的名称
-                - 直接输入 SMILES（方式3）
-                """)
-                st.markdown("""
-                <div style="background-color: #f0f8ff; padding: 15px; border-radius: 8px; border-left: 4px solid #4a90e2;">
-                <h4>🔍 如何手动获取 SMILES？</h4>
-                <ol>
-                    <li>访问 <a href="https://pubchem.ncbi.nlm.nih.gov" target="_blank"><b>https://pubchem.ncbi.nlm.nih.gov</b></a></li>
-                    <li>在搜索框输入分子名称（英文，如 <b>Aspirin</b>）</li>
-                    <li>进入化合物页面，找到 <b>Canonical SMILES</b> 字段</li>
-                    <li>复制 SMILES 字符串（如 <code>CC(=O)Oc1ccccc1C(=O)O</code>）</li>
-                    <li>粘贴到下方的 "方式 3" 文本框中，点击 Predict</li>
-                </ol>
-                </div>
-                """, unsafe_allow_html=True)
+                # ===== 第三层：PubChem API（保留原有代码逻辑）=====
+                with st.spinner("🌐 本地未找到，正在查询 PubChem API..."):
+                    found_smiles, status = search_pubchem_final(search_name)
+                
+                if found_smiles:
+                    st.success(f"✅ PubChem 匹配：`{search_name}` → `{found_smiles}` ({status})")
+                    if found_smiles != st.session_state.smiles_input_box:
+                        st.session_state.smiles_input_box = found_smiles
+                        st.session_state.predicted_smiles = None
+                        st.session_state.predicted_logS = None
+                        st.session_state.ai_explanation = None
+                    st.info("👇 点击下方的 **Predict** 按钮查看结果")
+                
+                else:
+                    # ===== 第四层：失败引导 =====
+                    st.error(f"❌ 未找到：`{search_name}`")
+                    st.info("尝试建议：")
+                    st.markdown("""
+                    - 检查拼写（如 **Aspirin** 而非 **Aspriin**）
+                    - 尝试更常见的名称
+                    - 直接输入 SMILES（方式3）
+                    """)
+                    st.markdown("""
+                    <div style="background: linear-gradient(135deg, #e3f2fd, #bbdefb); padding: 18px; border-radius: 12px; border-left: 4px solid #1565c0;">
+                    <h4 style="color: #0d47a1; margin-top: 0;">🔍 如何手动获取 SMILES？</h4>
+                    <ol style="color: #37474f; margin-bottom: 0;">
+                        <li>访问 <a href="https://pubchem.ncbi.nlm.nih.gov" target="_blank"><b>https://pubchem.ncbi.nlm.nih.gov</b></a></li>
+                        <li>在搜索框输入分子名称（英文，如 <b>Aspirin</b>）</li>
+                        <li>进入化合物页面，找到 <b>Canonical SMILES</b> 字段</li>
+                        <li>复制 SMILES 字符串（如 <code>CC(=O)Oc1ccccc1C(=O)O</code>）</li>
+                        <li>粘贴到下方的 "方式 3" 文本框中，点击 Predict</li>
+                    </ol>
+                    </div>
+                    """, unsafe_allow_html=True)
 
 # --- 方式3：SMILES 直接输入 ---
-st.markdown("**方式 3：直接输入 SMILES**")
-st.caption("💡 可从下拉菜单自动填入，也可手动编辑或粘贴外部 SMILES")
+with st.container(border=True):
+    st.markdown("""
+    <div class="card-title">✏️ 方式 3：直接输入 SMILES</div>
+    """, unsafe_allow_html=True)
+    st.caption("💡 可从下拉菜单自动填入，也可手动编辑或粘贴外部 SMILES")
 
-smiles_input = st.text_input(
-    "当前 SMILES",
-    key="smiles_input_box"
-)
+    smiles_input = st.text_input(
+        "当前 SMILES",
+        key="smiles_input_box",
+        label_visibility="collapsed"
+    )
 
-if smiles_input != st.session_state.get("smiles_input_box", ""):
-    st.session_state.predicted_smiles = None
-    st.session_state.predicted_logS = None
-    st.session_state.ai_explanation = None
+    if smiles_input != st.session_state.get("smiles_input_box", ""):
+        st.session_state.predicted_smiles = None
+        st.session_state.predicted_logS = None
+        st.session_state.ai_explanation = None
 
 # ========== 预测按钮 ==========
-btn_col1, btn_col2, btn_col3 = st.columns([1, 1, 1])
+st.markdown("<br>", unsafe_allow_html=True)
+btn_col1, btn_col2, btn_col3 = st.columns([1, 2, 1])
 with btn_col2:
-    predict_button = st.button("🔮 Predict Solubility", width="stretch")
+    predict_button = st.button("🔮 Predict Solubility", use_container_width=True)
+st.markdown("<br>", unsafe_allow_html=True)
 
 # ========== 执行预测 ==========
 if predict_button and model_ready:
@@ -670,11 +960,13 @@ if st.session_state.predicted_smiles and st.session_state.predicted_logS is not 
         features, _ = result_display
         prediction = st.session_state.predicted_logS
         
-        st.divider()
+        st.markdown("""
+        <div class="card-title">📊 预测结果概览</div>
+        """, unsafe_allow_html=True)
         
         try:
             mol = Chem.MolFromSmiles(st.session_state.predicted_smiles)
-            img = Draw.MolToImage(mol, size=(350, 350), kekulize=True)
+            img = Draw.MolToImage(mol, size=(380, 380), kekulize=True)
         except Exception as e:
             img = None
             st.warning(f"⚠️ 结构图生成失败: {e}")
@@ -683,39 +975,50 @@ if st.session_state.predicted_smiles and st.session_state.predicted_logS is not 
         
         with col_left:
             if img is not None:
-                st.image(img, caption="Molecular Structure", width="stretch")
+                st.image(img, caption="Molecular Structure", use_container_width=True)
             else:
                 st.info("无法显示结构图")
         
         with col_right:
+            st.markdown("<br>", unsafe_allow_html=True)
             st.metric(
                 label="Predicted Solubility (logS)",
-                value=f"{prediction:.3f}",
-                delta=None
+                value=f"{prediction:.3f}"
             )
             
             if prediction > 0:
                 interp = "Highly soluble (易溶于水)"
-                color = "green"
+                color = "#2e7d32"
+                css_class = "result-high"
             elif prediction > -2:
                 interp = "Moderately soluble (中等溶解)"
-                color = "orange"
+                color = "#ef6c00"
+                css_class = "result-moderate"
             else:
                 interp = "Poorly soluble (难溶于水)"
-                color = "red"
+                color = "#c62828"
+                css_class = "result-low"
             
-            st.markdown(f"<h4 style='color: {color};'>➜ {interp}</h4>", unsafe_allow_html=True)
+            st.markdown(f"""
+            <div class="{css_class}">
+                <div style="font-size: 1.1rem; font-weight: 700; color: {color};">➜ {interp}</div>
+            </div>
+            """, unsafe_allow_html=True)
             
             st.markdown("""
-            **Interpretation guide:**
-            - logS > 0: Very soluble (like ethanol)
-            - -2 < logS < 0: Moderately soluble
-            - logS < -2: Poorly soluble (like many drug molecules)
+            <div style="background: rgba(236, 239, 241, 0.5); border-radius: 10px; padding: 1rem; font-size: 0.9rem; color: #546e7a;">
+            <b>Interpretation guide:</b><br>
+            • logS > 0: Very soluble (like ethanol)<br>
+            • -2 < logS < 0: Moderately soluble<br>
+            • logS < -2: Poorly soluble (like many drug molecules)
+            </div>
             """)
                 # ========== pKa 预测结果 ==========
         if "predicted_pka" in st.session_state:
-            st.divider()
-            st.subheader("⚡ pKa & Ionization Profile")
+            st.markdown("<br>", unsafe_allow_html=True)
+            st.markdown("""
+            <div class="card-title">⚡ pKa & Ionization Profile</div>
+            """, unsafe_allow_html=True)
             
             pka_val = st.session_state.predicted_pka
             
@@ -723,25 +1026,36 @@ if st.session_state.predicted_smiles and st.session_state.predicted_logS is not 
             if pka_val < 5:
                 pka_type = "acid"
                 pka_label = "酸性分子 (Acidic)"
-                pka_color = "red"
+                pka_color = "#c62828"
+                pka_bg = "linear-gradient(135deg, #ffebee 0%, #ffcdd2 100%)"
+                pka_border = "#ef9a9a"
                 pka_desc = "pKa 较低，在酸性环境中以分子态为主，脂溶性高"
             elif pka_val > 9:
                 pka_type = "base"
                 pka_label = "碱性分子 (Basic)"
-                pka_color = "blue"
+                pka_color = "#1565c0"
+                pka_bg = "linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%)"
+                pka_border = "#90caf9"
                 pka_desc = "pKa 较高，在碱性环境中以分子态为主"
             else:
                 pka_type = "amphoteric"
                 pka_label = "两性/中性 (Amphoteric/Neutral)"
-                pka_color = "orange"
+                pka_color = "#ef6c00"
+                pka_bg = "linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%)"
+                pka_border = "#ffcc80"
                 pka_desc = "pKa 接近中性，电离行为随 pH 变化剧烈"
             
             col_pka1, col_pka2 = st.columns([1, 1.2])
             
             with col_pka1:
+                st.markdown("<br>", unsafe_allow_html=True)
                 st.metric("Predicted pKa", f"{pka_val:.2f}")
-                st.markdown(f"<h4 style='color: {pka_color};'>➜ {pka_label}</h4>", unsafe_allow_html=True)
-                st.caption(pka_desc)
+                st.markdown(f"""
+                <div style="background: {pka_bg}; border-radius: 12px; padding: 1rem; text-align: center; border: 2px solid {pka_border}; margin-top: 0.8rem;">
+                    <div style="font-size: 1.1rem; font-weight: 700; color: {pka_color};">➜ {pka_label}</div>
+                    <div style="font-size: 0.85rem; color: #546e7a; margin-top: 0.4rem;">{pka_desc}</div>
+                </div>
+                """, unsafe_allow_html=True)
             
             with col_pka2:
                 # 生理环境分布图
@@ -788,25 +1102,30 @@ if st.session_state.predicted_smiles and st.session_state.predicted_logS is not 
                 plt.close(fig)
             
             # 药理学洞察
-            st.divider()
-            st.subheader("💊 药理学分析")
+            st.markdown("<br>", unsafe_allow_html=True)
+            st.markdown("""
+            <div class="card-title">💊 药理学分析</div>
+            """, unsafe_allow_html=True)
             
-            if pka_type == "acid":
-                if pka_val < 4:
-                    st.success("**胃吸收优势**：pKa < 4，在胃酸（pH 1.5）中大部分以分子态存在，脂溶性高，容易被胃黏膜吸收。代表药物：阿司匹林 (pKa 3.5)、布洛芬 (pKa 4.9)。")
+            with st.container(border=True):
+                if pka_type == "acid":
+                    if pka_val < 4:
+                        st.success("**胃吸收优势**：pKa < 4，在胃酸（pH 1.5）中大部分以分子态存在，脂溶性高，容易被胃黏膜吸收。代表药物：阿司匹林 (pKa 3.5)、布洛芬 (pKa 4.9)。")
+                    else:
+                        st.info("**全肠道吸收**：pKa 中等，在胃和小肠中都有一定比例的分子态，吸收较均匀。注意：分子态比例高时脂溶性强，可能刺激胃黏膜。")
+                elif pka_type == "base":
+                    if pka_val > 9:
+                        st.warning("**肠道吸收为主**：强碱性分子在胃中几乎完全电离，难以吸收；进入小肠（pH 6.8）后分子态增加，主要在小肠吸收。代表药物：二甲双胍 (pKa ~12.4)。")
+                    else:
+                        st.info("**弱碱性分子**：在胃中少量电离，小肠中吸收良好。进入血液（pH 7.4）后可能部分电离，水溶性增加，有利于肾脏排泄。")
                 else:
-                    st.info("**全肠道吸收**：pKa 中等，在胃和小肠中都有一定比例的分子态，吸收较均匀。注意：分子态比例高时脂溶性强，可能刺激胃黏膜。")
-            elif pka_type == "base":
-                if pka_val > 9:
-                    st.warning("**肠道吸收为主**：强碱性分子在胃中几乎完全电离，难以吸收；进入小肠（pH 6.8）后分子态增加，主要在小肠吸收。代表药物：二甲双胍 (pKa ~12.4)。")
-                else:
-                    st.info("**弱碱性分子**：在胃中少量电离，小肠中吸收良好。进入血液（pH 7.4）后可能部分电离，水溶性增加，有利于肾脏排泄。")
-            else:
-                st.info("**两性分子**：在不同 pH 环境下电离行为复杂，吸收部位取决于具体结构。可能需要特殊制剂（如肠溶片）来优化生物利用度。")
+                    st.info("**两性分子**：在不同 pH 环境下电离行为复杂，吸收部位取决于具体结构。可能需要特殊制剂（如肠溶片）来优化生物利用度。")
             
             # 溶解度 × pKa 联动分析
-            st.divider()
-            st.markdown("#### 🔗 溶解度 × pKa 联动分析")
+            st.markdown("<br>", unsafe_allow_html=True)
+            st.markdown("""
+            <div class="card-title">🔗 溶解度 × pKa 联动分析</div>
+            """, unsafe_allow_html=True)
             
             logS = prediction
             parts = []
@@ -842,15 +1161,17 @@ if st.session_state.predicted_smiles and st.session_state.predicted_logS is not 
             st.info(" | ".join(parts))
 
             # ========== 结构化学深度分析 ==========
-            st.divider()
-            st.subheader("🧬 结构化学视角：为什么是这个 pKa？")
+            st.markdown("<br>", unsafe_allow_html=True)
+            st.markdown("""
+            <div class="card-title">🧬 结构化学视角：为什么是这个 pKa？</div>
+            """, unsafe_allow_html=True)
 
             chem_factors = analyze_pka_chemistry(st.session_state.predicted_smiles, pka_val)
 
             col_3d, col_chem = st.columns([1, 1.2])
 
             with col_3d:
-                st.markdown("**3D 球棍模型**（可旋转缩放）")
+                st.markdown("<div style='font-weight: 600; color: #37474f; margin-bottom: 0.5rem;'>🎯 3D 球棍模型（可旋转缩放）</div>", unsafe_allow_html=True)
                 html_3d = show_3d_molecule(st.session_state.predicted_smiles)
                 if html_3d:
                     components.html(html_3d, height=340)
@@ -917,23 +1238,26 @@ if st.session_state.predicted_smiles and st.session_state.predicted_logS is not 
 
 
         # ========== 分子描述符 ==========
-        st.divider()
-        st.subheader("📊 Molecular Descriptors")
+        st.markdown("<br>", unsafe_allow_html=True)
+        st.markdown("""
+        <div class="card-title">📊 Molecular Descriptors</div>
+        """, unsafe_allow_html=True)
         
-        desc_col1, desc_col2, desc_col3, desc_col4 = st.columns(4)
-        
-        with desc_col1:
-            st.metric("Molecular Weight", f"{features['MolWt']:.1f}")
-            st.metric("LogP (Hydrophobicity)", f"{features['LogP']:.2f}")
-        with desc_col2:
-            st.metric("H-Bond Donors", f"{features['NumHDonors']}")
-            st.metric("H-Bond Acceptors", f"{features['NumHAcceptors']}")
-        with desc_col3:
-            st.metric("TPSA (Å²)", f"{features['TPSA']:.1f}")
-            st.metric("Rotatable Bonds", f"{features['NumRotatableBonds']}")
-        with desc_col4:
-            st.metric("Aromatic Rings", f"{features['NumAromaticRings']}")
-            st.metric("Aliphatic Rings", f"{features['NumAliphaticRings']}")
+        with st.container(border=True):
+            desc_col1, desc_col2, desc_col3, desc_col4 = st.columns(4)
+            
+            with desc_col1:
+                st.metric("Molecular Weight", f"{features['MolWt']:.1f}")
+                st.metric("LogP (Hydrophobicity)", f"{features['LogP']:.2f}")
+            with desc_col2:
+                st.metric("H-Bond Donors", f"{features['NumHDonors']}")
+                st.metric("H-Bond Acceptors", f"{features['NumHAcceptors']}")
+            with desc_col3:
+                st.metric("TPSA (Å²)", f"{features['TPSA']:.1f}")
+                st.metric("Rotatable Bonds", f"{features['NumRotatableBonds']}")
+            with desc_col4:
+                st.metric("Aromatic Rings", f"{features['NumAromaticRings']}")
+                st.metric("Aliphatic Rings", f"{features['NumAliphaticRings']}")
         
         st.info("""
         💡 **Chemistry Insight:** 
@@ -944,8 +1268,10 @@ if st.session_state.predicted_smiles and st.session_state.predicted_logS is not 
         """)
 
         # ========== SHAP 可解释性分析 ==========
-        st.divider()
-        st.subheader("🔍 为什么是这个预测结果？")
+        st.markdown("<br>", unsafe_allow_html=True)
+        st.markdown("""
+        <div class="card-title">🔍 为什么是这个预测结果？</div>
+        """, unsafe_allow_html=True)
         st.caption("基于 SHAP (SHapley Additive exPlanations) 分析每个特征对预测的贡献")
 
         if "shap_values" in st.session_state:
@@ -1089,33 +1415,36 @@ if st.session_state.predicted_smiles and st.session_state.predicted_logS is not 
             st.info(insight_text)
 
         # ========== Kimi AI 解释（手动触发）==========
-        st.divider()
-        st.subheader("🧠 AI Chemistry Explanation")
+        st.markdown("<br>", unsafe_allow_html=True)
+        st.markdown("""
+        <div class="card-title">🧠 AI Chemistry Explanation</div>
+        """, unsafe_allow_html=True)
         
-        if st.session_state.ai_explanation:
-            st.markdown(st.session_state.ai_explanation)
-            if st.button("🗑️ 清除解释", key="clear_ai"):
-                st.session_state.ai_explanation = None
-                st.rerun()
-        else:
-            st.caption("AI 解释需要手动调用（消耗 API 额度）")
-            if st.button("生成 AI 解释", key="gen_ai"):
-                with st.spinner("正在分析分子结构..."):
-                    explanation = explain_with_kimi(
-                        st.session_state.predicted_smiles,
-                        prediction,
-                        features,
-                        shap_features=st.session_state.get("shap_names"),
-                        shap_values=st.session_state.get("shap_values")
-                    )
-                st.session_state.ai_explanation = explanation
-                st.rerun()
+        with st.container(border=True):
+            if st.session_state.ai_explanation:
+                st.markdown(st.session_state.ai_explanation)
+                if st.button("🗑️ 清除解释", key="clear_ai"):
+                    st.session_state.ai_explanation = None
+                    st.rerun()
+            else:
+                st.caption("AI 解释需要手动调用（消耗 API 额度）")
+                if st.button("🤖 生成 AI 解释", key="gen_ai", use_container_width=True):
+                    with st.spinner("正在分析分子结构..."):
+                        explanation = explain_with_kimi(
+                            st.session_state.predicted_smiles,
+                            prediction,
+                            features,
+                            shap_features=st.session_state.get("shap_names"),
+                            shap_values=st.session_state.get("shap_values")
+                        )
+                    st.session_state.ai_explanation = explanation
+                    st.rerun()
 
 # ========== 页脚 ==========
-st.divider()
 st.markdown("""
-<div style='text-align: center; color: gray; font-size: 0.9em;'>
-Built by a Leonlee | 
-ML: Random Forest + RDKit (V2: 11,000+ molecules) | AI: Kimi (Moonshot AI) | DB: 100+ local + PubChem API
+<div class="footer">
+    <div style="font-weight: 600; color: #546e7a; margin-bottom: 0.3rem;">Molecular Solubility Predictor</div>
+    <div>Built by Leonlee | ML: Random Forest + RDKit (V2: 11,000+ molecules) | AI: Kimi (Moonshot AI) | DB: 100+ local + PubChem API</div>
+    <div style="margin-top: 0.5rem; font-size: 0.75rem; color: #b0bec5;">🧪 科学计算 · 🤖 人工智能 · 🎯 药物化学</div>
 </div>
 """, unsafe_allow_html=True)
