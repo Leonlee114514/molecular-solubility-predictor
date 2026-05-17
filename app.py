@@ -310,6 +310,7 @@ try:
     pka_ready = True
 except Exception as e:
     pka_ready = False
+    st.error(f"DEBUG pKa load error: {type(e).__name__}: {e}")
 
 # ========== 特征计算 ==========
 def compute_features(smiles_string):
