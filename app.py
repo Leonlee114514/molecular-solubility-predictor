@@ -299,6 +299,17 @@ except Exception as e:
     st.error(f"❌ 模型加载失败: {e}")
     st.info("请先运行 'python train_model_v2.py' 训练模型")
     model_ready = False
+# ========== 加载 pKa 模型 ==========
+@st.cache_resource
+def load_pka_model():
+    model = joblib.load("output_v2/pka_model.pkl")
+    return model
+
+try:
+    pka_model = load_pka_model()
+    pka_ready = True
+except Exception as e:
+    pka_ready = False
 
 # ========== 特征计算 ==========
 def compute_features(smiles_string):
@@ -571,6 +582,10 @@ if predict_button and model_ready:
             
             st.session_state.predicted_smiles = current
             st.session_state.predicted_logS = float(prediction)
+            # ===== pKa 预测 =====
+            if pka_ready:
+                pka_pred = pka_model.predict(X_input)[0]
+                st.session_state.predicted_pka = float(pka_pred)
 
             # ===== 计算 SHAP 值 =====
             shap_values = explainer.shap_values(X_input)[0]
