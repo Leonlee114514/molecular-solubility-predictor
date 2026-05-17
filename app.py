@@ -583,9 +583,14 @@ if predict_button and model_ready:
             st.session_state.predicted_smiles = current
             st.session_state.predicted_logS = float(prediction)
             # ===== pKa 预测 =====
+            st.write(f"DEBUG: pka_ready = {pka_ready}")  # ← 第1行调试
             if pka_ready:
                 pka_pred = pka_model.predict(X_input)[0]
                 st.session_state.predicted_pka = float(pka_pred)
+                st.write(f"DEBUG: pKa = {pka_pred:.2f}")  # ← 第2行调试
+            else:
+                st.warning("DEBUG: pKa model not ready")  # ← 第3行调试
+
 
             # ===== 计算 SHAP 值 =====
             shap_values = explainer.shap_values(X_input)[0]
