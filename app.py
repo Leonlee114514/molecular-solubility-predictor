@@ -655,7 +655,7 @@ def analyze_pka_chemistry(smiles, pka_val):
     return factors
 
 # ========== Kimi AI 解释 ==========
-def explain_with_kimi(smiles, prediction, features, shap_features=None, shap_values=None):
+def explain_with_kimi(smiles, prediction, features, shap_features=None, shap_values=None, pka_value=None, pka_type=None):
 
     if not KIMI_API_KEY:
         return "⚠️ 未配置 Kimi API Key。请在 .env 文件中写入：KIMI_API_KEY=sk-你的密钥"
@@ -685,7 +685,39 @@ def explain_with_kimi(smiles, prediction, features, shap_features=None, shap_val
             shap_lines.append(f"- {name}: 贡献值 {val:+.3f}（{direction}）")
         shap_text = "\n".join(shap_lines)
 
-    prompt = f"""你是一位擅长AP Chemistry教学的老师，正在向高中生解释分子溶解度。你的解释需要结合机器学习模型的 SHAP 可解释性分析结果。
+    # 构建 pKa 相关文本（如果有）
+    pka_section = ""
+    pka_task = ""
+    if pka_value is not None and pka_type is not None:
+        if pka_type == "acid":
+            pka_label = "酸性分子"
+            pka_desc_full = f"pKa = {pka_value:.2f} (< 5)，属于酸性分子。在酸性环境（如胃，pH ~1.5）中主要以分子态存在，脂溶性较高，容易被胃黏膜吸收。"
+            ionization_desc = "在生理 pH 范围内，该分子倾向于释放质子 (H⁺)，形成共轭碱。"
+        elif pka_type == "base":
+            pka_label = "碱性分子"
+            pka_desc_full = f"pKa = {pka_value:.2f} (> 9)，属于碱性分子。在碱性环境中主要以分子态存在，在胃中容易电离，主要在小肠吸收。"
+            ionization_desc = "在生理 pH 范围内，该分子倾向于结合质子 (H⁺)，形成共轭酸。"
+        else:
+            pka_label = "两性/中性分子"
+            pka_desc_full = f"pKa = {pka_value:.2f} (5–9 之间)，属于两性或中性分子。电离行为随环境 pH 变化剧烈，在不同生理部位的存在形态差异大。"
+            ionization_desc = "该分子既可能释放也可能结合质子，具体取决于所处环境的 pH。"
+
+        pka_section = f"""
+【pKa 与电离行为分析】
+- 预测 pKa: {pka_value:.2f}
+- 酸碱性判定: {pka_label}
+- 电离特征: {ionization_desc}
+- 生理意义: {pka_desc_full}
+
+【溶解度 × pKa 联动提示】
+溶解度 (logS) 和 pKa 共同决定药物在体内的吸收行为：
+- 分子态（非电离）脂溶性高，易穿透细胞膜被吸收
+- 离子态水溶性好，有利于在血液中运输和肾脏排泄
+- 当前分子：logS = {prediction:.2f}（{solubility_level}），pKa = {pka_value:.2f}（{pka_label}）
+"""
+        pka_task = f"""5. **pKa 与电离解析**：结合 pKa = {pka_value:.2f}（{pka_label}），解释该分子在胃 (pH 1.5)、小肠 (pH 6.8) 和血液 (pH 7.4) 中的电离状态。指出分子态比例高低的生理意义（吸收 vs 排泄）。引用 Henderson-Hasselbalch 方程的核心思想，但不要写出公式。结合该分子的具体结构特征（如是否含有羧基、氨基、酚羟基等可电离基团）来解释为什么会有这样的 pKa。不超过4句话。"""
+
+    prompt = f"""你是一位擅长AP Chemistry教学的老师，正在向高中生全面解析一个分子的**水溶解度**和**酸碱电离行为 (pKa)**。你的解释需要结合机器学习模型的 SHAP 可解释性分析结果和结构化学知识。
 
 分子 SMILES: {smiles}
 模型预测的水溶解度 (logS): {prediction:.2f}
@@ -696,27 +728,31 @@ def explain_with_kimi(smiles, prediction, features, shap_features=None, shap_val
 - 氢键供体数: {features['NumHDonors']}
 - 氢键受体数: {features['NumHAcceptors']}
 - 脂水分配系数 (LogP): {features['LogP']:.2f}
+- 可旋转键数: {features['NumRotatableBonds']}
+- 芳香环数: {features['NumAromaticRings']}
 
-【SHAP 模型可解释性分析 - 影响预测的关键结构特征】
+【SHAP 模型可解释性分析 - 影响溶解度预测的关键结构特征】
 {shap_text if shap_text else "（SHAP 分析暂不可用）"}
 
 【已由程序精确判定的溶解度结论（严禁修改或重新判断）】
 该分子的预测溶解度 logS = {prediction:.3f}，判定结果为：**{solubility_level}**。
 判定依据：{solubility_desc}。
 ⚠️ 重要：你不需要、也不应该做任何数值大小比较（尤其注意负数比较非常容易出错，例如 -1.87 > -2）。上述结论已由程序精确计算得出，你只需在回答中直接复述这一结论。
-
-请用中文回答，分四段:
+{pka_section}
+请用中文回答，分以下段落:
 1. **溶解度结论**：直接复述上述程序判定结论——该分子属于「{solubility_level}」。绝对不要解释判断过程，绝对不要比较数字大小。
 2. **SHAP 分析**：结合 SHAP 分析结果，指出对该分子溶解度影响最大的 1-2 个结构特征，说明它们是推动易溶还是难溶。引用具体贡献值。
-3. **化学原理解释**：从分子结构角度（极性、氢键、疏水性）解释为什么这些特征会产生这样的影响。引用分子性质数据（如 LogP、TPSA 等）。
-4. **生活类比**：举一个高中生能听懂的生活中的类比帮助理解。
+3. **化学原理解释**：从分子结构角度（极性、氢键、疏水性、芳香性）解释为什么这些特征会产生这样的影响。引用分子性质数据（如 LogP、TPSA、氢键供体/受体数等）。
+4. **生活类比**：举一个高中生能听懂的生活中的类比帮助理解溶解度。
+{pka_task}
 
 要求:
-- 准确、简洁、有亲和力
+- 准确、简洁、有亲和力，用高中生能听懂的语言
 - 第1段绝对不允许出现任何数值比较或阈值判断，只准复述结论
 - 第2段必须引用 SHAP 贡献值中的具体数字
 - 第3段必须引用分子性质数据中的具体数字
-- 每段不超过3句话"""
+- 每段不超过4句话
+- 如果包含 pKa 段落（第5段），需要联系具体可电离基团（如 -COOH、-NH₂、-OH、杂环氮等）来解释 pKa 的来源"""
 
     try:
         client = openai.OpenAI(
@@ -726,11 +762,11 @@ def explain_with_kimi(smiles, prediction, features, shap_features=None, shap_val
         response = client.chat.completions.create(
             model="moonshot-v1-8k",
             messages=[
-                {"role": "system", "content": "你是一位专业的化学教育助手，擅长结合定量数据解释化学现象，用高中生能听懂的语言。"},
+                {"role": "system", "content": "你是一位专业的化学教育助手，擅长结合定量数据解释化学现象，用高中生能听懂的语言。你精通溶解度预测、药物化学中的 pKa 与电离行为分析，以及 Henderson-Hasselbalch 方程的定性应用。"},
                 {"role": "user", "content": prompt}
             ],
             temperature=0.7,
-            max_tokens=600
+            max_tokens=900
         )
         return response.choices[0].message.content
     except Exception as e:
@@ -1430,12 +1466,27 @@ if st.session_state.predicted_smiles and st.session_state.predicted_logS is not 
                 st.caption("AI 解释需要手动调用（消耗 API 额度）")
                 if st.button("🤖 生成 AI 解释", key="gen_ai", use_container_width=True):
                     with st.spinner("正在分析分子结构..."):
+                        # 判断 pKa 类型
+                        pka_val = st.session_state.get("predicted_pka")
+                        if pka_val is not None:
+                            if pka_val < 5:
+                                pka_type = "acid"
+                            elif pka_val > 9:
+                                pka_type = "base"
+                            else:
+                                pka_type = "amphoteric"
+                        else:
+                            pka_val = None
+                            pka_type = None
+                        
                         explanation = explain_with_kimi(
                             st.session_state.predicted_smiles,
                             prediction,
                             features,
                             shap_features=st.session_state.get("shap_names"),
-                            shap_values=st.session_state.get("shap_values")
+                            shap_values=st.session_state.get("shap_values"),
+                            pka_value=pka_val,
+                            pka_type=pka_type
                         )
                     st.session_state.ai_explanation = explanation
                     st.rerun()
