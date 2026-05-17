@@ -1012,7 +1012,7 @@ if st.session_state.predicted_smiles and st.session_state.predicted_logS is not 
             • -2 < logS < 0: Moderately soluble<br>
             • logS < -2: Poorly soluble (like many drug molecules)
             </div>
-            """)
+            """, unsafe_allow_html=True)
                 # ========== pKa 预测结果 ==========
         if "predicted_pka" in st.session_state:
             st.markdown("<br>", unsafe_allow_html=True)
