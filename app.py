@@ -20,6 +20,8 @@ load_dotenv()
 # 优先读取 Streamlit Secrets（Cloud 部署），其次读取 .env（本地开发）
 KIMI_API_KEY = st.secrets.get("KIMI_API_KEY") or os.getenv("KIMI_API_KEY")
 
+import streamlit.components.v1 as components
+
 # ========== 本地分子库（100+ 分子，零网络依赖）==========
 MOLECULE_DB = {
     "(自定义输入)": "",
@@ -335,6 +337,59 @@ def compute_features(smiles_string):
     AllChem.DataStructs.ConvertToNumpyArray(fp, fp_array)
     rdBase.EnableLog("rdApp.warning")
     return features, fp_array
+
+# ========== 3D 分子展示 ==========
+def show_3d_molecule(smiles):
+    try:
+        import py3Dmol
+        mol = Chem.MolFromSmiles(smiles)
+        if mol is None:
+            return None
+        mol = Chem.AddHs(mol)
+        AllChem.EmbedMolecule(mol, AllChem.ETKDGv3())
+        AllChem.MMFFOptimizeMolecule(mol, maxIters=500)
+        mb = Chem.MolToMolBlock(mol)
+        view = py3Dmol.view(width=380, height=320)
+        view.addModel(mb, 'mol')
+        view.setStyle({'stick': {'radius': 0.15}, 'sphere': {'scale': 0.25}})
+        view.zoomTo()
+        return view._make_html()
+    except Exception:
+        return None
+
+# ========== pKa 化学因素分析（结构化学版）==========
+def analyze_pka_chemistry(smiles, pka_val):
+    mol = Chem.MolFromSmiles(smiles)
+    if mol is None:
+        return {}
+    is_acidic = pka_val < 7
+    factors = {}
+    # 1. 诱导效应
+    en_atoms = sum(1 for atom in mol.GetAtoms() if atom.GetAtomicNum() in [7,8,9,17,35])
+    inductive = min(en_atoms * 0.4, 3.0)
+    factors['诱导效应\n(Inductive)'] = inductive if is_acidic else -inductive * 0.6
+    # 2. 共轭效应
+    aromatic = Descriptors.NumAromaticRings(mol)
+    resonance = min(aromatic * 1.2, 3.0)
+    factors['共轭效应\n(Resonance)'] = resonance if is_acidic else resonance * 0.5
+    # 3. 分子内氢键
+    hbond_pat1 = Chem.MolFromSmarts('[OH]c1ccccc1C(=O)[OH]')
+    hbond_pat2 = Chem.MolFromSmarts('[OH]c1ccccc1[OH]')
+    has_hbond = False
+    if hbond_pat1 and mol.HasSubstructMatch(hbond_pat1):
+        has_hbond = True
+    if hbond_pat2 and mol.HasSubstructMatch(hbond_pat2):
+        has_hbond = True
+    hbond_score = 1.5 if has_hbond else 0.0
+    factors['分子内氢键\n(Intra-HB)'] = hbond_score if is_acidic else -hbond_score * 0.5
+    # 4. 空间位阻
+    rot_bonds = Descriptors.NumRotatableBonds(mol)
+    steric = -min(rot_bonds * 0.25, 2.0)
+    factors['空间位阻\n(Steric)'] = steric if is_acidic else -steric
+    # 5. 杂化/芳香性
+    sp2_score = 1.0 if aromatic > 0 else -0.5
+    factors['杂化/芳香性\n(Hybridization)'] = sp2_score if is_acidic else -sp2_score
+    return factors
 
 # ========== Kimi AI 解释 ==========
 def explain_with_kimi(smiles, prediction, features, shap_features=None, shap_values=None):
@@ -785,6 +840,81 @@ if st.session_state.predicted_smiles and st.session_state.predicted_logS is not 
                 parts.append("✅ **综合**：高溶解度弥补了胃吸收劣势，进入小肠后吸收良好，总体生物利用度可接受。")
             
             st.info(" | ".join(parts))
+
+            # ========== 结构化学深度分析 ==========
+            st.divider()
+            st.subheader("🧬 结构化学视角：为什么是这个 pKa？")
+
+            chem_factors = analyze_pka_chemistry(st.session_state.predicted_smiles, pka_val)
+
+            col_3d, col_chem = st.columns([1, 1.2])
+
+            with col_3d:
+                st.markdown("**3D 球棍模型**（可旋转缩放）")
+                html_3d = show_3d_molecule(st.session_state.predicted_smiles)
+                if html_3d:
+                    components.html(html_3d, height=340)
+                else:
+                    st.info("3D 模型生成失败（需安装 py3Dmol）")
+
+            with col_chem:
+                if chem_factors:
+                    import matplotlib.pyplot as plt
+                    import matplotlib.font_manager as fm
+
+                    # 复用中文字体设置
+                    for font in fm.fontManager.ttflist:
+                        if font.name in ('Noto Sans CJK SC', 'Noto Sans CJK'):
+                            plt.rcParams['font.family'] = font.name
+                            break
+                    plt.rcParams['axes.unicode_minus'] = False
+
+                    names = list(chem_factors.keys())
+                    vals = list(chem_factors.values())
+                    colors = ['#ff0051' if v > 0 else '#008bfb' for v in vals]
+
+                    fig, ax = plt.subplots(figsize=(6, 4))
+                    bars = ax.barh(range(len(vals)), vals, color=colors, edgecolor='white', height=0.55)
+                    ax.invert_yaxis()
+                    ax.axvline(x=0, color='black', linewidth=0.8)
+
+                    for bar, val in zip(bars, vals):
+                        width = bar.get_width()
+                        offset = 0.15 if width >= 0 else -0.15
+                        align = 'left' if width >= 0 else 'right'
+                        color = 'black' if width >= 0 else 'white'
+                        ax.text(width + offset, bar.get_y() + bar.get_height()/2,
+                                f'{val:+.2f}', va='center', ha=align, fontsize=10, fontweight='bold', color=color)
+
+                    ax.set_yticks(range(len(names)))
+                    ax.set_yticklabels(names, fontsize=10)
+                    unit = "增强酸性" if pka_val < 7 else "增强碱性"
+                    ax.set_xlabel(f"对 {unit} 的贡献", fontsize=11)
+                    ax.set_title(f"pKa = {pka_val:.2f} | 化学因素分解", fontsize=12)
+                    ax.spines['top'].set_visible(False)
+                    ax.spines['right'].set_visible(False)
+                    ax.spines['left'].set_visible(False)
+
+                    from matplotlib.patches import Patch
+                    legend_elements = [
+                        Patch(facecolor='#ff0051', label=f'增强{"酸性" if pka_val < 7 else "碱性"}'),
+                        Patch(facecolor='#008bfb', label=f'减弱{"酸性" if pka_val < 7 else "碱性"}')
+                    ]
+                    ax.legend(handles=legend_elements, loc='lower right', fontsize=9)
+
+                    plt.tight_layout()
+                    st.pyplot(fig, width="stretch")
+                    plt.close(fig)
+
+                    st.caption("""
+                    💡 **如何读懂这张图**：  
+                    红色条越长 = 该因素越推动分子**释放/结合质子**；  
+                    蓝色条越长 = 该因素越**抵抗**质子转移。  
+                    和 SHAP 不同，这些不是机器学习权重，而是**真实的结构化学效应**。
+                    """)
+                else:
+                    st.info("化学因素分析暂不可用")
+
 
         # ========== 分子描述符 ==========
         st.divider()
