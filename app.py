@@ -1288,48 +1288,49 @@ def show_3d_molecule(smiles):
 
 
 def mol_to_dark_image(mol, size=(400, 400)):
-    """生成适配深色主题的2D分子结构图（PIL后处理）"""
-    from PIL import Image
+    """生成适配深色主题的高清2D分子结构图（3x超采样抗锯齿）"""
+    from PIL import Image, ImageFilter, ImageEnhance
 
-    # 先生成RDKit标准白底图像
-    img = Draw.MolToImage(mol, size=size, kekulize=True)
-    img = img.convert("RGBA")
+    scale = 3
+    big_size = (size[0] * scale, size[1] * scale)
 
-    # 创建深色背景画布
-    bg_color = (26, 26, 46, 255)  # #1a1a2e
-    new_img = Image.new("RGBA", img.size, bg_color)
+    # 1. 以3倍分辨率生成原始图像（RDKit原生渲染，边缘平滑）
+    img_big = Draw.MolToImage(mol, size=big_size, kekulize=True)
+    img_big = img_big.convert("RGBA")
 
-    pixels = img.load()
-    new_pixels = new_img.load()
-
-    for i in range(img.width):
-        for j in range(img.height):
+    # 2. 在高分辨率上进行颜色替换（此时单像素误差在缩小后会被平均）
+    pixels = img_big.load()
+    for i in range(img_big.width):
+        for j in range(img_big.height):
             r, g, b, a = pixels[i, j]
-
-            # 完全透明跳过
             if a == 0:
                 continue
 
             brightness = (r + g + b) / 3
 
-            # 白色/近白色背景 → 透明（透出深色背景）
-            if brightness > 242:
-                continue
-
-            # 近黑色（碳骨架C、H默认色）→ 亮银灰
-            if brightness < 55:
-                new_pixels[i, j] = (195, 195, 215, a)
-            # 深灰（键线、阴影）→ 中亮灰
-            elif brightness < 130 and max(r, g, b) - min(r, g, b) < 50:
-                new_pixels[i, j] = (165, 165, 185, a)
+            # 白色背景 → 深色背景
+            if brightness > 245:
+                pixels[i, j] = (26, 26, 46, 255)
+            # 近黑色碳骨架 → 亮银灰（增强对比度）
+            elif brightness < 60:
+                pixels[i, j] = (210, 210, 230, a)
+            # 深灰色键线阴影 → 中亮灰
+            elif brightness < 140 and max(r, g, b) - min(r, g, b) < 50:
+                pixels[i, j] = (175, 175, 195, a)
             else:
-                # 彩色原子（O红、N蓝、S黄、Cl绿等）保持原色并轻微提亮
-                new_r = min(255, int(r * 1.08 + 10))
-                new_g = min(255, int(g * 1.08 + 10))
-                new_b = min(255, int(b * 1.08 + 10))
-                new_pixels[i, j] = (new_r, new_g, new_b, a)
+                # 彩色原子提亮+饱和度增强
+                new_r = min(255, int(r * 1.12 + 15))
+                new_g = min(255, int(g * 1.12 + 15))
+                new_b = min(255, int(b * 1.12 + 15))
+                pixels[i, j] = (new_r, new_g, new_b, a)
 
-    return new_img
+    # 3. 高质量缩小到目标尺寸 → 自然抗锯齿
+    img = img_big.resize(size, Image.LANCZOS)
+
+    # 4. 添加微妙的外发光边框，增强科技感
+    img = img.filter(ImageFilter.SMOOTH_MORE)
+
+    return img
 
 # ========== pKa 化学因素分析 ==========
 def analyze_pka_chemistry(smiles, pka_val):
