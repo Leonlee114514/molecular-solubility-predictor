@@ -295,30 +295,53 @@ st.markdown("""
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
 
 /* ═══════════════════════════════════════════════
+   0. 动态背景粒子层
+   ═══════════════════════════════════════════════ */
+
+/* 浮动粒子容器 */
+.particle-bg {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    pointer-events: none;
+    z-index: 0;
+    overflow: hidden;
+}
+.particle-bg .p {
+    position: absolute;
+    border-radius: 50%;
+    background: rgba(14, 165, 233, 0.15);
+    animation: particleFloat linear infinite;
+}
+@keyframes particleFloat {
+    0% { transform: translateY(100vh) scale(0); opacity: 0; }
+    10% { opacity: 1; }
+    90% { opacity: 1; }
+    100% { transform: translateY(-10vh) scale(1); opacity: 0; }
+}
+
+/* ═══════════════════════════════════════════════
    1. 视觉令牌 (Design Tokens)
    ═══════════════════════════════════════════════ */
 :root {
-    /* 色彩系统 - 灵感：元素周期表 + 分子轨道 */
-    --ms-bg-primary: #0f172a;       /* 深蓝灰 - 主背景，周期表重金属质感 */
-    --ms-bg-secondary: #1e293b;     /* 次级背景 */
-    --ms-bg-elevated: #334155;      /* 提升层级 - 卡片/面板 */
-    --ms-bg-surface: rgba(30, 41, 59, 0.60);  /* 玻璃拟态表面 */
+    --ms-bg-primary: #0f172a;
+    --ms-bg-secondary: #1e293b;
+    --ms-bg-elevated: #334155;
+    --ms-bg-surface: rgba(30, 41, 59, 0.55);
     --ms-bg-input: #1e293b;
 
-    --ms-accent-primary: #0ea5e9;   /* 天蓝 - 主交互色，如氧元素 */
-    --ms-accent-secondary: #06b6d4; /* 青色 - 次级强调 */
-    --ms-accent-tertiary: #8b5cf6;  /* 紫色 - pKa/电离主题 */
-    --ms-accent-warm: #f59e0b;      /* 琥珀 - 警示/活性 */
-    --ms-accent-success: #10b981;   /* 翠绿 - 成功/稳定 */
-    --ms-accent-danger: #ef4444;    /* 红色 - 错误/高活性 */
+    --ms-accent-primary: #0ea5e9;
+    --ms-accent-secondary: #06b6d4;
+    --ms-accent-tertiary: #8b5cf6;
+    --ms-accent-warm: #f59e0b;
+    --ms-accent-success: #10b981;
+    --ms-accent-danger: #ef4444;
 
-    /* 文字色彩 - WCAG 2.1 AA 合规 */
-    --ms-text-primary: #f8fafc;     /* 对比度 15.8:1 */
-    --ms-text-secondary: #94a3b8;   /* 对比度 7.2:1 */
-    --ms-text-tertiary: #64748b;    /* 对比度 4.7:1 */
+    --ms-text-primary: #f8fafc;
+    --ms-text-secondary: #94a3b8;
+    --ms-text-tertiary: #64748b;
     --ms-text-inverse: #0f172a;
 
-    /* 间距系统 - 8px 基线网格 */
     --ms-space-1: 4px;
     --ms-space-2: 8px;
     --ms-space-3: 12px;
@@ -328,13 +351,11 @@ st.markdown("""
     --ms-space-8: 48px;
     --ms-space-10: 64px;
 
-    /* 圆角系统 - 晶体对称韵律 */
-    --ms-radius-sm: 4px;   /* 标签/徽章 */
-    --ms-radius-md: 8px;   /* 按钮/输入框 */
-    --ms-radius-lg: 12px;  /* 卡片/面板 */
-    --ms-radius-xl: 16px;  /* 大容器 */
+    --ms-radius-sm: 4px;
+    --ms-radius-md: 8px;
+    --ms-radius-lg: 12px;
+    --ms-radius-xl: 16px;
 
-    /* 动效参数 - 全部 < 300ms，硬件加速 */
     --ms-duration-instant: 100ms;
     --ms-duration-fast: 150ms;
     --ms-duration-normal: 200ms;
@@ -343,7 +364,6 @@ st.markdown("""
     --ms-easing-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
     --ms-easing-decelerate: cubic-bezier(0, 0, 0.2, 1);
 
-    /* 阴影系统 - 分子间作用力隐喻 */
     --ms-shadow-sm: 0 1px 2px rgba(0,0,0,0.20), 0 0 1px rgba(0,0,0,0.10);
     --ms-shadow-md: 0 4px 6px -1px rgba(0,0,0,0.20), 0 2px 4px -2px rgba(0,0,0,0.10);
     --ms-shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.25), 0 4px 6px -4px rgba(0,0,0,0.15);
@@ -354,22 +374,25 @@ st.markdown("""
 /* ═══════════════════════════════════════════════
    2. 全局重置与基础样式
    ═══════════════════════════════════════════════ */
-html, body {
+html, body, [class*="css"] {
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
-    background: var(--ms-bg-primary) !important;
-    color: var(--ms-text-primary) !important;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
 }
 
+/* 页面根背景 - 深蓝暗色 */
+.stApp {
+    background: linear-gradient(135deg, #0a0f1d 0%, #0f172a 40%, #111827 100%) !important;
+}
+
 .main .block-container {
-    background: var(--ms-bg-primary) !important;
+    background: transparent !important;
     padding-top: var(--ms-space-6) !important;
     padding-bottom: var(--ms-space-8) !important;
     max-width: 1200px !important;
 }
 
-/* 代码与化学式字体 */
+/* ─── 代码与化学式字体 ─── */
 code, pre, .mono {
     font-family: 'JetBrains Mono', 'Fira Code', monospace !important;
     letter-spacing: -0.01em;
@@ -378,6 +401,8 @@ code, pre, .mono {
 /* ═══════════════════════════════════════════════
    3. 排版系统 (Typography)
    ═══════════════════════════════════════════════ */
+
+/* 渐变呼吸标题 */
 .gradient-title {
     font-weight: 800;
     font-size: clamp(2rem, 5vw, 3rem);
@@ -385,12 +410,13 @@ code, pre, .mono {
     letter-spacing: -0.03em;
     line-height: 1.1;
     margin-bottom: var(--ms-space-2);
-    background: linear-gradient(135deg, #38bdf8 0%, #0ea5e9 40%, #22d3ee 70%, #818cf8 100%);
+    background: linear-gradient(135deg, #38bdf8 0%, #0ea5e9 30%, #22d3ee 60%, #818cf8 100%);
     background-size: 200% 200%;
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
     animation: gradientShift 8s ease infinite;
+    filter: drop-shadow(0 0 12px rgba(14, 165, 233, 0.25));
 }
 
 @keyframes gradientShift {
@@ -408,7 +434,7 @@ code, pre, .mono {
     letter-spacing: 0.01em;
 }
 
-/* 层级标题 */
+/* 层级标题 - 带左侧发光竖条 */
 .card-title {
     color: var(--ms-text-primary);
     font-size: 1.125rem;
@@ -418,6 +444,7 @@ code, pre, .mono {
     align-items: center;
     gap: var(--ms-space-2);
     letter-spacing: -0.01em;
+    text-shadow: 0 0 10px rgba(14, 165, 233, 0.08);
 }
 
 .card-title::before {
@@ -428,15 +455,16 @@ code, pre, .mono {
     background: linear-gradient(180deg, var(--ms-accent-primary), var(--ms-accent-secondary));
     border-radius: var(--ms-radius-sm);
     flex-shrink: 0;
+    box-shadow: 0 0 6px rgba(14, 165, 233, 0.3);
 }
 
 /* ═══════════════════════════════════════════════
-   4. 卡片与容器组件 (Surface Components)
+   4. 卡片与容器 (Cards & Containers)
    ═══════════════════════════════════════════════ */
+
+/* ─── 卡片容器 - 无 blur，用渐变模拟玻璃 ─── */
 .card-container {
-    background: linear-gradient(135deg, rgba(30, 41, 59, 0.70) 0%, rgba(30, 41, 59, 0.40) 100%);
-    backdrop-filter: blur(24px) saturate(200%);
-    -webkit-backdrop-filter: blur(24px) saturate(200%);
+    background: linear-gradient(135deg, rgba(30, 41, 59, 0.65) 0%, rgba(30, 41, 59, 0.35) 100%);
     border: 1px solid rgba(148, 163, 184, 0.10);
     border-radius: var(--ms-radius-lg);
     padding: var(--ms-space-5);
@@ -448,58 +476,31 @@ code, pre, .mono {
     overflow: hidden;
 }
 
+/* 卡片顶部微光条 */
 .card-container::before {
     content: '';
     position: absolute;
     top: 0; left: 0; right: 0;
     height: 1px;
-    background: linear-gradient(90deg, transparent 0%, rgba(14, 165, 233, 0.15) 20%, rgba(6, 182, 212, 0.10) 50%, rgba(14, 165, 233, 0.15) 80%, transparent 100%);
+    background: linear-gradient(90deg, transparent 0%, rgba(14, 165, 233, 0.20) 20%, rgba(6, 182, 212, 0.12) 50%, rgba(14, 165, 233, 0.20) 80%, transparent 100%);
+    pointer-events: none;
 }
 
 .card-container:hover {
     transform: translateY(-3px);
-    box-shadow: 0 20px 25px -5px rgba(0,0,0,0.25), 0 8px 10px -6px rgba(0,0,0,0.15), 0 0 30px rgba(14, 165, 233, 0.10), inset 0 1px 0 rgba(255,255,255,0.05);
+    box-shadow: 0 20px 25px -5px rgba(0,0,0,0.25), 0 8px 10px -6px rgba(0,0,0,0.15), 0 0 30px rgba(14, 165, 233, 0.08), inset 0 1px 0 rgba(255,255,255,0.05);
     border-color: rgba(14, 165, 233, 0.20);
 }
 
-/* 分子扩散入场动画 - 带模糊消散效果 */
+/* ═══════════════════════════════════════════════
+   4.5 动画系统
+   ═══════════════════════════════════════════════ */
 @keyframes molecularDiffuse {
-    from {
-        opacity: 0;
-        transform: translateY(20px) scale(0.97);
-        filter: blur(2px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0) scale(1);
-        filter: blur(0px);
-    }
-}
-
-/* 原子逐个出现 - 用于 metric 数值 */
-@keyframes atomicAppear {
-    from { opacity: 0; transform: translateY(12px) scale(0.95); }
+    from { opacity: 0; transform: translateY(20px) scale(0.97); }
     to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
-/* 卡片交错入场 */
 .card-container {
-    animation: molecularDiffuse var(--ms-duration-slow) var(--ms-easing-decelerate) both;
-}
-
-/* Streamlit 原生容器的分子扩散 */
-[data-testid="stVerticalBlock"] > [data-testid="stVerticalBlockBorderWrapper"],
-[data-testid="stExpander"] {
-    animation: molecularDiffuse var(--ms-duration-slow) var(--ms-easing-decelerate) both;
-}
-
-/* Metric 数值原子逐个出现 */
-[data-testid="stMetricValue"] {
-    animation: atomicAppear var(--ms-duration-normal) var(--ms-easing-decelerate) both;
-}
-
-/* 分子结构图入场 */
-.stImage > img {
     animation: molecularDiffuse var(--ms-duration-slow) var(--ms-easing-decelerate) both;
 }
 
@@ -511,17 +512,15 @@ code, pre, .mono {
 .stButton > button {
     background: linear-gradient(135deg, #0284c7, #0ea5e9, #38bdf8) !important;
     background-size: 200% 200% !important;
-    color: var(--ms-text-primary) !important;
+    color: #ffffff !important;
     border: none !important;
     border-radius: var(--ms-radius-md) !important;
     padding: 0.75rem 1.5rem !important;
     font-size: 0.9375rem !important;
     font-weight: 600 !important;
     letter-spacing: 0.01em !important;
-    box-shadow: var(--ms-shadow-md), 0 0 0 0 rgba(14, 165, 233, 0) !important;
-    transition: transform var(--ms-duration-fast) var(--ms-easing-bounce),
-                box-shadow var(--ms-duration-fast) var(--ms-easing-default),
-                background-position var(--ms-duration-slow) var(--ms-easing-default) !important;
+    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.20), 0 0 0 0 rgba(14, 165, 233, 0) !important;
+    transition: transform var(--ms-duration-fast) var(--ms-easing-bounce), box-shadow var(--ms-duration-fast) var(--ms-easing-default), background-position var(--ms-duration-slow) var(--ms-easing-default) !important;
     will-change: transform, box-shadow;
     position: relative;
     overflow: hidden;
@@ -532,13 +531,13 @@ code, pre, .mono {
     position: absolute;
     top: 0; left: -100%;
     width: 100%; height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.12), transparent);
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent);
     transition: left var(--ms-duration-slow) var(--ms-easing-default);
 }
 
 .stButton > button:hover {
     transform: translateY(-2px) scale(1.01);
-    box-shadow: var(--ms-shadow-lg), var(--ms-shadow-glow) !important;
+    box-shadow: 0 10px 15px -3px rgba(0,0,0,0.25), 0 0 20px rgba(14, 165, 233, 0.15) !important;
     background-position: 100% 0% !important;
 }
 
@@ -552,21 +551,14 @@ code, pre, .mono {
     box-shadow: 0 2px 4px -1px rgba(0,0,0,0.20), inset 0 2px 4px rgba(0,0,0,0.10) !important;
 }
 
-/* 按钮加载态光效 */
-.stButton > button[disabled],
-.stButton > button[data-disabled="true"] {
-    opacity: 0.7;
-    filter: saturate(0.7);
-}
-
-/* 次要按钮 - 共价键主题 */
+/* 次要按钮 - 紫色共价键主题 */
 .stButton > button[kind="secondary"] {
     background: linear-gradient(135deg, #7c3aed, #8b5cf6, #a78bfa) !important;
-    box-shadow: var(--ms-shadow-md), 0 0 0 0 rgba(139, 92, 246, 0) !important;
+    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.20), 0 0 0 0 rgba(139, 92, 246, 0) !important;
 }
 
 .stButton > button[kind="secondary"]:hover {
-    box-shadow: var(--ms-shadow-lg), 0 0 20px rgba(139, 92, 246, 0.2) !important;
+    box-shadow: 0 10px 15px -3px rgba(0,0,0,0.25), 0 0 20px rgba(139, 92, 246, 0.15) !important;
 }
 
 /* ─── 输入框：电子云聚焦 ─── */
@@ -579,9 +571,7 @@ code, pre, .mono {
     background: var(--ms-bg-input) !important;
     color: var(--ms-text-primary) !important;
     box-shadow: var(--ms-shadow-inset) !important;
-    transition: border-color var(--ms-duration-fast) var(--ms-easing-default),
-                box-shadow var(--ms-duration-fast) var(--ms-easing-default) !important;
-    will-change: border-color, box-shadow;
+    transition: border-color var(--ms-duration-fast) var(--ms-easing-default), box-shadow var(--ms-duration-fast) var(--ms-easing-default) !important;
 }
 
 .stTextInput > div > div > input::placeholder,
@@ -614,7 +604,6 @@ code, pre, .mono {
     color: var(--ms-text-primary) !important;
     letter-spacing: -0.02em;
     line-height: 1.2;
-    text-shadow: 0 0 20px rgba(14, 165, 233, 0.10);
 }
 
 [data-testid="stMetricLabel"] {
@@ -631,29 +620,17 @@ code, pre, .mono {
     font-weight: 600 !important;
 }
 
-/* Metric 容器美化 */
-[data-testid="stMetric"] {
-    background: rgba(148, 163, 184, 0.03);
-    border-radius: var(--ms-radius-md);
-    padding: var(--ms-space-3) var(--ms-space-4);
-    border: 1px solid rgba(148, 163, 184, 0.06);
-    transition: background var(--ms-duration-fast) var(--ms-easing-default), border-color var(--ms-duration-fast) var(--ms-easing-default);
-}
-
-[data-testid="stMetric"]:hover {
-    background: rgba(14, 165, 233, 0.04);
-    border-color: rgba(14, 165, 233, 0.10);
-}
-
 /* ─── 结果状态卡片 ─── */
 .result-high {
-    background: linear-gradient(135deg, rgba(16, 185, 129, 0.10), rgba(16, 185, 129, 0.05));
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.12), rgba(16, 185, 129, 0.06));
     border: 1px solid rgba(16, 185, 129, 0.25);
     border-radius: var(--ms-radius-lg);
     padding: var(--ms-space-4);
     text-align: center;
     position: relative;
     overflow: hidden;
+    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.10);
+    transition: transform var(--ms-duration-normal) var(--ms-easing-default), box-shadow var(--ms-duration-normal) var(--ms-easing-default);
 }
 
 .result-high::before {
@@ -662,16 +639,24 @@ code, pre, .mono {
     top: 0; left: 0; right: 0;
     height: 3px;
     background: linear-gradient(90deg, #10b981, #34d399);
+    box-shadow: 0 0 8px rgba(16, 185, 129, 0.3);
+}
+
+.result-high:hover {
+    transform: scale(1.01);
+    box-shadow: 0 0 20px rgba(16, 185, 129, 0.10);
 }
 
 .result-moderate {
-    background: linear-gradient(135deg, rgba(245, 158, 11, 0.10), rgba(245, 158, 11, 0.05));
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.12), rgba(245, 158, 11, 0.06));
     border: 1px solid rgba(245, 158, 11, 0.25);
     border-radius: var(--ms-radius-lg);
     padding: var(--ms-space-4);
     text-align: center;
     position: relative;
     overflow: hidden;
+    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.10);
+    transition: transform var(--ms-duration-normal) var(--ms-easing-default), box-shadow var(--ms-duration-normal) var(--ms-easing-default);
 }
 
 .result-moderate::before {
@@ -680,16 +665,24 @@ code, pre, .mono {
     top: 0; left: 0; right: 0;
     height: 3px;
     background: linear-gradient(90deg, #f59e0b, #fbbf24);
+    box-shadow: 0 0 8px rgba(245, 158, 11, 0.3);
+}
+
+.result-moderate:hover {
+    transform: scale(1.01);
+    box-shadow: 0 0 20px rgba(245, 158, 11, 0.10);
 }
 
 .result-low {
-    background: linear-gradient(135deg, rgba(239, 68, 68, 0.10), rgba(239, 68, 68, 0.05));
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.12), rgba(239, 68, 68, 0.06));
     border: 1px solid rgba(239, 68, 68, 0.25);
     border-radius: var(--ms-radius-lg);
     padding: var(--ms-space-4);
     text-align: center;
     position: relative;
     overflow: hidden;
+    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.10);
+    transition: transform var(--ms-duration-normal) var(--ms-easing-default), box-shadow var(--ms-duration-normal) var(--ms-easing-default);
 }
 
 .result-low::before {
@@ -698,98 +691,73 @@ code, pre, .mono {
     top: 0; left: 0; right: 0;
     height: 3px;
     background: linear-gradient(90deg, #ef4444, #f87171);
+    box-shadow: 0 0 8px rgba(239, 68, 68, 0.3);
 }
 
-/* 结果卡片内部发光 */
-.result-high, .result-moderate, .result-low {
-    position: relative;
-    overflow: hidden;
-    transition: transform var(--ms-duration-normal) var(--ms-easing-default), box-shadow var(--ms-duration-normal) var(--ms-easing-default);
-}
-
-.result-high:hover, .result-moderate:hover, .result-low:hover {
-    transform: scale(1.01);
-}
-
-.result-high:hover {
-    box-shadow: 0 0 20px rgba(16, 185, 129, 0.08);
-}
-.result-moderate:hover {
-    box-shadow: 0 0 20px rgba(245, 158, 11, 0.08);
-}
 .result-low:hover {
-    box-shadow: 0 0 20px rgba(239, 68, 68, 0.08);
+    transform: scale(1.01);
+    box-shadow: 0 0 20px rgba(239, 68, 68, 0.10);
 }
 
 /* pKa 状态 */
 .pka-acid {
-    background: linear-gradient(135deg, rgba(239, 68, 68, 0.08), rgba(239, 68, 68, 0.03));
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.10), rgba(239, 68, 68, 0.04));
     border: 1px solid rgba(239, 68, 68, 0.20);
     border-radius: var(--ms-radius-lg);
     padding: var(--ms-space-4);
     text-align: center;
     position: relative;
     overflow: hidden;
+    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.10);
+    transition: transform var(--ms-duration-normal) var(--ms-easing-default), box-shadow var(--ms-duration-normal) var(--ms-easing-default);
 }
 .pka-acid::before {
     content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
     background: linear-gradient(90deg, #ef4444, #f87171);
+    box-shadow: 0 0 8px rgba(239, 68, 68, 0.3);
 }
+.pka-acid:hover { transform: scale(1.01); box-shadow: 0 0 20px rgba(239, 68, 68, 0.10); }
 
 .pka-base {
-    background: linear-gradient(135deg, rgba(59, 130, 246, 0.08), rgba(59, 130, 246, 0.03));
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.10), rgba(59, 130, 246, 0.04));
     border: 1px solid rgba(59, 130, 246, 0.20);
     border-radius: var(--ms-radius-lg);
     padding: var(--ms-space-4);
     text-align: center;
     position: relative;
     overflow: hidden;
+    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.10);
+    transition: transform var(--ms-duration-normal) var(--ms-easing-default), box-shadow var(--ms-duration-normal) var(--ms-easing-default);
 }
 .pka-base::before {
     content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
     background: linear-gradient(90deg, #3b82f6, #60a5fa);
+    box-shadow: 0 0 8px rgba(59, 130, 246, 0.3);
 }
+.pka-base:hover { transform: scale(1.01); box-shadow: 0 0 20px rgba(59, 130, 246, 0.10); }
 
 .pka-amphoteric {
-    background: linear-gradient(135deg, rgba(245, 158, 11, 0.08), rgba(245, 158, 11, 0.03));
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.10), rgba(245, 158, 11, 0.04));
     border: 1px solid rgba(245, 158, 11, 0.20);
     border-radius: var(--ms-radius-lg);
     padding: var(--ms-space-4);
     text-align: center;
     position: relative;
     overflow: hidden;
+    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.10);
+    transition: transform var(--ms-duration-normal) var(--ms-easing-default), box-shadow var(--ms-duration-normal) var(--ms-easing-default);
 }
 .pka-amphoteric::before {
     content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
     background: linear-gradient(90deg, #f59e0b, #fbbf24);
+    box-shadow: 0 0 8px rgba(245, 158, 11, 0.3);
 }
-
-/* pKa 卡片统一样式增强 */
-.pka-acid, .pka-base, .pka-amphoteric {
-    position: relative;
-    overflow: hidden;
-    transition: transform var(--ms-duration-normal) var(--ms-easing-default), box-shadow var(--ms-duration-normal) var(--ms-easing-default);
-}
-
-.pka-acid:hover, .pka-base:hover, .pka-amphoteric:hover {
-    transform: scale(1.01);
-}
-
-.pka-acid:hover {
-    box-shadow: 0 0 20px rgba(239, 68, 68, 0.08);
-}
-.pka-base:hover {
-    box-shadow: 0 0 20px rgba(59, 130, 246, 0.08);
-}
-.pka-amphoteric:hover {
-    box-shadow: 0 0 20px rgba(245, 158, 11, 0.08);
-}
+.pka-amphoteric:hover { transform: scale(1.01); box-shadow: 0 0 20px rgba(245, 158, 11, 0.10); }
 
 /* ═══════════════════════════════════════════════
-   7. 反馈组件 (Feedback Components)
+   7. 反馈组件 (Feedback)
    ═══════════════════════════════════════════════ */
 
-/* ─── Alert：能级跃迁光效 ─── */
 .stAlert {
     border-radius: var(--ms-radius-lg) !important;
     border: 1px solid !important;
@@ -812,45 +780,49 @@ code, pre, .mono {
 }
 
 .stAlert[data-baseweb="notification"][data-kind="positive"] {
-    background: linear-gradient(135deg, rgba(16, 185, 129, 0.08), rgba(16, 185, 129, 0.02)) !important;
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.10), rgba(16, 185, 129, 0.03)) !important;
     border-color: rgba(16, 185, 129, 0.20) !important;
 }
 .stAlert[data-baseweb="notification"][data-kind="positive"]::before {
     background: linear-gradient(180deg, #10b981, #34d399);
+    box-shadow: 0 0 6px rgba(16, 185, 129, 0.3);
 }
 
 .stAlert[data-baseweb="notification"][data-kind="info"] {
-    background: linear-gradient(135deg, rgba(14, 165, 233, 0.08), rgba(14, 165, 233, 0.02)) !important;
+    background: linear-gradient(135deg, rgba(14, 165, 233, 0.10), rgba(14, 165, 233, 0.03)) !important;
     border-color: rgba(14, 165, 233, 0.20) !important;
 }
 .stAlert[data-baseweb="notification"][data-kind="info"]::before {
     background: linear-gradient(180deg, #0ea5e9, #38bdf8);
+    box-shadow: 0 0 6px rgba(14, 165, 233, 0.3);
 }
 
 .stAlert[data-baseweb="notification"][data-kind="warning"] {
-    background: linear-gradient(135deg, rgba(245, 158, 11, 0.08), rgba(245, 158, 11, 0.02)) !important;
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.10), rgba(245, 158, 11, 0.03)) !important;
     border-color: rgba(245, 158, 11, 0.20) !important;
 }
 .stAlert[data-baseweb="notification"][data-kind="warning"]::before {
     background: linear-gradient(180deg, #f59e0b, #fbbf24);
+    box-shadow: 0 0 6px rgba(245, 158, 11, 0.3);
 }
 
 .stAlert[data-baseweb="notification"][data-kind="negative"] {
-    background: linear-gradient(135deg, rgba(239, 68, 68, 0.08), rgba(239, 68, 68, 0.02)) !important;
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.10), rgba(239, 68, 68, 0.03)) !important;
     border-color: rgba(239, 68, 68, 0.20) !important;
 }
 .stAlert[data-baseweb="notification"][data-kind="negative"]::before {
     background: linear-gradient(180deg, #ef4444, #f87171);
+    box-shadow: 0 0 6px rgba(239, 68, 68, 0.3);
 }
 
 /* ═══════════════════════════════════════════════
    8. 导航与标签 (Navigation)
    ═══════════════════════════════════════════════ */
+
 .stTabs [data-baseweb="tab-list"] {
     gap: var(--ms-space-2);
     border-bottom: 1px solid rgba(148, 163, 184, 0.10);
     padding-bottom: var(--ms-space-1);
-    margin-bottom: var(--ms-space-3);
 }
 
 .stTabs [data-baseweb="tab"] {
@@ -863,7 +835,6 @@ code, pre, .mono {
     border: none !important;
     border-bottom: 2px solid transparent !important;
     transition: color var(--ms-duration-fast) var(--ms-easing-default), border-color var(--ms-duration-fast) var(--ms-easing-default), background var(--ms-duration-fast) var(--ms-easing-default), text-shadow var(--ms-duration-fast) var(--ms-easing-default) !important;
-    position: relative;
 }
 
 .stTabs [data-baseweb="tab"]:hover {
@@ -880,50 +851,30 @@ code, pre, .mono {
     font-weight: 600 !important;
 }
 
-/* Tab 内容区域入场 */
-.stTabs [data-baseweb="tab-panel"] {
-    animation: molecularDiffuse var(--ms-duration-slow) var(--ms-easing-decelerate) both;
-}
-
 /* ═══════════════════════════════════════════════
    9. 媒体与可视化 (Media)
    ═══════════════════════════════════════════════ */
+
 .stImage > img {
     border-radius: var(--ms-radius-lg);
     border: 1px solid rgba(148, 163, 184, 0.10);
     box-shadow: var(--ms-shadow-md);
-    transition: transform var(--ms-duration-normal) var(--ms-easing-default), box-shadow var(--ms-duration-normal) var(--ms-easing-default), border-color var(--ms-duration-fast) var(--ms-easing-default);
-    animation: molecularDiffuse var(--ms-duration-slow) var(--ms-easing-decelerate) both;
+    transition: transform var(--ms-duration-normal) var(--ms-easing-default), box-shadow var(--ms-duration-normal) var(--ms-easing-default);
 }
 
 .stImage > img:hover {
     transform: scale(1.02);
     box-shadow: var(--ms-shadow-lg), 0 0 30px rgba(14, 165, 233, 0.08);
-    border-color: rgba(14, 165, 233, 0.15);
 }
 
 /* Plotly/Matplotlib 图表容器 */
 .js-plotly-plot, .stPlotlyChart {
     border-radius: var(--ms-radius-lg);
     overflow: hidden;
-    border: 1px solid rgba(148, 163, 184, 0.08);
-    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.15);
-    transition: border-color var(--ms-duration-fast) var(--ms-easing-default), box-shadow var(--ms-duration-normal) var(--ms-easing-default);
-}
-
-.js-plotly-plot:hover, .stPlotlyChart:hover {
-    border-color: rgba(14, 165, 233, 0.10);
-    box-shadow: 0 10px 15px -3px rgba(0,0,0,0.20), 0 0 20px rgba(14, 165, 233, 0.05);
-}
-
-/* st.pyplot 输出的图表 */
-.stPlotlyChart > div,
-[data-testid="stImageContainer"] > div {
-    border-radius: var(--ms-radius-lg);
 }
 
 /* ═══════════════════════════════════════════════
-   10. 分隔线与页脚 (Layout)
+   10. 分隔线与页脚
    ═══════════════════════════════════════════════ */
 hr {
     border: none;
@@ -943,19 +894,13 @@ hr {
 }
 
 /* ═══════════════════════════════════════════════
-   11. 加载状态：电子跃迁能量条
+   11. 加载状态
    ═══════════════════════════════════════════════ */
+
 .stSpinner > div {
     border-color: var(--ms-accent-primary) transparent transparent transparent !important;
-    border-width: 3px !important;
-    filter: drop-shadow(0 0 6px rgba(14, 165, 233, 0.30));
 }
 
-.stSpinner {
-    animation: atomicAppear var(--ms-duration-normal) var(--ms-easing-decelerate) both;
-}
-
-/* 自定义进度条/加载态 */
 @keyframes electronJump {
     0% { transform: translateX(-100%); opacity: 0; }
     50% { opacity: 1; }
@@ -964,7 +909,7 @@ hr {
 
 .loading-bar {
     height: 2px;
-    background: linear-gradient(90deg, rgba(14, 165, 233, 0.08), rgba(6, 182, 212, 0.05));
+    background: rgba(14, 165, 233, 0.10);
     border-radius: var(--ms-radius-sm);
     overflow: hidden;
     position: relative;
@@ -974,15 +919,14 @@ hr {
     content: '';
     position: absolute;
     top: 0; left: 0;
-    width: 30%; height: 100%;
-    background: linear-gradient(90deg, transparent, var(--ms-accent-primary), var(--ms-accent-secondary), transparent);
+    width: 25%; height: 100%;
+    background: linear-gradient(90deg, transparent, var(--ms-accent-primary), transparent);
     animation: electronJump 1.5s ease-in-out infinite;
     will-change: transform, opacity;
-    filter: blur(0.5px);
 }
 
 /* ═══════════════════════════════════════════════
-   12. 辅助工具类 (Utility)
+   12. 辅助工具类
    ═══════════════════════════════════════════════ */
 .text-gradient {
     background: linear-gradient(135deg, #38bdf8, #818cf8);
@@ -1029,79 +973,36 @@ hr {
 }
 
 ::-webkit-scrollbar-track {
-    background: rgba(15, 23, 42, 0.50);
-    border-radius: 3px;
+    background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
-    background: linear-gradient(180deg, rgba(100, 116, 139, 0.30), rgba(100, 116, 139, 0.20));
+    background: rgba(100, 116, 139, 0.30);
     border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-    background: linear-gradient(180deg, rgba(14, 165, 233, 0.40), rgba(14, 165, 233, 0.20));
+    background: rgba(100, 116, 139, 0.50);
+}
+
+/* 响应式 */
+@media (max-width: 768px) {
+    .main .block-container {
+        padding-left: var(--ms-space-4) !important;
+        padding-right: var(--ms-space-4) !important;
+    }
+    .gradient-title {
+        font-size: 2rem;
+    }
+    .card-container {
+        padding: var(--ms-space-4);
+    }
 }
 
 /* 文字选中效果 */
 ::selection {
     background: rgba(14, 165, 233, 0.25);
     color: var(--ms-text-primary);
-    text-shadow: 0 0 8px rgba(14, 165, 233, 0.20);
-}
-
-/* 响应式适配 */
-@media (max-width: 768px) {
-    .main .block-container {
-        padding-left: var(--ms-space-4) !important;
-        padding-right: var(--ms-space-4) !important;
-        padding-top: var(--ms-space-4) !important;
-    }
-    .gradient-title {
-        font-size: 2rem;
-        letter-spacing: -0.02em;
-    }
-    .subtitle {
-        font-size: 0.95rem;
-    }
-    .card-container {
-        padding: var(--ms-space-4);
-        margin-bottom: var(--ms-space-4);
-    }
-    .card-title {
-        font-size: 1rem;
-    }
-    [data-testid="stMetricValue"] {
-        font-size: 1.5rem !important;
-    }
-    .stButton > button {
-        padding: 0.625rem 1rem !important;
-        font-size: 0.875rem !important;
-    }
-    .footer {
-        font-size: 0.75rem;
-        padding: var(--ms-space-4) var(--ms-space-3);
-    }
-}
-
-/* 平板适配 */
-@media (min-width: 769px) and (max-width: 1024px) {
-    .main .block-container {
-        max-width: 95% !important;
-    }
-}
-
-/* st.container(border=True) 美化 */
-[data-testid="stVerticalBlockBorderWrapper"] {
-    background: linear-gradient(135deg, rgba(30, 41, 59, 0.50) 0%, rgba(30, 41, 59, 0.25) 100%) !important;
-    border: 1px solid rgba(148, 163, 184, 0.08) !important;
-    border-radius: var(--ms-radius-lg) !important;
-    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.02) !important;
-    transition: border-color var(--ms-duration-fast) var(--ms-easing-default), box-shadow var(--ms-duration-normal) var(--ms-easing-default) !important;
-    padding: var(--ms-space-3) !important;
-}
-
-[data-testid="stVerticalBlockBorderWrapper"]:hover {
-    border-color: rgba(14, 165, 233, 0.10) !important;
 }
 
 /* Streamlit 原生组件暗黑适配 */
@@ -1112,57 +1013,24 @@ hr {
 .stCaption {
     color: var(--ms-text-tertiary) !important;
     font-size: 0.8125rem !important;
-    line-height: 1.6;
 }
 
-/* st.info 容器美化 */
-[data-testid="stInfoMessage"] {
-    background: linear-gradient(135deg, rgba(14, 165, 233, 0.06), rgba(14, 165, 233, 0.02)) !important;
-    border: 1px solid rgba(14, 165, 233, 0.12) !important;
+/* ─── st.container(border=True) 修复 ─── */
+[data-testid="stVerticalBlockBorderWrapper"] {
+    background: linear-gradient(135deg, rgba(30, 41, 59, 0.55) 0%, rgba(15, 23, 42, 0.45) 100%) !important;
+    border: 1px solid rgba(148, 163, 184, 0.10) !important;
     border-radius: var(--ms-radius-lg) !important;
-    animation: molecularDiffuse var(--ms-duration-slow) var(--ms-easing-decelerate) both;
+    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.20), inset 0 1px 0 rgba(255,255,255,0.03) !important;
 }
 
-/* st.success 容器美化 */
-[data-testid="stSuccessMessage"] {
-    background: linear-gradient(135deg, rgba(16, 185, 129, 0.06), rgba(16, 185, 129, 0.02)) !important;
-    border: 1px solid rgba(16, 185, 129, 0.12) !important;
-    border-radius: var(--ms-radius-lg) !important;
-    animation: molecularDiffuse var(--ms-duration-slow) var(--ms-easing-decelerate) both;
-}
-
-/* st.warning 容器美化 */
-[data-testid="stWarningMessage"] {
-    background: linear-gradient(135deg, rgba(245, 158, 11, 0.06), rgba(245, 158, 11, 0.02)) !important;
-    border: 1px solid rgba(245, 158, 11, 0.12) !important;
-    border-radius: var(--ms-radius-lg) !important;
-    animation: molecularDiffuse var(--ms-duration-slow) var(--ms-easing-decelerate) both;
-}
-
-/* st.error 容器美化 */
-[data-testid="stErrorMessage"] {
-    background: linear-gradient(135deg, rgba(239, 68, 68, 0.06), rgba(239, 68, 68, 0.02)) !important;
-    border: 1px solid rgba(239, 68, 68, 0.12) !important;
-    border-radius: var(--ms-radius-lg) !important;
-    animation: molecularDiffuse var(--ms-duration-slow) var(--ms-easing-decelerate) both;
-}
-
+/* Expander */
 [data-testid="stExpander"] {
-    background: linear-gradient(135deg, rgba(30, 41, 59, 0.60) 0%, rgba(30, 41, 59, 0.35) 100%) !important;
+    background: linear-gradient(135deg, rgba(30, 41, 59, 0.55) 0%, rgba(15, 23, 42, 0.40) 100%) !important;
     border: 1px solid rgba(148, 163, 184, 0.08) !important;
     border-radius: var(--ms-radius-lg) !important;
-    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.03) !important;
-    transition: border-color var(--ms-duration-fast) var(--ms-easing-default), box-shadow var(--ms-duration-normal) var(--ms-easing-default) !important;
-    position: relative;
-    overflow: hidden;
 }
 
-[data-testid="stExpander"]:hover {
-    border-color: rgba(14, 165, 233, 0.12) !important;
-    box-shadow: 0 10px 15px -3px rgba(0,0,0,0.20), 0 0 20px rgba(14, 165, 233, 0.05), inset 0 1px 0 rgba(255,255,255,0.03) !important;
-}
-
-/* 隐藏 Streamlit 默认顶栏装饰 */
+/* 隐藏 Streamlit 默认顶栏 */
 #MainMenu {visibility: hidden;}
 header {visibility: hidden;}
 footer {visibility: hidden;}
