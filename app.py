@@ -1232,24 +1232,24 @@ footer {visibility: hidden;}
 """, unsafe_allow_html=True)
 
 # ========== Canvas 动态粒子星空背景 ==========
-st.markdown("""
+components.html("""
 <script>
 (function() {
     'use strict';
     // 检查是否偏好减弱动画
     if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     
-    var canvas = document.getElementById('ob-starfield');
+    var canvas = window.parent.document.getElementById('ob-starfield');
     if (!canvas) {
-        canvas = document.createElement('canvas');
+        canvas = window.parent.document.createElement('canvas');
         canvas.id = 'ob-starfield';
         canvas.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;pointer-events:none;';
         // 插入到 .stApp 内部作为第一个子元素，确保在 App 背景之上、内容之下
-        var app = document.querySelector('.stApp');
+        var app = window.parent.document.querySelector('.stApp');
         if (app) {
             app.insertBefore(canvas, app.firstChild);
         } else {
-            document.body.insertBefore(canvas, document.body.firstChild);
+            window.parent.document.body.insertBefore(canvas, window.parent.document.body.firstChild);
         }
     }
     
@@ -1292,7 +1292,7 @@ st.markdown("""
     var mouseStarX = W / 2, mouseStarY = H / 2;
     var mouseTrail = [];
     var maxTrail = 20;
-    document.addEventListener('mousemove', function(e) {
+    window.parent.document.addEventListener('mousemove', function(e) {
         mouseStarX = e.clientX; mouseStarY = e.clientY;
         mouseTrail.push({x: e.clientX, y: e.clientY, age: 0});
         if (mouseTrail.length > maxTrail) mouseTrail.shift();
@@ -1429,31 +1429,31 @@ st.markdown("""
     animate();
 })();
 </script>
-""", unsafe_allow_html=True)
+""", height=0)
 
 # ========== 交互增强：鼠标跟随光晕 + 卡片 tilt 效果 ==========
-st.markdown("""
+components.html("""
 <script>
 (function() {
     'use strict';
-    let glow = document.querySelector('.cursor-glow');
+    let glow = window.parent.document.querySelector('.cursor-glow');
     if (!glow) {
-        glow = document.createElement('div');
+        glow = window.parent.document.createElement('div');
         glow.className = 'cursor-glow';
-        document.body.appendChild(glow);
+        window.parent.document.body.appendChild(glow);
     }
     
     let mouseX = window.innerWidth / 2, mouseY = window.innerHeight / 2;
     let currentX = mouseX, currentY = mouseY;
     let moveTimeout;
     
-    document.addEventListener('mousemove', function(e) {
+    window.parent.document.addEventListener('mousemove', function(e) {
         mouseX = e.clientX; mouseY = e.clientY;
         glow.style.opacity = '1';
         clearTimeout(moveTimeout);
         moveTimeout = setTimeout(() => { glow.style.opacity = '0'; }, 150);
     }, { passive: true });
-    document.addEventListener('mouseleave', () => glow.style.opacity = '0');
+    window.parent.document.addEventListener('mouseleave', () => glow.style.opacity = '0');
     
     (function animate() {
         currentX += (mouseX - currentX) * 0.08;
@@ -1464,7 +1464,7 @@ st.markdown("""
     
     // 卡片 3D tilt 效果（更克制的角度，避免与CSS hover冲突）
     function bindTilt() {
-        const cards = document.querySelectorAll('.card-container:not([data-tilt-bound]), [data-testid="stVerticalBlockBorderWrapper"]:not([data-tilt-bound])');
+        const cards = window.parent.document.querySelectorAll('.card-container:not([data-tilt-bound]), [data-testid="stVerticalBlockBorderWrapper"]:not([data-tilt-bound])');
         cards.forEach(card => {
             card.dataset.tiltBound = '1';
             card.addEventListener('mousemove', function(e) {
@@ -1487,7 +1487,7 @@ st.markdown("""
     
     // 按钮点击涟漪效果（品牌紫色 + 数量限制3个）
     function bindRipple() {
-        const buttons = document.querySelectorAll('.stButton > button:not([data-ripple-bound])');
+        const buttons = window.parent.document.querySelectorAll('.stButton > button:not([data-ripple-bound])');
         buttons.forEach(btn => {
             btn.dataset.rippleBound = '1';
             btn.style.position = 'relative';
@@ -1495,7 +1495,7 @@ st.markdown("""
             btn.addEventListener('click', function(e) {
                 const existing = btn.querySelectorAll('.ob-ripple');
                 if (existing.length >= 3) existing[0].remove();
-                const ripple = document.createElement('span');
+                const ripple = window.parent.document.createElement('span');
                 ripple.className = 'ob-ripple';
                 ripple.style.cssText = `
                     position: absolute; border-radius: 50%;
@@ -1517,15 +1517,15 @@ st.markdown("""
     setTimeout(bindRipple, 1500);
     
     // 动态添加涟漪动画（仅添加一次）
-    if (!document.getElementById('ob-ripple-style')) {
-        const style = document.createElement('style');
+    if (!window.parent.document.getElementById('ob-ripple-style')) {
+        const style = window.parent.document.createElement('style');
         style.id = 'ob-ripple-style';
         style.textContent = '@keyframes rippleAnim { 0% { transform: scale(0); opacity: 1; } 100% { transform: scale(4); opacity: 0; } }';
-        document.head.appendChild(style);
+        window.parent.document.head.appendChild(style);
     }
 })();
 </script>
-""", unsafe_allow_html=True)
+""", height=0)
 
 # ========== 加载 V2 模型 ==========
 @st.cache_resource
