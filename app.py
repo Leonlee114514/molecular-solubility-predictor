@@ -1941,7 +1941,7 @@ if st.session_state.predicted_smiles and st.session_state.predicted_logS is not 
                         ax.text(label_x, bar.get_y() + bar.get_height()/2,
                                 f'{val:+.2f}', va='center', ha='center', fontsize=10, fontweight='bold',
                                 color='#ffffff',
-                                bbox=dict(boxstyle='round,pad=0.25', facecolor='rgba(0,0,0,0.35)',
+                                bbox=dict(boxstyle='round,pad=0.25', facecolor=(0, 0, 0, 0.35),
                                           edgecolor='none', alpha=0.9))
 
                     ax.set_yticks(range(len(names)))
