@@ -352,59 +352,100 @@ html, body,
 
 .stApp {
     background:
-        radial-gradient(ellipse 80% 50% at 20% 40%, rgba(124, 58, 237, 0.10) 0%, transparent 70%),
-        radial-gradient(ellipse 60% 40% at 80% 20%, rgba(6, 182, 212, 0.08) 0%, transparent 60%),
-        radial-gradient(ellipse 50% 50% at 50% 80%, rgba(251, 191, 36, 0.04) 0%, transparent 50%),
-        linear-gradient(180deg, #0d0d14 0%, #12121c 50%, #0d0d14 100%) !important;
-    background-color: var(--ob-bg-primary) !important;
+        /* Layer 1: 深层紫色星云（左上方） */
+        radial-gradient(ellipse 60% 45% at 15% 30%, rgba(76, 29, 149, 0.35) 0%, rgba(124, 58, 237, 0.12) 30%, transparent 65%),
+        /* Layer 2: 青色星云（右上方） */
+        radial-gradient(ellipse 50% 35% at 85% 15%, rgba(8, 145, 178, 0.22) 0%, rgba(6, 182, 212, 0.08) 40%, transparent 70%),
+        /* Layer 3: 金色暖星云（下方中心） */
+        radial-gradient(ellipse 45% 40% at 50% 85%, rgba(180, 83, 9, 0.12) 0%, rgba(251, 191, 36, 0.06) 35%, transparent 60%),
+        /* Layer 4: 中央暗紫弥散光 */
+        radial-gradient(ellipse 70% 60% at 50% 45%, rgba(67, 56, 202, 0.08) 0%, transparent 55%),
+        /* Layer 5: 底部深邃暗角 */
+        radial-gradient(ellipse 90% 50% at 50% 100%, rgba(13, 13, 20, 0.9) 0%, transparent 50%),
+        /* Layer 6: 基础深色背景 */
+        linear-gradient(180deg, #0a0a12 0%, #0d0d14 25%, #11111a 50%, #0d0d14 75%, #0a0a12 100%) !important;
+    background-color: #0a0a12 !important;
     position: relative;
     min-height: 100vh;
 }
 
-/* 粒子星空层 */
+/* 粒子星空层 - 密集多层 */
 .stApp::before {
     content: '';
     position: fixed;
     top: 0; left: 0; right: 0; bottom: 0;
     background-image:
-        radial-gradient(2px 2px at 40px 60px, rgba(124, 58, 237, 0.5), transparent),
-        radial-gradient(1.5px 1.5px at 80px 140px, rgba(6, 182, 212, 0.5), transparent),
-        radial-gradient(2px 2px at 100px 320px, rgba(124, 58, 237, 0.4), transparent),
-        radial-gradient(1px 1px at 180px 80px, rgba(251, 191, 36, 0.4), transparent),
-        radial-gradient(2px 2px at 260px 160px, rgba(6, 182, 212, 0.5), transparent),
-        radial-gradient(1.5px 1.5px at 320px 240px, rgba(124, 58, 237, 0.4), transparent),
-        radial-gradient(1px 1px at 400px 100px, rgba(255, 255, 255, 0.3), transparent),
-        radial-gradient(2px 2px at 460px 360px, rgba(6, 182, 212, 0.4), transparent),
-        radial-gradient(1.5px 1.5px at 560px 180px, rgba(124, 58, 237, 0.5), transparent),
-        radial-gradient(1px 1px at 640px 280px, rgba(251, 191, 36, 0.4), transparent),
-        radial-gradient(2px 2px at 720px 60px, rgba(6, 182, 212, 0.4), transparent),
-        radial-gradient(1.5px 1.5px at 800px 200px, rgba(124, 58, 237, 0.4), transparent),
-        radial-gradient(1px 1px at 880px 340px, rgba(255, 255, 255, 0.3), transparent),
-        radial-gradient(2px 2px at 960px 120px, rgba(6, 182, 212, 0.5), transparent),
-        radial-gradient(1.5px 1.5px at 1040px 260px, rgba(124, 58, 237, 0.4), transparent),
-        radial-gradient(1px 1px at 1120px 80px, rgba(251, 191, 36, 0.4), transparent),
-        radial-gradient(2px 2px at 1200px 300px, rgba(6, 182, 212, 0.4), transparent),
-        radial-gradient(1.5px 1.5px at 1280px 160px, rgba(124, 58, 237, 0.5), transparent),
-        radial-gradient(1px 1px at 1360px 380px, rgba(255, 255, 255, 0.3), transparent),
-        radial-gradient(2px 2px at 1440px 100px, rgba(6, 182, 212, 0.5), transparent),
-        radial-gradient(1.5px 1.5px at 1520px 220px, rgba(124, 58, 237, 0.4), transparent),
-        radial-gradient(1px 1px at 1600px 320px, rgba(251, 191, 36, 0.4), transparent);
-    background-size: 800px 400px;
-    animation: particleFloat 25s linear infinite;
+        /* === 大亮点（紫/青，模拟亮星）=== */
+        radial-gradient(3px 3px at 8% 12%, rgba(167, 139, 250, 0.85), transparent),
+        radial-gradient(2.5px 2.5px at 22% 8%, rgba(34, 211, 238, 0.75), transparent),
+        radial-gradient(3px 3px at 35% 25%, rgba(139, 92, 246, 0.8), transparent),
+        radial-gradient(2px 2px at 48% 5%, rgba(251, 191, 36, 0.7), transparent),
+        radial-gradient(3px 3px at 62% 18%, rgba(6, 182, 212, 0.8), transparent),
+        radial-gradient(2.5px 2.5px at 78% 10%, rgba(167, 139, 250, 0.85), transparent),
+        radial-gradient(3px 3px at 88% 28%, rgba(34, 211, 238, 0.75), transparent),
+        radial-gradient(2px 2px at 95% 8%, rgba(196, 181, 253, 0.7), transparent),
+        radial-gradient(3px 3px at 15% 40%, rgba(6, 182, 212, 0.8), transparent),
+        radial-gradient(2.5px 2.5px at 55% 35%, rgba(139, 92, 246, 0.75), transparent),
+        radial-gradient(3px 3px at 72% 42%, rgba(251, 191, 36, 0.65), transparent),
+        radial-gradient(2px 2px at 42% 48%, rgba(196, 181, 253, 0.7), transparent),
+        /* === 中等星点 === */
+        radial-gradient(2px 2px at 5% 55%, rgba(124, 58, 237, 0.65), transparent),
+        radial-gradient(1.5px 1.5px at 18% 62%, rgba(34, 211, 238, 0.6), transparent),
+        radial-gradient(2px 2px at 28% 75%, rgba(167, 139, 250, 0.65), transparent),
+        radial-gradient(1.5px 1.5px at 40% 68%, rgba(6, 182, 212, 0.55), transparent),
+        radial-gradient(2px 2px at 52% 82%, rgba(139, 92, 246, 0.6), transparent),
+        radial-gradient(1.5px 1.5px at 65% 58%, rgba(251, 191, 36, 0.5), transparent),
+        radial-gradient(2px 2px at 75% 72%, rgba(124, 58, 237, 0.65), transparent),
+        radial-gradient(1.5px 1.5px at 85% 55%, rgba(34, 211, 238, 0.6), transparent),
+        radial-gradient(2px 2px at 92% 78%, rgba(196, 181, 253, 0.55), transparent),
+        radial-gradient(1.5px 1.5px at 12% 88%, rgba(6, 182, 212, 0.5), transparent),
+        radial-gradient(2px 2px at 32% 92%, rgba(139, 92, 246, 0.6), transparent),
+        radial-gradient(1.5px 1.5px at 58% 95%, rgba(167, 139, 250, 0.55), transparent),
+        radial-gradient(2px 2px at 82% 88%, rgba(34, 211, 238, 0.5), transparent),
+        /* === 白色小星点 === */
+        radial-gradient(1.5px 1.5px at 3% 30%, rgba(255, 255, 255, 0.55), transparent),
+        radial-gradient(1px 1px at 12% 18%, rgba(255, 255, 255, 0.5), transparent),
+        radial-gradient(1.5px 1.5px at 25% 45%, rgba(255, 255, 255, 0.55), transparent),
+        radial-gradient(1px 1px at 38% 15%, rgba(255, 255, 255, 0.45), transparent),
+        radial-gradient(1.5px 1.5px at 45% 58%, rgba(255, 255, 255, 0.5), transparent),
+        radial-gradient(1px 1px at 58% 12%, rgba(255, 255, 255, 0.45), transparent),
+        radial-gradient(1.5px 1.5px at 68% 50%, rgba(255, 255, 255, 0.5), transparent),
+        radial-gradient(1px 1px at 82% 35%, rgba(255, 255, 255, 0.45), transparent),
+        radial-gradient(1.5px 1.5px at 90% 60%, rgba(255, 255, 255, 0.5), transparent),
+        radial-gradient(1px 1px at 8% 78%, rgba(255, 255, 255, 0.4), transparent),
+        radial-gradient(1.5px 1.5px at 48% 88%, rgba(255, 255, 255, 0.45), transparent),
+        radial-gradient(1px 1px at 70% 92%, rgba(255, 255, 255, 0.4), transparent),
+        /* === 微星点（增加密度）=== */
+        radial-gradient(1px 1px at 7% 5%, rgba(167, 139, 250, 0.4), transparent),
+        radial-gradient(1px 1px at 30% 3%, rgba(34, 211, 238, 0.35), transparent),
+        radial-gradient(1px 1px at 50% 20%, rgba(196, 181, 253, 0.35), transparent),
+        radial-gradient(1px 1px at 60% 8%, rgba(124, 58, 237, 0.4), transparent),
+        radial-gradient(1px 1px at 80% 48%, rgba(6, 182, 212, 0.35), transparent),
+        radial-gradient(1px 1px at 95% 42%, rgba(139, 92, 246, 0.35), transparent),
+        radial-gradient(1px 1px at 20% 52%, rgba(251, 191, 36, 0.3), transparent),
+        radial-gradient(1px 1px at 45% 72%, rgba(167, 139, 250, 0.35), transparent),
+        radial-gradient(1px 1px at 88% 68%, rgba(34, 211, 238, 0.3), transparent);
+    background-size: 100% 100%;
+    animation: particleFloat 20s linear infinite;
     pointer-events: none;
     z-index: 0;
-    opacity: 0.6;
+    opacity: 1.0;
 }
 
-/* 星云光晕叠加 */
+/* 星云光晕叠加 - 多层 */
 .stApp::after {
     content: '';
     position: fixed;
-    top: 5%; left: 50%;
-    transform: translateX(-50%);
-    width: 800px; height: 500px;
-    background: radial-gradient(ellipse at center, rgba(124, 58, 237, 0.10) 0%, rgba(6, 182, 212, 0.05) 40%, transparent 70%);
-    border-radius: 50%;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background:
+        /* 主星云：紫色弥散光（左上区域） */
+        radial-gradient(ellipse 55% 40% at 25% 35%, rgba(124, 58, 237, 0.18) 0%, rgba(76, 29, 149, 0.08) 35%, transparent 65%),
+        /* 副星云：青色弥散光（右上区域） */
+        radial-gradient(ellipse 45% 35% at 75% 25%, rgba(6, 182, 212, 0.12) 0%, rgba(8, 145, 178, 0.06) 40%, transparent 70%),
+        /* 底部暖光晕 */
+        radial-gradient(ellipse 50% 30% at 50% 90%, rgba(180, 83, 9, 0.08) 0%, transparent 55%),
+        /* 中央微弱紫光 */
+        radial-gradient(ellipse 40% 40% at 50% 50%, rgba(109, 40, 217, 0.06) 0%, transparent 50%);
     pointer-events: none;
     z-index: 0;
     animation: nebulaPulse 10s ease-in-out infinite;
@@ -1209,12 +1250,140 @@ footer {visibility: hidden;}
 </style>
 """, unsafe_allow_html=True)
 
+# ========== Canvas 动态粒子星空背景 ==========
+components.html("""
+<script>
+(function() {
+    'use strict';
+    // 检查是否偏好减弱动画
+    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    
+    var canvas = document.getElementById('ob-starfield');
+    if (!canvas) {
+        canvas = document.createElement('canvas');
+        canvas.id = 'ob-starfield';
+        canvas.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;z-index:-1;pointer-events:none;opacity:0.8;';
+        document.body.insertBefore(canvas, document.body.firstChild);
+    }
+    
+    var ctx = canvas.getContext('2d');
+    var W, H;
+    function resize() {
+        W = canvas.width = window.innerWidth;
+        H = canvas.height = window.innerHeight;
+    }
+    resize();
+    window.addEventListener('resize', resize);
+    
+    // 粒子配置 - 3层：亮星/中星/微星
+    var layers = [
+        { count: 40, minR: 1.2, maxR: 2.5, speed: 0.08, colors: ['rgba(167,139,250,', 'rgba(34,211,238,', 'rgba(196,181,253,', 'rgba(255,255,255,'] },
+        { count: 70, minR: 0.6, maxR: 1.4, speed: 0.04, colors: ['rgba(124,58,237,', 'rgba(6,182,212,', 'rgba(139,92,246,', 'rgba(251,191,36,'] },
+        { count: 100, minR: 0.3, maxR: 0.8, speed: 0.02, colors: ['rgba(167,139,250,', 'rgba(34,211,238,', 'rgba(255,255,255,'] }
+    ];
+    
+    var stars = [];
+    layers.forEach(function(layer, li) {
+        for (var i = 0; i < layer.count; i++) {
+            var colorBase = layer.colors[Math.floor(Math.random() * layer.colors.length)];
+            stars.push({
+                x: Math.random() * W,
+                y: Math.random() * H,
+                r: layer.minR + Math.random() * (layer.maxR - layer.minR),
+                baseR: layer.minR + Math.random() * (layer.maxR - layer.minR),
+                vx: (Math.random() - 0.5) * layer.speed,
+                vy: (Math.random() - 0.5) * layer.speed,
+                color: colorBase,
+                alpha: 0.3 + Math.random() * 0.6,
+                twinkleSpeed: 0.005 + Math.random() * 0.015,
+                twinklePhase: Math.random() * Math.PI * 2,
+                layer: li
+            });
+        }
+    });
+    
+    var mouseStarX = W / 2, mouseStarY = H / 2;
+    document.addEventListener('mousemove', function(e) {
+        mouseStarX = e.clientX; mouseStarY = e.clientY;
+    }, { passive: true });
+    
+    var frame = 0;
+    function animate() {
+        ctx.clearRect(0, 0, W, H);
+        frame++;
+        
+        // 绘制连线（仅亮星层，距离近时）
+        for (var i = 0; i < stars.length; i++) {
+            if (stars[i].layer !== 0) continue;
+            for (var j = i + 1; j < stars.length; j++) {
+                if (stars[j].layer !== 0) continue;
+                var dx = stars[i].x - stars[j].x;
+                var dy = stars[i].y - stars[j].y;
+                var dist = Math.sqrt(dx * dx + dy * dy);
+                if (dist < 120) {
+                    ctx.beginPath();
+                    ctx.moveTo(stars[i].x, stars[i].y);
+                    ctx.lineTo(stars[j].x, stars[j].y);
+                    ctx.strokeStyle = 'rgba(167,139,250,' + (0.06 * (1 - dist / 120)) + ')';
+                    ctx.lineWidth = 0.5;
+                    ctx.stroke();
+                }
+            }
+        }
+        
+        // 绘制粒子
+        for (var i = 0; i < stars.length; i++) {
+            var s = stars[i];
+            // 位置微动
+            s.x += s.vx;
+            s.y += s.vy;
+            // 鼠标轻微排斥
+            var mdx = s.x - mouseStarX, mdy = s.y - mouseStarY;
+            var mDist = Math.sqrt(mdx * mdx + mdy * mdy);
+            if (mDist < 150 && mDist > 0) {
+                var repel = (150 - mDist) / 150 * 0.15;
+                s.x += (mdx / mDist) * repel;
+                s.y += (mdy / mDist) * repel;
+            }
+            // 边界环绕
+            if (s.x < -10) s.x = W + 10; if (s.x > W + 10) s.x = -10;
+            if (s.y < -10) s.y = H + 10; if (s.y > H + 10) s.y = -10;
+            
+            // 闪烁
+            var twinkle = Math.sin(frame * s.twinkleSpeed + s.twinklePhase);
+            var curAlpha = s.alpha * (0.6 + 0.4 * twinkle);
+            s.r = s.baseR * (0.85 + 0.15 * twinkle);
+            
+            // 发光效果（仅大星）
+            if (s.layer === 0) {
+                var glow = ctx.createRadialGradient(s.x, s.y, 0, s.x, s.y, s.r * 4);
+                glow.addColorStop(0, s.color + (curAlpha * 0.5) + ')');
+                glow.addColorStop(1, s.color + '0)');
+                ctx.beginPath();
+                ctx.arc(s.x, s.y, s.r * 4, 0, Math.PI * 2);
+                ctx.fillStyle = glow;
+                ctx.fill();
+            }
+            
+            // 核心星点
+            ctx.beginPath();
+            ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+            ctx.fillStyle = s.color + curAlpha + ')';
+            ctx.fill();
+        }
+        
+        requestAnimationFrame(animate);
+    }
+    animate();
+})();
+</script>
+""", height=0)
+
 # ========== 交互增强：鼠标跟随光晕 + 卡片 tilt 效果 ==========
 components.html("""
 <script>
 (function() {
     'use strict';
-    // 鼠标跟随光晕（translate3d硬件加速）
     let glow = document.querySelector('.cursor-glow');
     if (!glow) {
         glow = document.createElement('div');
