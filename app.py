@@ -1277,10 +1277,11 @@ def show_3d_molecule(smiles):
         AllChem.EmbedMolecule(mol, AllChem.ETKDGv3())
         AllChem.MMFFOptimizeMolecule(mol, maxIters=500)
         mb = Chem.MolToMolBlock(mol)
-        view = py3Dmol.view(width=380, height=320)
+        view = py3Dmol.view(width=380, height=340)
         view.addModel(mb, 'mol')
         view.setStyle({'stick': {'radius': 0.15}, 'sphere': {'scale': 0.25}})
         view.zoomTo()
+        view.setBackgroundColor('#1a1a2e')
         return view._make_html()
     except Exception:
         return None
@@ -1846,7 +1847,7 @@ if st.session_state.predicted_smiles and st.session_state.predicted_logS is not 
 
             chem_factors = analyze_pka_chemistry(st.session_state.predicted_smiles, pka_val)
 
-            col_3d, col_chem = st.columns([1, 1.2])
+            col_3d, col_chem = st.columns([1.1, 1.3])
 
             with col_3d:
                 st.markdown("<div style='font-weight: 600; color: var(--ob-text-secondary); margin-bottom: 0.5rem; font-family: \"Space Grotesk\", sans-serif;'>&#127919; 3D 球棍模型（可旋转缩放）</div>", unsafe_allow_html=True)
@@ -1869,43 +1870,45 @@ if st.session_state.predicted_smiles and st.session_state.predicted_logS is not 
 
                     names = list(chem_factors.keys())
                     vals = list(chem_factors.values())
-                    colors = ['#a78bfa' if v > 0 else '#06b6d4' for v in vals]
+                    colors = ['#a78bfa' if v > 0 else '#22d3ee' for v in vals]
 
-                    plt.rcParams['figure.facecolor'] = '#0a0a0f'
-                    plt.rcParams['axes.facecolor'] = '#1e1e2e'
-                    plt.rcParams['axes.edgecolor'] = '#2a2a3a'
+                    plt.rcParams['figure.facecolor'] = '#0d0d14'
+                    plt.rcParams['axes.facecolor'] = '#1a1a2e'
+                    plt.rcParams['axes.edgecolor'] = '#33334d'
                     plt.rcParams['axes.labelcolor'] = '#a0a0b0'
                     plt.rcParams['xtick.color'] = '#a0a0b0'
                     plt.rcParams['ytick.color'] = '#a0a0b0'
                     plt.rcParams['text.color'] = '#f0f0f5'
-                    fig, ax = plt.subplots(figsize=(6, 4))
-                    bars = ax.barh(range(len(vals)), vals, color=colors, edgecolor='white', height=0.55)
+                    fig, ax = plt.subplots(figsize=(7, 4.2))
+                    bars = ax.barh(range(len(vals)), vals, color=colors, edgecolor='rgba(255,255,255,0.15)', height=0.6, linewidth=0.5)
                     ax.invert_yaxis()
-                    ax.axvline(x=0, color='black', linewidth=0.8)
+                    ax.axvline(x=0, color='#f0f0f5', linewidth=1.0, alpha=0.4)
 
                     for bar, val in zip(bars, vals):
                         width = bar.get_width()
-                        offset = 0.15 if width >= 0 else -0.15
+                        # 标签统一放在条形末端外侧，白色文字
+                        label_x = width + 0.08 if width >= 0 else width - 0.08
                         align = 'left' if width >= 0 else 'right'
-                        color = 'black' if width >= 0 else 'white'
-                        ax.text(width + offset, bar.get_y() + bar.get_height()/2,
-                                f'{val:+.2f}', va='center', ha=align, fontsize=10, fontweight='bold', color=color)
+                        ax.text(label_x, bar.get_y() + bar.get_height()/2,
+                                f'{val:+.2f}', va='center', ha=align, fontsize=10, fontweight='bold', color='#f0f0f5')
 
                     ax.set_yticks(range(len(names)))
                     ax.set_yticklabels(names, fontsize=10)
                     unit = "增强酸性" if pka_val < 7 else "增强碱性"
                     ax.set_xlabel(f"对 {unit} 的贡献", fontsize=11)
-                    ax.set_title(f"pKa = {pka_val:.2f} | 化学因素分解", fontsize=12)
+                    ax.set_title(f"pKa = {pka_val:.2f} | 化学因素分解", fontsize=12, pad=12)
                     ax.spines['top'].set_visible(False)
                     ax.spines['right'].set_visible(False)
                     ax.spines['left'].set_visible(False)
+                    ax.spines['bottom'].set_color('#33334d')
 
                     from matplotlib.patches import Patch
                     legend_elements = [
                         Patch(facecolor='#a78bfa', label=f'增强{"酸性" if pka_val < 7 else "碱性"}'),
-                        Patch(facecolor='#06b6d4', label=f'减弱{"酸性" if pka_val < 7 else "碱性"}')
+                        Patch(facecolor='#22d3ee', label=f'减弱{"酸性" if pka_val < 7 else "碱性"}')
                     ]
-                    ax.legend(handles=legend_elements, loc='lower right', fontsize=9)
+                    ax.legend(handles=legend_elements, loc='upper right', fontsize=9,
+                              framealpha=0.8, facecolor='#1a1a2e', edgecolor='rgba(255,255,255,0.1)')
 
                     plt.tight_layout()
                     st.pyplot(fig, width="stretch")
