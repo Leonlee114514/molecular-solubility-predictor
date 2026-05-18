@@ -1880,7 +1880,7 @@ if st.session_state.predicted_smiles and st.session_state.predicted_logS is not 
                     plt.rcParams['ytick.color'] = '#a0a0b0'
                     plt.rcParams['text.color'] = '#f0f0f5'
                     fig, ax = plt.subplots(figsize=(7, 4.2))
-                    bars = ax.barh(range(len(vals)), vals, color=colors, edgecolor='rgba(255,255,255,0.15)', height=0.6, linewidth=0.5)
+                    bars = ax.barh(range(len(vals)), vals, color=colors, edgecolor=(1, 1, 1, 0.15), height=0.6, linewidth=0.5)
                     ax.invert_yaxis()
                     ax.axvline(x=0, color='#f0f0f5', linewidth=1.0, alpha=0.4)
 
@@ -1908,7 +1908,7 @@ if st.session_state.predicted_smiles and st.session_state.predicted_logS is not 
                         Patch(facecolor='#22d3ee', label=f'减弱{"酸性" if pka_val < 7 else "碱性"}')
                     ]
                     ax.legend(handles=legend_elements, loc='upper right', fontsize=9,
-                              framealpha=0.8, facecolor='#1a1a2e', edgecolor='rgba(255,255,255,0.1)')
+                              framealpha=0.8, facecolor='#1a1a2e', edgecolor=(1, 1, 1, 0.1))
 
                     plt.tight_layout()
                     st.pyplot(fig, width="stretch")
