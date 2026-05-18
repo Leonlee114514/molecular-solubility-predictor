@@ -1,7 +1,6 @@
 """
-【分子溶解度预测 - 网页应用 Final Stable v3】
-三层搜索架构：本地库(100+) → PubChem API(实时) → 官网引导
-保留原有 pubchem_final.py 全部逻辑，仅在其前添加本地层
+【分子溶解度预测 - Orbita Theme v1】
+保留原有全部功能逻辑，仅改造视觉层为深空宇宙风格
 """
 
 import streamlit as st
@@ -199,10 +198,7 @@ load_cache()
 
 def search_pubchem_final(name, max_retries=3):
     """
-    最终版 PubChem 搜索（基于知乎文章技巧优化）
-    - verify=False: 跳过 SSL 验证（解决国内网络握手失败）
-    - time.sleep(1): 严格符合官方 1 req/s 限制
-    - 本地缓存 + 容错处理
+    最终版 PubChem 搜索
     """
     if not name or not name.strip():
         return None, "名称不能为空"
@@ -210,32 +206,24 @@ def search_pubchem_final(name, max_retries=3):
     name_clean = name.strip()
     name_lower = name_clean.lower()
     
-    # 0. 查缓存
     if name_lower in pubchem_cache:
         return pubchem_cache[name_lower], "success (cached)"
     
-    # 1. 频率控制
     time.sleep(1.2)
-    
     encoded = urllib.parse.quote(name_clean)
-    
-    # 2. 核心请求
     url = f"https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/name/{encoded}/property/CanonicalSMILES/JSON"
     
     for attempt in range(max_retries):
         try:
             r = requests.get(url, timeout=20, verify=False)
-            
             if r.status_code == 200:
                 data = r.json()
-                
                 if 'Fault' in data:
                     fault = data.get('Fault', {}).get('Message', '')
                     if 'NotFound' in fault or 'not found' in fault.lower():
                         return None, "PubChem 未找到该化合物"
                     time.sleep(1.0 * (attempt + 1))
                     continue
-                
                 props = data.get('PropertyTable', {}).get('Properties', [])
                 if props:
                     smiles = props[0].get('CanonicalSMILES') or props[0].get('IsomericSMILES')
@@ -245,24 +233,19 @@ def search_pubchem_final(name, max_retries=3):
                         save_cache()
                         return result, "success (PubChem)"
                 return None, "PubChem 返回空数据"
-            
             elif r.status_code == 503:
                 wait = 2.0 * (attempt + 1)
-                print(f"  ⚠️ 503 服务器繁忙，等待 {wait}s 后重试...")
                 time.sleep(wait)
                 continue
-            
             elif r.status_code == 404:
                 return None, "PubChem 未找到该化合物 (404)"
-            
             else:
                 return None, f"PubChem HTTP {r.status_code}: {r.text[:100]}"
-                
-        except requests.exceptions.SSLError as e:
+        except requests.exceptions.SSLError:
             if attempt < max_retries - 1:
                 time.sleep(1)
                 continue
-            return None, f"SSL 连接失败: {str(e)}"
+            return None, "SSL 连接失败"
         except requests.exceptions.Timeout:
             if attempt < max_retries - 1:
                 time.sleep(2)
@@ -273,189 +256,37 @@ def search_pubchem_final(name, max_retries=3):
                 time.sleep(1)
                 continue
             return None, f"网络异常: {str(e)}"
-    
     return None, "PubChem 持续不可用，请稍后重试"
+
 
 # ========== 页面设置 ==========
 st.set_page_config(
-    page_title="Molecular Solubility Predictor",
-    page_icon="🧪",
+    page_title="SoluVis - Molecular Solubility Predictor",
+    page_icon="🧬",
     layout="wide",
     initial_sidebar_state="collapsed"
 )
 
-# ========== 设计系统：科学美学令牌与组件库 ==========
+# ========== ORBITA THEME: Deep Space Universe CSS ==========
 st.markdown("""
 <style>
 /* ═══════════════════════════════════════════════
-   DESIGN SYSTEM: Molecular Science Aesthetic
+   ORBITA THEME: Deep Space Molecular Universe
    ═══════════════════════════════════════════════ */
 
-/* ─── 字体导入 ─── */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Inter:wght@300;400;500;600;700&display=swap');
 
-/* ═══════════════════════════════════════════════
-   0. 动态背景粒子层
-   ═══════════════════════════════════════════════ */
-
-/* 浮动粒子容器 */
-.particle-bg {
-    position: fixed;
-    top: 0; left: 0;
-    width: 100%; height: 100%;
-    pointer-events: none;
-    z-index: 0;
-    overflow: hidden;
-}
-.particle-bg .p {
-    position: absolute;
-    border-radius: 50%;
-    background: rgba(14, 165, 233, 0.15);
-    animation: particleFloat linear infinite;
-}
+/* ─── 0. 粒子背景动画 ─── */
 @keyframes particleFloat {
-    0% { transform: translateY(100vh) scale(0); opacity: 0; }
-    10% { opacity: 1; }
-    90% { opacity: 1; }
-    100% { transform: translateY(-10vh) scale(1); opacity: 0; }
+    0% { transform: translateY(100vh) translateX(0) scale(0); opacity: 0; }
+    10% { opacity: 0.8; }
+    90% { opacity: 0.8; }
+    100% { transform: translateY(-10vh) translateX(20px) scale(1); opacity: 0; }
 }
 
-/* ═══════════════════════════════════════════════
-   1. 视觉令牌 (Design Tokens)
-   ═══════════════════════════════════════════════ */
-:root {
-    --ms-bg-primary: #0f172a;
-    --ms-bg-secondary: #1e293b;
-    --ms-bg-elevated: #334155;
-    --ms-bg-surface: rgba(30, 41, 59, 0.55);
-    --ms-bg-input: #1e293b;
-
-    --ms-accent-primary: #0ea5e9;
-    --ms-accent-secondary: #06b6d4;
-    --ms-accent-tertiary: #8b5cf6;
-    --ms-accent-warm: #f59e0b;
-    --ms-accent-success: #10b981;
-    --ms-accent-danger: #ef4444;
-
-    --ms-text-primary: #f8fafc;
-    --ms-text-secondary: #94a3b8;
-    --ms-text-tertiary: #64748b;
-    --ms-text-inverse: #0f172a;
-
-    --ms-space-1: 4px;
-    --ms-space-2: 8px;
-    --ms-space-3: 12px;
-    --ms-space-4: 16px;
-    --ms-space-5: 24px;
-    --ms-space-6: 32px;
-    --ms-space-8: 48px;
-    --ms-space-10: 64px;
-
-    --ms-radius-sm: 4px;
-    --ms-radius-md: 8px;
-    --ms-radius-lg: 12px;
-    --ms-radius-xl: 16px;
-
-    --ms-duration-instant: 100ms;
-    --ms-duration-fast: 150ms;
-    --ms-duration-normal: 200ms;
-    --ms-duration-slow: 280ms;
-    --ms-easing-default: cubic-bezier(0.4, 0, 0.2, 1);
-    --ms-easing-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
-    --ms-easing-decelerate: cubic-bezier(0, 0, 0.2, 1);
-
-    --ms-shadow-sm: 0 1px 2px rgba(0,0,0,0.20), 0 0 1px rgba(0,0,0,0.10);
-    --ms-shadow-md: 0 4px 6px -1px rgba(0,0,0,0.20), 0 2px 4px -2px rgba(0,0,0,0.10);
-    --ms-shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.25), 0 4px 6px -4px rgba(0,0,0,0.15);
-    --ms-shadow-glow: 0 0 20px rgba(14, 165, 233, 0.15);
-    --ms-shadow-inset: inset 0 1px 2px rgba(0,0,0,0.20);
-}
-
-/* ═══════════════════════════════════════════════
-   2. 全局重置与基础样式
-   ═══════════════════════════════════════════════ */
-html, body, [class*="css"] {
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-}
-
-/* 页面根背景 - 深蓝暗色 + 科学网格 */
-html, body {
-    background: #0f172a !important;
-}
-
-.stApp,
-[data-testid="stAppViewContainer"],
-[data-testid="stAppViewContainer"] > .stApp {
-    background: 
-        radial-gradient(ellipse 80% 60% at 50% -10%, rgba(14, 165, 233, 0.06) 0%, transparent 60%),
-        radial-gradient(ellipse 60% 50% at 80% 100%, rgba(139, 92, 246, 0.04) 0%, transparent 50%),
-        linear-gradient(135deg, #0a0f1d 0%, #0f172a 40%, #111827 100%) !important;
-    background-color: #0f172a !important;
-    position: relative;
-}
-
-.stApp::before,
-[data-testid="stAppViewContainer"]::before {
-    content: '';
-    position: fixed;
-    top: 0; left: 0; right: 0; bottom: 0;
-    background-image: 
-        linear-gradient(rgba(148, 163, 184, 0.03) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(148, 163, 184, 0.03) 1px, transparent 1px);
-    background-size: 60px 60px;
-    pointer-events: none;
-    z-index: 0;
-    mask-image: radial-gradient(ellipse 70% 60% at 50% 40%, black 0%, transparent 100%);
-    -webkit-mask-image: radial-gradient(ellipse 70% 60% at 50% 40%, black 0%, transparent 100%);
-}
-
-/* Streamlit 1.57+ 强制覆盖 */
-.reportview-container,
-.main .block-container,
-section[data-testid="stSidebar"],
-.css-1y4p8pa,
-.css-12oz5g7,
-.css-18e3th9 {
-    background: transparent !important;
-    background-color: transparent !important;
-}
-
-.main .block-container {
-    background: transparent !important;
-    padding-top: var(--ms-space-6) !important;
-    padding-bottom: var(--ms-space-8) !important;
-    max-width: 1200px !important;
-    position: relative;
-    z-index: 1;
-}
-
-/* ─── 代码与化学式字体 ─── */
-code, pre, .mono {
-    font-family: 'JetBrains Mono', 'Fira Code', monospace !important;
-    letter-spacing: -0.01em;
-}
-
-/* ═══════════════════════════════════════════════
-   3. 排版系统 (Typography)
-   ═══════════════════════════════════════════════ */
-
-/* 渐变呼吸标题 */
-.gradient-title {
-    font-weight: 800;
-    font-size: clamp(2rem, 5vw, 3rem);
-    text-align: center;
-    letter-spacing: -0.03em;
-    line-height: 1.1;
-    margin-bottom: var(--ms-space-2);
-    background: linear-gradient(135deg, #38bdf8 0%, #0ea5e9 30%, #22d3ee 60%, #818cf8 100%);
-    background-size: 200% 200%;
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    animation: gradientShift 8s ease infinite;
-    filter: drop-shadow(0 0 12px rgba(14, 165, 233, 0.25));
+@keyframes nebulaPulse {
+    0%, 100% { opacity: 0.3; transform: scale(1); }
+    50% { opacity: 0.6; transform: scale(1.1); }
 }
 
 @keyframes gradientShift {
@@ -463,113 +294,25 @@ code, pre, .mono {
     50% { background-position: 100% 50%; }
 }
 
-.subtitle {
-    text-align: center;
-    color: var(--ms-text-secondary);
-    font-size: 1.1rem;
-    font-weight: 400;
-    line-height: 1.5;
-    margin-bottom: var(--ms-space-6);
-    letter-spacing: 0.01em;
+@keyframes glowPulse {
+    0%, 100% { box-shadow: 0 0 20px rgba(124, 58, 237, 0.1); }
+    50% { box-shadow: 0 0 40px rgba(124, 58, 237, 0.2); }
 }
 
-/* 层级标题 - 带左侧发光竖条 */
-.card-title {
-    color: var(--ms-text-primary);
-    font-size: 1.125rem;
-    font-weight: 600;
-    margin-bottom: var(--ms-space-4);
-    display: flex;
-    align-items: center;
-    gap: var(--ms-space-2);
-    letter-spacing: -0.01em;
-    text-shadow: 0 0 10px rgba(14, 165, 233, 0.08);
+@keyframes starTwinkle {
+    0%, 100% { opacity: 0.3; }
+    50% { opacity: 1; }
 }
 
-.card-title::before {
-    content: '';
-    display: inline-block;
-    width: 4px;
-    height: 1.2em;
-    background: linear-gradient(180deg, var(--ms-accent-primary), var(--ms-accent-secondary));
-    border-radius: var(--ms-radius-sm);
-    flex-shrink: 0;
-    box-shadow: 0 0 6px rgba(14, 165, 233, 0.3);
-}
-
-/* ═══════════════════════════════════════════════
-   4. 卡片与容器 (Cards & Containers)
-   ═══════════════════════════════════════════════ */
-
-/* ─── 卡片容器 - 高级玻璃拟态 ─── */
-.card-container {
-    background: linear-gradient(155deg, rgba(30, 41, 59, 0.70) 0%, rgba(15, 23, 42, 0.50) 50%, rgba(30, 41, 59, 0.40) 100%);
-    border: 1px solid rgba(148, 163, 184, 0.08);
-    border-radius: var(--ms-radius-lg);
-    padding: var(--ms-space-5);
-    margin-bottom: var(--ms-space-5);
-    box-shadow: 
-        0 1px 2px rgba(0,0,0,0.15),
-        0 4px 12px -2px rgba(0,0,0,0.20),
-        inset 0 1px 0 rgba(255,255,255,0.04);
-    transition: 
-        transform var(--ms-duration-normal) var(--ms-easing-default), 
-        box-shadow var(--ms-duration-normal) var(--ms-easing-default), 
-        border-color var(--ms-duration-fast) var(--ms-easing-default);
-    will-change: transform, box-shadow;
-    position: relative;
-    overflow: hidden;
-}
-
-/* 卡片顶部微光条 */
-.card-container::before {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0;
-    height: 1px;
-    background: linear-gradient(90deg, transparent 0%, rgba(14, 165, 233, 0.25) 20%, rgba(6, 182, 212, 0.15) 50%, rgba(14, 165, 233, 0.25) 80%, transparent 100%);
-    pointer-events: none;
-}
-
-/* 卡片右上角微妙光晕 */
-.card-container::after {
-    content: '';
-    position: absolute;
-    top: -40%;
-    right: -20%;
-    width: 200px;
-    height: 200px;
-    background: radial-gradient(circle, rgba(14, 165, 233, 0.04) 0%, transparent 70%);
-    pointer-events: none;
-    opacity: 0;
-    transition: opacity var(--ms-duration-slow) var(--ms-easing-default);
-}
-
-.card-container:hover {
-    transform: translateY(-4px);
-    box-shadow: 
-        0 20px 40px -8px rgba(0,0,0,0.35), 
-        0 0 0 1px rgba(14, 165, 233, 0.12),
-        0 0 40px rgba(14, 165, 233, 0.06), 
-        inset 0 1px 0 rgba(255,255,255,0.06);
-    border-color: rgba(14, 165, 233, 0.18);
-}
-
-.card-container:hover::after {
-    opacity: 1;
-}
-
-/* ═══════════════════════════════════════════════
-   4.5 动画系统
-   ═══════════════════════════════════════════════ */
 @keyframes molecularDiffuse {
     from { opacity: 0; transform: translateY(24px) scale(0.96); filter: blur(2px); }
     to { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
 }
 
-@keyframes gentlePulse {
-    0%, 100% { opacity: 0.6; }
+@keyframes electronJump {
+    0% { transform: translateX(-100%); opacity: 0; }
     50% { opacity: 1; }
+    100% { transform: translateX(400%); opacity: 0; }
 }
 
 @keyframes shimmer {
@@ -577,33 +320,236 @@ code, pre, .mono {
     100% { background-position: 200% 0; }
 }
 
-.card-container {
-    animation: molecularDiffuse var(--ms-duration-slow) var(--ms-easing-decelerate) both;
+/* ─── 1. 核心变量 ─── */
+:root {
+    --ob-bg-primary: #0a0a0f;
+    --ob-bg-surface: #1e1e2e;
+    --ob-bg-elevated: rgba(30, 30, 46, 0.6);
+    --ob-nebula: #7c3aed;
+    --ob-nebula-light: #a78bfa;
+    --ob-nebula-glow: rgba(124, 58, 237, 0.15);
+    --ob-star-gold: #fbbf24;
+    --ob-orbit-cyan: #06b6d4;
+    --ob-text-primary: #f0f0f5;
+    --ob-text-secondary: #a0a0b0;
+    --ob-text-tertiary: #6b6b7b;
+    --ob-border: rgba(255, 255, 255, 0.06);
+    --ob-border-hover: rgba(124, 58, 237, 0.3);
+    --ob-radius: 16px;
+    --ob-radius-sm: 12px;
 }
 
-/* 错落渐入 - 通过 nth-child 错开 */
+/* ─── 2. 全局基础 ─── */
+html, body {
+    background: var(--ob-bg-primary) !important;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
+    -webkit-font-smoothing: antialiased;
+    color: var(--ob-text-primary);
+}
+
+.stApp {
+    background:
+        radial-gradient(ellipse 80% 50% at 20% 40%, rgba(124, 58, 237, 0.08) 0%, transparent 70%),
+        radial-gradient(ellipse 60% 40% at 80% 20%, rgba(6, 182, 212, 0.06) 0%, transparent 60%),
+        radial-gradient(ellipse 50% 50% at 50% 80%, rgba(251, 191, 36, 0.03) 0%, transparent 50%),
+        linear-gradient(180deg, #0a0a0f 0%, #0c0c14 50%, #0a0a0f 100%) !important;
+    background-color: var(--ob-bg-primary) !important;
+    position: relative;
+}
+
+/* 粒子层叠加 */
+.stApp::before {
+    content: '';
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background-image:
+        radial-gradient(2px 2px at 20px 30px, rgba(124, 58, 237, 0.4), transparent),
+        radial-gradient(1.5px 1.5px at 40px 70px, rgba(6, 182, 212, 0.4), transparent),
+        radial-gradient(2px 2px at 50px 160px, rgba(124, 58, 237, 0.3), transparent),
+        radial-gradient(1px 1px at 90px 40px, rgba(251, 191, 36, 0.3), transparent),
+        radial-gradient(2px 2px at 130px 80px, rgba(6, 182, 212, 0.4), transparent),
+        radial-gradient(1.5px 1.5px at 160px 120px, rgba(124, 58, 237, 0.3), transparent),
+        radial-gradient(1px 1px at 200px 50px, rgba(255, 255, 255, 0.2), transparent),
+        radial-gradient(2px 2px at 230px 180px, rgba(6, 182, 212, 0.3), transparent),
+        radial-gradient(1.5px 1.5px at 280px 90px, rgba(124, 58, 237, 0.4), transparent),
+        radial-gradient(1px 1px at 320px 140px, rgba(251, 191, 36, 0.3), transparent),
+        radial-gradient(2px 2px at 360px 30px, rgba(6, 182, 212, 0.3), transparent),
+        radial-gradient(1.5px 1.5px at 400px 100px, rgba(124, 58, 237, 0.3), transparent),
+        radial-gradient(1px 1px at 440px 170px, rgba(255, 255, 255, 0.2), transparent),
+        radial-gradient(2px 2px at 480px 60px, rgba(6, 182, 212, 0.4), transparent),
+        radial-gradient(1.5px 1.5px at 520px 130px, rgba(124, 58, 237, 0.3), transparent),
+        radial-gradient(1px 1px at 560px 40px, rgba(251, 191, 36, 0.3), transparent),
+        radial-gradient(2px 2px at 600px 150px, rgba(6, 182, 212, 0.3), transparent),
+        radial-gradient(1.5px 1.5px at 640px 80px, rgba(124, 58, 237, 0.4), transparent),
+        radial-gradient(1px 1px at 680px 190px, rgba(255, 255, 255, 0.2), transparent),
+        radial-gradient(2px 2px at 720px 50px, rgba(6, 182, 212, 0.4), transparent),
+        radial-gradient(1.5px 1.5px at 760px 110px, rgba(124, 58, 237, 0.3), transparent),
+        radial-gradient(1px 1px at 800px 160px, rgba(251, 191, 36, 0.3), transparent);
+    background-size: 800px 200px;
+    animation: particleFloat 20s linear infinite;
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.5;
+}
+
+/* 星云光晕叠加 */
+.stApp::after {
+    content: '';
+    position: fixed;
+    top: 10%; left: 50%;
+    transform: translateX(-50%);
+    width: 600px; height: 600px;
+    background: radial-gradient(circle, rgba(124, 58, 237, 0.08) 0%, rgba(6, 182, 212, 0.04) 40%, transparent 70%);
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 0;
+    animation: nebulaPulse 8s ease-in-out infinite;
+}
+
+.main .block-container {
+    background: transparent !important;
+    padding-top: 2rem !important;
+    padding-bottom: 4rem !important;
+    max-width: 1200px !important;
+    position: relative;
+    z-index: 1;
+}
+
+code, pre, .mono {
+    font-family: 'JetBrains Mono', 'Fira Code', monospace !important;
+}
+
+/* ─── 3. 排版 ─── */
+.gradient-title {
+    font-family: 'Space Grotesk', sans-serif !important;
+    font-weight: 700;
+    font-size: clamp(2.2rem, 5vw, 3.2rem);
+    text-align: center;
+    letter-spacing: -0.04em;
+    line-height: 1.1;
+    margin-bottom: 0.5rem;
+    background: linear-gradient(135deg, #a78bfa 0%, #7c3aed 30%, #06b6d4 70%, #22d3ee 100%);
+    background-size: 200% 200%;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    animation: gradientShift 8s ease infinite;
+    filter: drop-shadow(0 0 20px rgba(124, 58, 237, 0.3));
+}
+
+.subtitle {
+    text-align: center;
+    color: var(--ob-text-secondary);
+    font-size: 1.05rem;
+    font-weight: 400;
+    line-height: 1.5;
+    margin-bottom: 2rem;
+    font-family: 'Inter', sans-serif;
+    letter-spacing: 0.02em;
+}
+
+.tagline {
+    text-align: center;
+    font-family: 'JetBrains Mono', monospace !important;
+    font-size: 0.75rem;
+    color: var(--ob-nebula-light);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin-bottom: 1rem;
+}
+
+.card-title {
+    font-family: 'Space Grotesk', sans-serif !important;
+    color: var(--ob-text-primary);
+    font-size: 1.125rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    letter-spacing: -0.01em;
+}
+
+.card-title::before {
+    content: '';
+    display: inline-block;
+    width: 4px;
+    height: 1.2em;
+    background: linear-gradient(180deg, var(--ob-nebula), var(--ob-orbit-cyan));
+    border-radius: 4px;
+    flex-shrink: 0;
+    box-shadow: 0 0 8px rgba(124, 58, 237, 0.4);
+}
+
+/* ─── 4. 卡片容器 ─── */
+.card-container {
+    background: linear-gradient(155deg, rgba(30, 30, 46, 0.75) 0%, rgba(15, 15, 25, 0.55) 50%, rgba(30, 30, 46, 0.45) 100%);
+    border: 1px solid var(--ob-border);
+    border-radius: var(--ob-radius);
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    box-shadow:
+        0 1px 2px rgba(0,0,0,0.2),
+        0 4px 12px -2px rgba(0,0,0,0.25),
+        inset 0 1px 0 rgba(255,255,255,0.04);
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.15s ease;
+    will-change: transform, box-shadow;
+    position: relative;
+    overflow: hidden;
+    animation: molecularDiffuse 0.35s ease both;
+}
+
+.card-container::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent 0%, rgba(124, 58, 237, 0.35) 20%, rgba(6, 182, 212, 0.2) 50%, rgba(124, 58, 237, 0.35) 80%, transparent 100%);
+    pointer-events: none;
+}
+
+.card-container::after {
+    content: '';
+    position: absolute;
+    top: -40%; right: -20%;
+    width: 200px; height: 200px;
+    background: radial-gradient(circle, rgba(124, 58, 237, 0.06) 0%, transparent 70%);
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.card-container:hover {
+    transform: translateY(-4px);
+    box-shadow:
+        0 20px 40px -8px rgba(0,0,0,0.4),
+        0 0 0 1px rgba(124, 58, 237, 0.15),
+        0 0 40px rgba(124, 58, 237, 0.08),
+        inset 0 1px 0 rgba(255,255,255,0.06);
+    border-color: rgba(124, 58, 237, 0.2);
+}
+
+.card-container:hover::after { opacity: 1; }
+
 .card-container:nth-child(1) { animation-delay: 0.05s; }
 .card-container:nth-child(2) { animation-delay: 0.10s; }
 .card-container:nth-child(3) { animation-delay: 0.15s; }
 .card-container:nth-child(4) { animation-delay: 0.20s; }
 
-/* ═══════════════════════════════════════════════
-   5. 交互组件 (Interactive Components)
-   ═══════════════════════════════════════════════ */
-
-/* ─── 按钮：化学键断裂/形成隐喻 ─── */
+/* ─── 5. 按钮 ─── */
 .stButton > button {
-    background: linear-gradient(135deg, #0284c7, #0ea5e9, #38bdf8) !important;
+    background: linear-gradient(135deg, #6d28d9, #7c3aed, #8b5cf6) !important;
     background-size: 200% 200% !important;
     color: #ffffff !important;
     border: none !important;
-    border-radius: var(--ms-radius-md) !important;
+    border-radius: var(--ob-radius-sm) !important;
     padding: 0.75rem 1.5rem !important;
+    font-family: 'Space Grotesk', sans-serif !important;
     font-size: 0.9375rem !important;
     font-weight: 600 !important;
     letter-spacing: 0.01em !important;
-    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.20), 0 0 0 0 rgba(14, 165, 233, 0) !important;
-    transition: transform var(--ms-duration-fast) var(--ms-easing-bounce), box-shadow var(--ms-duration-fast) var(--ms-easing-default), background-position var(--ms-duration-slow) var(--ms-easing-default) !important;
+    box-shadow: 0 4px 15px -3px rgba(124, 58, 237, 0.3), 0 0 0 0 rgba(124, 58, 237, 0) !important;
+    transition: transform 0.15s ease, box-shadow 0.15s ease, background-position 0.3s ease !important;
     will-change: transform, box-shadow;
     position: relative;
     overflow: hidden;
@@ -614,485 +560,443 @@ code, pre, .mono {
     position: absolute;
     top: 0; left: -100%;
     width: 100%; height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent);
-    transition: left var(--ms-duration-slow) var(--ms-easing-default);
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.12), transparent);
+    transition: left 0.4s ease;
 }
 
 .stButton > button:hover {
     transform: translateY(-2px) scale(1.01);
-    box-shadow: 0 10px 15px -3px rgba(0,0,0,0.25), 0 0 20px rgba(14, 165, 233, 0.15) !important;
+    box-shadow: 0 10px 25px -3px rgba(0,0,0,0.3), 0 0 25px rgba(124, 58, 237, 0.2) !important;
     background-position: 100% 0% !important;
 }
 
-.stButton > button:hover::after {
-    left: 100%;
-}
+.stButton > button:hover::after { left: 100%; }
 
 .stButton > button:active {
     transform: translateY(0) scale(0.97);
-    transition-duration: var(--ms-duration-instant) !important;
-    box-shadow: 0 2px 4px -1px rgba(0,0,0,0.20), inset 0 2px 4px rgba(0,0,0,0.10) !important;
+    box-shadow: 0 2px 8px -1px rgba(0,0,0,0.2), inset 0 2px 4px rgba(0,0,0,0.1) !important;
 }
 
-/* 次要按钮 - 紫色共价键主题 */
 .stButton > button[kind="secondary"] {
-    background: linear-gradient(135deg, #7c3aed, #8b5cf6, #a78bfa) !important;
-    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.20), 0 0 0 0 rgba(139, 92, 246, 0) !important;
+    background: linear-gradient(135deg, #0e7490, #06b6d4, #22d3ee) !important;
+    box-shadow: 0 4px 15px -3px rgba(6, 182, 212, 0.3) !important;
 }
 
 .stButton > button[kind="secondary"]:hover {
-    box-shadow: 0 10px 15px -3px rgba(0,0,0,0.25), 0 0 20px rgba(139, 92, 246, 0.15) !important;
+    box-shadow: 0 10px 25px -3px rgba(0,0,0,0.3), 0 0 25px rgba(6, 182, 212, 0.2) !important;
 }
 
-/* ─── 输入框：电子云聚焦 ─── */
+/* ─── 6. 输入框 ─── */
 .stTextInput > div > div > input,
 .stTextInput > div > div > textarea {
-    border-radius: var(--ms-radius-md) !important;
-    border: 1.5px solid rgba(148, 163, 184, 0.15) !important;
+    border-radius: var(--ob-radius-sm) !important;
+    border: 1.5px solid rgba(255, 255, 255, 0.08) !important;
     padding: 0.625rem 1rem !important;
     font-size: 0.9375rem !important;
-    background: var(--ms-bg-input) !important;
-    color: var(--ms-text-primary) !important;
-    box-shadow: var(--ms-shadow-inset) !important;
-    transition: border-color var(--ms-duration-fast) var(--ms-easing-default), box-shadow var(--ms-duration-fast) var(--ms-easing-default) !important;
+    background: var(--ob-bg-surface) !important;
+    color: var(--ob-text-primary) !important;
+    box-shadow: inset 0 1px 3px rgba(0,0,0,0.2) !important;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease !important;
+    font-family: 'JetBrains Mono', monospace !important;
 }
 
-.stTextInput > div > div > input::placeholder,
-.stTextInput > div > div > textarea::placeholder {
-    color: var(--ms-text-tertiary) !important;
+.stTextInput > div > div > input::placeholder {
+    color: var(--ob-text-tertiary) !important;
 }
 
-.stTextInput > div > div > input:focus,
-.stTextInput > div > div > textarea:focus {
-    border-color: var(--ms-accent-primary) !important;
-    box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.15), var(--ms-shadow-inset) !important;
+.stTextInput > div > div > input:focus {
+    border-color: var(--ob-nebula) !important;
+    box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.15), inset 0 1px 3px rgba(0,0,0,0.2) !important;
     outline: none !important;
 }
 
-/* ─── Selectbox 高级样式 ─── */
+/* ─── Selectbox ─── */
 .stSelectbox > div > div > div {
-    border-radius: var(--ms-radius-md) !important;
-    border: 1.5px solid rgba(148, 163, 184, 0.12) !important;
-    background: linear-gradient(135deg, rgba(30, 41, 59, 0.80) 0%, rgba(15, 23, 42, 0.60) 100%) !important;
-    color: var(--ms-text-primary) !important;
-    box-shadow: inset 0 1px 2px rgba(0,0,0,0.15) !important;
-    transition: border-color var(--ms-duration-fast) var(--ms-easing-default), box-shadow var(--ms-duration-fast) var(--ms-easing-default) !important;
+    border-radius: var(--ob-radius-sm) !important;
+    border: 1.5px solid rgba(255, 255, 255, 0.06) !important;
+    background: linear-gradient(135deg, rgba(30, 30, 46, 0.85) 0%, rgba(15, 15, 25, 0.65) 100%) !important;
+    color: var(--ob-text-primary) !important;
+    box-shadow: inset 0 1px 3px rgba(0,0,0,0.15) !important;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease !important;
 }
 
 .stSelectbox > div > div > div:hover {
-    border-color: rgba(14, 165, 233, 0.25) !important;
+    border-color: rgba(124, 58, 237, 0.3) !important;
 }
 
 .stSelectbox > div > div > div:focus-within {
-    border-color: var(--ms-accent-primary) !important;
-    box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.12), inset 0 1px 2px rgba(0,0,0,0.15) !important;
+    border-color: var(--ob-nebula) !important;
+    box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.12), inset 0 1px 3px rgba(0,0,0,0.15) !important;
 }
 
-/* Dropdown menu */
 .stSelectbox ul {
-    background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%) !important;
-    border: 1px solid rgba(148, 163, 184, 0.12) !important;
-    border-radius: var(--ms-radius-md) !important;
-    box-shadow: 0 10px 25px -5px rgba(0,0,0,0.35) !important;
+    background: linear-gradient(135deg, #1e1e2e 0%, #0f0f17 100%) !important;
+    border: 1px solid rgba(255, 255, 255, 0.06) !important;
+    border-radius: var(--ob-radius-sm) !important;
+    box-shadow: 0 10px 30px -5px rgba(0,0,0,0.4) !important;
 }
+
 .stSelectbox ul li {
-    color: var(--ms-text-secondary) !important;
-    transition: background var(--ms-duration-fast) var(--ms-easing-default), color var(--ms-duration-fast) var(--ms-easing-default) !important;
+    color: var(--ob-text-secondary) !important;
+    transition: background 0.15s ease, color 0.15s ease !important;
 }
+
 .stSelectbox ul li:hover {
-    background: rgba(14, 165, 233, 0.08) !important;
-    color: var(--ms-text-primary) !important;
+    background: rgba(124, 58, 237, 0.1) !important;
+    color: var(--ob-text-primary) !important;
 }
+
 .stSelectbox ul li[aria-selected="true"] {
-    background: rgba(14, 165, 233, 0.12) !important;
-    color: var(--ms-accent-primary) !important;
+    background: rgba(124, 58, 237, 0.15) !important;
+    color: var(--ob-nebula-light) !important;
     font-weight: 600 !important;
 }
 
-/* ═══════════════════════════════════════════════
-   6. 数据展示组件 (Data Display)
-   ═══════════════════════════════════════════════ */
-
-/* ─── Metric：高级仪表盘风格 ─── */
+/* ─── 7. Metric ─── */
 [data-testid="stMetric"] {
-    background: linear-gradient(135deg, rgba(30, 41, 59, 0.50) 0%, rgba(15, 23, 42, 0.35) 100%);
-    border: 1px solid rgba(148, 163, 184, 0.08);
-    border-radius: var(--ms-radius-md);
+    background: linear-gradient(135deg, rgba(30, 30, 46, 0.55) 0%, rgba(15, 15, 25, 0.4) 100%);
+    border: 1px solid var(--ob-border);
+    border-radius: var(--ob-radius-sm);
     padding: 1rem 1.25rem;
-    box-shadow: inset 0 1px 0 rgba(255,255,255,0.03), 0 2px 8px rgba(0,0,0,0.12);
-    transition: transform var(--ms-duration-fast) var(--ms-easing-default), box-shadow var(--ms-duration-fast) var(--ms-easing-default), border-color var(--ms-duration-fast) var(--ms-easing-default);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.03), 0 2px 10px rgba(0,0,0,0.15);
+    transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
 }
 
 [data-testid="stMetric"]:hover {
     transform: translateY(-2px);
-    border-color: rgba(14, 165, 233, 0.15);
-    box-shadow: inset 0 1px 0 rgba(255,255,255,0.04), 0 4px 16px rgba(0,0,0,0.18), 0 0 20px rgba(14, 165, 233, 0.04);
+    border-color: rgba(124, 58, 237, 0.2);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.04), 0 4px 20px rgba(0,0,0,0.2), 0 0 20px rgba(124, 58, 237, 0.06);
 }
 
 [data-testid="stMetricValue"] {
+    font-family: 'JetBrains Mono', monospace !important;
     font-size: 1.85rem !important;
     font-weight: 700 !important;
-    color: var(--ms-text-primary) !important;
     letter-spacing: -0.02em;
     line-height: 1.15;
-    background: linear-gradient(135deg, #f1f5f9 0%, #cbd5e1 100%);
+    background: linear-gradient(135deg, #f0f0f5 0%, #a0a0b0 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
 }
 
 [data-testid="stMetricLabel"] {
-    font-size: 0.70rem !important;
-    color: var(--ms-text-tertiary) !important;
+    font-family: 'JetBrains Mono', monospace !important;
+    font-size: 0.7rem !important;
+    color: var(--ob-text-tertiary) !important;
     font-weight: 500 !important;
     text-transform: uppercase;
-    letter-spacing: 0.10em;
-    margin-top: var(--ms-space-2);
+    letter-spacing: 0.12em;
+    margin-top: 0.5rem;
 }
 
-[data-testid="stMetricDelta"] {
-    font-size: 0.80rem !important;
-    font-weight: 600 !important;
-}
-
-/* ─── 结果状态卡片 ─── */
-/* ─── 结果状态卡片 - 带呼吸光效 ─── */
+/* ─── 8. 结果状态卡片 ─── */
 .result-high, .result-moderate, .result-low {
-    border-radius: var(--ms-radius-lg);
-    padding: var(--ms-space-4);
+    border-radius: var(--ob-radius);
+    padding: 1.25rem;
     text-align: center;
     position: relative;
     overflow: hidden;
-    transition: transform var(--ms-duration-normal) var(--ms-easing-default), box-shadow var(--ms-duration-normal) var(--ms-easing-default);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .result-high {
-    background: linear-gradient(135deg, rgba(16, 185, 129, 0.10), rgba(16, 185, 129, 0.04));
-    border: 1px solid rgba(16, 185, 129, 0.20);
-    box-shadow: 0 4px 12px -2px rgba(0,0,0,0.12), 0 0 0 0 rgba(16, 185, 129, 0);
-    animation: resultGlowGreen 3s ease-in-out infinite;
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.08), rgba(16, 185, 129, 0.03));
+    border: 1px solid rgba(16, 185, 129, 0.2);
+    animation: glowPulse 3s ease-in-out infinite;
 }
-@keyframes resultGlowGreen {
-    0%, 100% { box-shadow: 0 4px 12px -2px rgba(0,0,0,0.12), 0 0 0 0 rgba(16, 185, 129, 0); }
-    50% { box-shadow: 0 4px 12px -2px rgba(0,0,0,0.12), 0 0 25px rgba(16, 185, 129, 0.08); }
+@keyframes glowPulse {
+    0%, 100% { box-shadow: 0 4px 12px -2px rgba(0,0,0,0.15), 0 0 0 0 rgba(16, 185, 129, 0); }
+    50% { box-shadow: 0 4px 12px -2px rgba(0,0,0,0.15), 0 0 25px rgba(16, 185, 129, 0.08); }
 }
+
 .result-high::before {
     content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0;
+    position: absolute; top: 0; left: 0; right: 0;
     height: 3px;
     background: linear-gradient(90deg, #10b981, #34d399, #10b981);
     background-size: 200% 100%;
     animation: shimmer 3s linear infinite;
-    box-shadow: 0 0 10px rgba(16, 185, 129, 0.4);
+    box-shadow: 0 0 12px rgba(16, 185, 129, 0.5);
 }
 .result-high:hover {
     transform: scale(1.02);
-    box-shadow: 0 8px 24px -4px rgba(0,0,0,0.20), 0 0 30px rgba(16, 185, 129, 0.12);
+    box-shadow: 0 8px 24px -4px rgba(0,0,0,0.2), 0 0 30px rgba(16, 185, 129, 0.12);
 }
 
 .result-moderate {
-    background: linear-gradient(135deg, rgba(245, 158, 11, 0.10), rgba(245, 158, 11, 0.04));
-    border: 1px solid rgba(245, 158, 11, 0.20);
-    box-shadow: 0 4px 12px -2px rgba(0,0,0,0.12), 0 0 0 0 rgba(245, 158, 11, 0);
-    animation: resultGlowAmber 3s ease-in-out infinite;
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.08), rgba(245, 158, 11, 0.03));
+    border: 1px solid rgba(245, 158, 11, 0.2);
+    animation: glowPulseAmber 3s ease-in-out infinite;
 }
-@keyframes resultGlowAmber {
-    0%, 100% { box-shadow: 0 4px 12px -2px rgba(0,0,0,0.12), 0 0 0 0 rgba(245, 158, 11, 0); }
-    50% { box-shadow: 0 4px 12px -2px rgba(0,0,0,0.12), 0 0 25px rgba(245, 158, 11, 0.08); }
+@keyframes glowPulseAmber {
+    0%, 100% { box-shadow: 0 4px 12px -2px rgba(0,0,0,0.15), 0 0 0 0 rgba(245, 158, 11, 0); }
+    50% { box-shadow: 0 4px 12px -2px rgba(0,0,0,0.15), 0 0 25px rgba(245, 158, 11, 0.08); }
 }
 .result-moderate::before {
     content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0;
+    position: absolute; top: 0; left: 0; right: 0;
     height: 3px;
     background: linear-gradient(90deg, #f59e0b, #fbbf24, #f59e0b);
     background-size: 200% 100%;
     animation: shimmer 3s linear infinite;
-    box-shadow: 0 0 10px rgba(245, 158, 11, 0.4);
+    box-shadow: 0 0 12px rgba(245, 158, 11, 0.5);
 }
 .result-moderate:hover {
     transform: scale(1.02);
-    box-shadow: 0 8px 24px -4px rgba(0,0,0,0.20), 0 0 30px rgba(245, 158, 11, 0.12);
+    box-shadow: 0 8px 24px -4px rgba(0,0,0,0.2), 0 0 30px rgba(245, 158, 11, 0.12);
 }
 
 .result-low {
-    background: linear-gradient(135deg, rgba(239, 68, 68, 0.10), rgba(239, 68, 68, 0.04));
-    border: 1px solid rgba(239, 68, 68, 0.20);
-    box-shadow: 0 4px 12px -2px rgba(0,0,0,0.12), 0 0 0 0 rgba(239, 68, 68, 0);
-    animation: resultGlowRed 3s ease-in-out infinite;
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.08), rgba(239, 68, 68, 0.03));
+    border: 1px solid rgba(239, 68, 68, 0.2);
+    animation: glowPulseRed 3s ease-in-out infinite;
 }
-@keyframes resultGlowRed {
-    0%, 100% { box-shadow: 0 4px 12px -2px rgba(0,0,0,0.12), 0 0 0 0 rgba(239, 68, 68, 0); }
-    50% { box-shadow: 0 4px 12px -2px rgba(0,0,0,0.12), 0 0 25px rgba(239, 68, 68, 0.08); }
+@keyframes glowPulseRed {
+    0%, 100% { box-shadow: 0 4px 12px -2px rgba(0,0,0,0.15), 0 0 0 0 rgba(239, 68, 68, 0); }
+    50% { box-shadow: 0 4px 12px -2px rgba(0,0,0,0.15), 0 0 25px rgba(239, 68, 68, 0.08); }
 }
 .result-low::before {
     content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0;
+    position: absolute; top: 0; left: 0; right: 0;
     height: 3px;
     background: linear-gradient(90deg, #ef4444, #f87171, #ef4444);
     background-size: 200% 100%;
     animation: shimmer 3s linear infinite;
-    box-shadow: 0 0 10px rgba(239, 68, 68, 0.4);
+    box-shadow: 0 0 12px rgba(239, 68, 68, 0.5);
 }
 .result-low:hover {
     transform: scale(1.02);
-    box-shadow: 0 8px 24px -4px rgba(0,0,0,0.20), 0 0 30px rgba(239, 68, 68, 0.12);
+    box-shadow: 0 8px 24px -4px rgba(0,0,0,0.2), 0 0 30px rgba(239, 68, 68, 0.12);
 }
 
 /* pKa 状态 */
 .pka-acid, .pka-base, .pka-amphoteric {
-    border-radius: var(--ms-radius-lg);
-    padding: var(--ms-space-4);
+    border-radius: var(--ob-radius);
+    padding: 1.25rem;
     text-align: center;
     position: relative;
     overflow: hidden;
-    transition: transform var(--ms-duration-normal) var(--ms-easing-default), box-shadow var(--ms-duration-normal) var(--ms-easing-default);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
-
 .pka-acid {
-    background: linear-gradient(135deg, rgba(239, 68, 68, 0.08), rgba(239, 68, 68, 0.03));
-    border: 1px solid rgba(239, 68, 68, 0.18);
-    box-shadow: 0 4px 12px -2px rgba(0,0,0,0.12);
+    background: linear-gradient(135deg, rgba(124, 58, 237, 0.08), rgba(124, 58, 237, 0.03));
+    border: 1px solid rgba(124, 58, 237, 0.2);
+    box-shadow: 0 4px 12px -2px rgba(0,0,0,0.15);
 }
 .pka-acid::before {
     content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
-    background: linear-gradient(90deg, #ef4444, #f87171, #ef4444);
+    background: linear-gradient(90deg, #7c3aed, #a78bfa, #7c3aed);
     background-size: 200% 100%;
     animation: shimmer 3s linear infinite;
-    box-shadow: 0 0 10px rgba(239, 68, 68, 0.4);
+    box-shadow: 0 0 10px rgba(124, 58, 237, 0.5);
 }
-.pka-acid:hover { transform: scale(1.02); box-shadow: 0 8px 24px -4px rgba(0,0,0,0.20), 0 0 25px rgba(239, 68, 68, 0.10); }
+.pka-acid:hover { transform: scale(1.02); box-shadow: 0 8px 24px -4px rgba(0,0,0,0.2), 0 0 25px rgba(124, 58, 237, 0.12); }
 
 .pka-base {
-    background: linear-gradient(135deg, rgba(59, 130, 246, 0.08), rgba(59, 130, 246, 0.03));
-    border: 1px solid rgba(59, 130, 246, 0.18);
-    box-shadow: 0 4px 12px -2px rgba(0,0,0,0.12);
+    background: linear-gradient(135deg, rgba(6, 182, 212, 0.08), rgba(6, 182, 212, 0.03));
+    border: 1px solid rgba(6, 182, 212, 0.2);
+    box-shadow: 0 4px 12px -2px rgba(0,0,0,0.15);
 }
 .pka-base::before {
     content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
-    background: linear-gradient(90deg, #3b82f6, #60a5fa, #3b82f6);
+    background: linear-gradient(90deg, #06b6d4, #22d3ee, #06b6d4);
     background-size: 200% 100%;
     animation: shimmer 3s linear infinite;
-    box-shadow: 0 0 10px rgba(59, 130, 246, 0.4);
+    box-shadow: 0 0 10px rgba(6, 182, 212, 0.5);
 }
-.pka-base:hover { transform: scale(1.02); box-shadow: 0 8px 24px -4px rgba(0,0,0,0.20), 0 0 25px rgba(59, 130, 246, 0.10); }
+.pka-base:hover { transform: scale(1.02); box-shadow: 0 8px 24px -4px rgba(0,0,0,0.2), 0 0 25px rgba(6, 182, 212, 0.12); }
 
 .pka-amphoteric {
-    background: linear-gradient(135deg, rgba(245, 158, 11, 0.08), rgba(245, 158, 11, 0.03));
-    border: 1px solid rgba(245, 158, 11, 0.18);
-    box-shadow: 0 4px 12px -2px rgba(0,0,0,0.12);
+    background: linear-gradient(135deg, rgba(251, 191, 36, 0.08), rgba(251, 191, 36, 0.03));
+    border: 1px solid rgba(251, 191, 36, 0.2);
+    box-shadow: 0 4px 12px -2px rgba(0,0,0,0.15);
 }
 .pka-amphoteric::before {
     content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
-    background: linear-gradient(90deg, #f59e0b, #fbbf24, #f59e0b);
+    background: linear-gradient(90deg, #fbbf24, #fde68a, #fbbf24);
     background-size: 200% 100%;
     animation: shimmer 3s linear infinite;
-    box-shadow: 0 0 10px rgba(245, 158, 11, 0.4);
+    box-shadow: 0 0 10px rgba(251, 191, 36, 0.5);
 }
-.pka-amphoteric:hover { transform: scale(1.02); box-shadow: 0 8px 24px -4px rgba(0,0,0,0.20), 0 0 25px rgba(245, 158, 11, 0.10); }
+.pka-amphoteric:hover { transform: scale(1.02); box-shadow: 0 8px 24px -4px rgba(0,0,0,0.2), 0 0 25px rgba(251, 191, 36, 0.12); }
 
-/* ═══════════════════════════════════════════════
-   7. 反馈组件 (Feedback)
-   ═══════════════════════════════════════════════ */
-
+/* ─── 9. Alert ─── */
 .stAlert {
-    border-radius: var(--ms-radius-lg) !important;
+    border-radius: var(--ob-radius) !important;
     border: 1px solid !important;
-    padding: var(--ms-space-4) !important;
+    padding: 1.25rem !important;
     position: relative;
     overflow: hidden;
-    animation: molecularDiffuse var(--ms-duration-normal) var(--ms-easing-decelerate) both;
+    animation: molecularDiffuse 0.25s ease both;
+    font-family: 'Inter', sans-serif !important;
 }
 
 .stAlert::before {
     content: '';
     position: absolute;
-    top: 0; left: 0; bottom: 0; width: 3px;
+    top: 0; left: 0; bottom: 0;
+    width: 4px;
+    border-radius: 4px 0 0 4px;
+}
+
+.stAlert[data-baseweb="notification"][data-kind="positive"] {
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.08), rgba(16, 185, 129, 0.02)) !important;
+    border-color: rgba(16, 185, 129, 0.18) !important;
+}
+.stAlert[data-baseweb="notification"][data-kind="positive"]::before {
+    background: linear-gradient(180deg, #10b981, #34d399);
+    box-shadow: 0 0 8px rgba(16, 185, 129, 0.4);
+}
+
+.stAlert[data-baseweb="notification"][data-kind="info"] {
+    background: linear-gradient(135deg, rgba(124, 58, 237, 0.08), rgba(124, 58, 237, 0.02)) !important;
+    border-color: rgba(124, 58, 237, 0.18) !important;
+}
+.stAlert[data-baseweb="notification"][data-kind="info"]::before {
+    background: linear-gradient(180deg, #7c3aed, #a78bfa);
+    box-shadow: 0 0 8px rgba(124, 58, 237, 0.4);
+}
+
+.stAlert[data-baseweb="notification"][data-kind="warning"] {
+    background: linear-gradient(135deg, rgba(251, 191, 36, 0.08), rgba(251, 191, 36, 0.02)) !important;
+    border-color: rgba(251, 191, 36, 0.18) !important;
+}
+.stAlert[data-baseweb="notification"][data-kind="warning"]::before {
+    background: linear-gradient(180deg, #fbbf24, #fde68a);
+    box-shadow: 0 0 8px rgba(251, 191, 36, 0.4);
+}
+
+.stAlert[data-baseweb="notification"][data-kind="negative"] {
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.08), rgba(239, 68, 68, 0.02)) !important;
+    border-color: rgba(239, 68, 68, 0.18) !important;
+}
+.stAlert[data-baseweb="notification"][data-kind="negative"]::before {
+    background: linear-gradient(180deg, #ef4444, #f87171);
+    box-shadow: 0 0 8px rgba(239, 68, 68, 0.4);
 }
 
 .stAlert [data-testid="stMarkdownContainer"] {
     font-size: 0.875rem;
     line-height: 1.6;
-    color: var(--ms-text-primary);
+    color: var(--ob-text-primary);
 }
 
-.stAlert[data-baseweb="notification"][data-kind="positive"] {
-    background: linear-gradient(135deg, rgba(16, 185, 129, 0.10), rgba(16, 185, 129, 0.03)) !important;
-    border-color: rgba(16, 185, 129, 0.20) !important;
-}
-.stAlert[data-baseweb="notification"][data-kind="positive"]::before {
-    background: linear-gradient(180deg, #10b981, #34d399);
-    box-shadow: 0 0 6px rgba(16, 185, 129, 0.3);
-}
-
-.stAlert[data-baseweb="notification"][data-kind="info"] {
-    background: linear-gradient(135deg, rgba(14, 165, 233, 0.10), rgba(14, 165, 233, 0.03)) !important;
-    border-color: rgba(14, 165, 233, 0.20) !important;
-}
-.stAlert[data-baseweb="notification"][data-kind="info"]::before {
-    background: linear-gradient(180deg, #0ea5e9, #38bdf8);
-    box-shadow: 0 0 6px rgba(14, 165, 233, 0.3);
-}
-
-.stAlert[data-baseweb="notification"][data-kind="warning"] {
-    background: linear-gradient(135deg, rgba(245, 158, 11, 0.10), rgba(245, 158, 11, 0.03)) !important;
-    border-color: rgba(245, 158, 11, 0.20) !important;
-}
-.stAlert[data-baseweb="notification"][data-kind="warning"]::before {
-    background: linear-gradient(180deg, #f59e0b, #fbbf24);
-    box-shadow: 0 0 6px rgba(245, 158, 11, 0.3);
-}
-
-.stAlert[data-baseweb="notification"][data-kind="negative"] {
-    background: linear-gradient(135deg, rgba(239, 68, 68, 0.10), rgba(239, 68, 68, 0.03)) !important;
-    border-color: rgba(239, 68, 68, 0.20) !important;
-}
-.stAlert[data-baseweb="notification"][data-kind="negative"]::before {
-    background: linear-gradient(180deg, #ef4444, #f87171);
-    box-shadow: 0 0 6px rgba(239, 68, 68, 0.3);
-}
-
-/* ═══════════════════════════════════════════════
-   8. 导航与标签 (Navigation)
-   ═══════════════════════════════════════════════ */
-
+/* ─── 10. Tabs ─── */
 .stTabs [data-baseweb="tab-list"] {
-    gap: var(--ms-space-2);
-    border-bottom: 1px solid rgba(148, 163, 184, 0.10);
-    padding-bottom: var(--ms-space-1);
+    gap: 0.5rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    padding-bottom: 0.25rem;
 }
 
 .stTabs [data-baseweb="tab"] {
-    border-radius: var(--ms-radius-md) var(--ms-radius-md) 0 0 !important;
-    padding: var(--ms-space-2) var(--ms-space-4) !important;
+    border-radius: 12px 12px 0 0 !important;
+    padding: 0.5rem 1rem !important;
+    font-family: 'Space Grotesk', sans-serif !important;
     font-weight: 500 !important;
     font-size: 0.875rem !important;
-    color: var(--ms-text-secondary) !important;
+    color: var(--ob-text-secondary) !important;
     background: transparent !important;
     border: none !important;
     border-bottom: 2px solid transparent !important;
-    transition: color var(--ms-duration-fast) var(--ms-easing-default), border-color var(--ms-duration-fast) var(--ms-easing-default), background var(--ms-duration-fast) var(--ms-easing-default), text-shadow var(--ms-duration-fast) var(--ms-easing-default) !important;
+    transition: all 0.15s ease !important;
 }
 
 .stTabs [data-baseweb="tab"]:hover {
-    color: var(--ms-text-primary) !important;
-    background: rgba(14, 165, 233, 0.05) !important;
-    text-shadow: 0 0 12px rgba(14, 165, 233, 0.15);
+    color: var(--ob-text-primary) !important;
+    background: rgba(124, 58, 237, 0.05) !important;
+    text-shadow: 0 0 12px rgba(124, 58, 237, 0.2);
 }
 
 .stTabs [aria-selected="true"] {
-    color: var(--ms-accent-primary) !important;
-    border-bottom-color: var(--ms-accent-primary) !important;
-    background: linear-gradient(180deg, rgba(14, 165, 233, 0.08), transparent) !important;
-    text-shadow: 0 0 16px rgba(14, 165, 233, 0.20);
+    color: var(--ob-nebula-light) !important;
+    border-bottom-color: var(--ob-nebula) !important;
+    background: linear-gradient(180deg, rgba(124, 58, 237, 0.1), transparent) !important;
+    text-shadow: 0 0 16px rgba(124, 58, 237, 0.25);
     font-weight: 600 !important;
 }
 
-/* ═══════════════════════════════════════════════
-   9. 媒体与可视化 (Media)
-   ═══════════════════════════════════════════════ */
-
+/* ─── 11. 媒体与图表 ─── */
 .stImage > img {
-    border-radius: var(--ms-radius-lg);
-    border: 1px solid rgba(148, 163, 184, 0.10);
-    box-shadow: var(--ms-shadow-md);
-    transition: transform var(--ms-duration-normal) var(--ms-easing-default), box-shadow var(--ms-duration-normal) var(--ms-easing-default);
+    border-radius: var(--ob-radius);
+    border: 1px solid var(--ob-border);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .stImage > img:hover {
     transform: scale(1.02);
-    box-shadow: var(--ms-shadow-lg), 0 0 30px rgba(14, 165, 233, 0.08);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.25), 0 0 30px rgba(124, 58, 237, 0.08);
 }
 
-/* Plotly/Matplotlib 图表容器 */
 .js-plotly-plot, .stPlotlyChart {
-    border-radius: var(--ms-radius-lg);
+    border-radius: var(--ob-radius);
     overflow: hidden;
 }
 
-/* ═══════════════════════════════════════════════
-   10. 分隔线与页脚
-   ═══════════════════════════════════════════════ */
+/* ─── 12. 分隔线与页脚 ─── */
 hr {
     border: none;
     height: 1px;
-    background: linear-gradient(90deg, transparent 0%, rgba(14, 165, 233, 0.15) 20%, rgba(139, 92, 246, 0.10) 50%, rgba(14, 165, 233, 0.15) 80%, transparent 100%);
-    margin: var(--ms-space-6) 0;
+    background: linear-gradient(90deg, transparent 0%, rgba(124, 58, 237, 0.2) 20%, rgba(6, 182, 212, 0.15) 50%, rgba(124, 58, 237, 0.2) 80%, transparent 100%);
+    margin: 2rem 0;
     position: relative;
 }
 hr::after {
     content: '';
     position: absolute;
-    left: 50%;
-    top: -2px;
+    left: 50%; top: -2px;
     transform: translateX(-50%);
-    width: 6px;
-    height: 6px;
-    background: rgba(14, 165, 233, 0.30);
+    width: 6px; height: 6px;
+    background: rgba(124, 58, 237, 0.4);
     border-radius: 50%;
-    box-shadow: 0 0 8px rgba(14, 165, 233, 0.30);
+    box-shadow: 0 0 12px rgba(124, 58, 237, 0.4);
 }
 
 .footer {
     text-align: center;
-    padding: var(--ms-space-6) var(--ms-space-4);
-    color: var(--ms-text-tertiary);
+    padding: 2.5rem 1.5rem;
+    color: var(--ob-text-tertiary);
     font-size: 0.8125rem;
     line-height: 1.6;
-    border-top: 1px solid rgba(148, 163, 184, 0.06);
-    margin-top: var(--ms-space-8);
+    border-top: 1px solid var(--ob-border);
+    margin-top: 3rem;
     position: relative;
+    font-family: 'JetBrains Mono', monospace;
 }
 .footer::before {
     content: '';
     position: absolute;
-    top: -1px;
-    left: 50%;
+    top: -1px; left: 50%;
     transform: translateX(-50%);
-    width: 120px;
-    height: 1px;
-    background: linear-gradient(90deg, transparent, rgba(14, 165, 233, 0.30), transparent);
+    width: 120px; height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(124, 58, 237, 0.4), transparent);
 }
 
-/* ═══════════════════════════════════════════════
-   11. 加载状态
-   ═══════════════════════════════════════════════ */
-
+/* ─── 13. 加载状态 ─── */
 .stSpinner > div {
-    border-color: var(--ms-accent-primary) transparent transparent transparent !important;
-}
-
-@keyframes electronJump {
-    0% { transform: translateX(-100%); opacity: 0; }
-    50% { opacity: 1; }
-    100% { transform: translateX(400%); opacity: 0; }
+    border-color: var(--ob-nebula) transparent transparent transparent !important;
 }
 
 .loading-bar {
     height: 2px;
-    background: rgba(14, 165, 233, 0.10);
-    border-radius: var(--ms-radius-sm);
+    background: rgba(124, 58, 237, 0.1);
+    border-radius: 4px;
     overflow: hidden;
     position: relative;
 }
-
 .loading-bar::after {
     content: '';
     position: absolute;
     top: 0; left: 0;
     width: 25%; height: 100%;
-    background: linear-gradient(90deg, transparent, var(--ms-accent-primary), transparent);
+    background: linear-gradient(90deg, transparent, var(--ob-nebula), transparent);
     animation: electronJump 1.5s ease-in-out infinite;
-    will-change: transform, opacity;
 }
 
-/* ═══════════════════════════════════════════════
-   12. 辅助工具类
-   ═══════════════════════════════════════════════ */
+/* ─── 14. 辅助工具类 ─── */
 .text-gradient {
-    background: linear-gradient(135deg, #38bdf8, #818cf8);
+    background: linear-gradient(135deg, #a78bfa, #7c3aed);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -1101,18 +1005,19 @@ hr::after {
 .badge {
     display: inline-flex;
     align-items: center;
-    padding: var(--ms-space-1) var(--ms-space-2);
-    border-radius: var(--ms-radius-sm);
-    font-size: 0.75rem;
-    font-weight: 600;
-    letter-spacing: 0.02em;
+    padding: 0.25rem 0.5rem;
+    border-radius: 6px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    font-weight: 500;
+    letter-spacing: 0.04em;
     text-transform: uppercase;
 }
 
 .badge-primary {
-    background: rgba(14, 165, 233, 0.12);
-    color: #7dd3fc;
-    border: 1px solid rgba(14, 165, 233, 0.15);
+    background: rgba(124, 58, 237, 0.12);
+    color: #c4b5fd;
+    border: 1px solid rgba(124, 58, 237, 0.15);
 }
 
 .badge-success {
@@ -1122,106 +1027,79 @@ hr::after {
 }
 
 .badge-warn {
-    background: rgba(245, 158, 11, 0.12);
+    background: rgba(251, 191, 36, 0.12);
     color: #fcd34d;
-    border: 1px solid rgba(245, 158, 11, 0.15);
+    border: 1px solid rgba(251, 191, 36, 0.15);
 }
 
-/* ═══════════════════════════════════════════════
-   13. 滚动条与响应式
-   ═══════════════════════════════════════════════ */
-::-webkit-scrollbar {
-    width: 5px;
-    height: 5px;
-}
-
-::-webkit-scrollbar-track {
-    background: transparent;
-}
-
+/* ─── 15. 滚动条 ─── */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb {
-    background: linear-gradient(180deg, rgba(14, 165, 233, 0.25), rgba(139, 92, 246, 0.20));
+    background: linear-gradient(180deg, rgba(124, 58, 237, 0.3), rgba(6, 182, 212, 0.25));
     border-radius: 10px;
     border: 1px solid transparent;
     background-clip: content-box;
 }
-
 ::-webkit-scrollbar-thumb:hover {
-    background: linear-gradient(180deg, rgba(14, 165, 233, 0.45), rgba(139, 92, 246, 0.35));
+    background: linear-gradient(180deg, rgba(124, 58, 237, 0.5), rgba(6, 182, 212, 0.4));
     background-clip: content-box;
-}
-
-::-webkit-scrollbar-corner {
-    background: transparent;
-}
-
-/* 响应式 */
-@media (max-width: 768px) {
-    .main .block-container {
-        padding-left: var(--ms-space-4) !important;
-        padding-right: var(--ms-space-4) !important;
-    }
-    .gradient-title {
-        font-size: 2rem;
-    }
-    .card-container {
-        padding: var(--ms-space-4);
-    }
 }
 
 /* 文字选中效果 */
 ::selection {
-    background: rgba(14, 165, 233, 0.25);
-    color: var(--ms-text-primary);
+    background: rgba(124, 58, 237, 0.3);
+    color: var(--ob-text-primary);
 }
 
-/* Streamlit 原生组件暗黑适配 */
-.stMarkdown, .stText, p, li, span {
-    color: var(--ms-text-primary);
-}
-
+/* Streamlit 原生组件适配 */
+.stMarkdown, .stText, p, li, span { color: var(--ob-text-primary); }
 .stCaption {
-    color: var(--ms-text-tertiary) !important;
+    color: var(--ob-text-tertiary) !important;
     font-size: 0.8125rem !important;
+    font-family: 'JetBrains Mono', monospace !important;
 }
 
-/* ─── st.container(border=True) 修复 ─── */
+/* st.container(border=True) */
 [data-testid="stVerticalBlockBorderWrapper"] {
-    background: linear-gradient(155deg, rgba(30, 41, 59, 0.60) 0%, rgba(15, 23, 42, 0.40) 100%) !important;
-    border: 1px solid rgba(148, 163, 184, 0.08) !important;
-    border-radius: var(--ms-radius-lg) !important;
-    box-shadow: 
-        0 1px 2px rgba(0,0,0,0.12),
-        0 4px 12px -2px rgba(0,0,0,0.15), 
-        inset 0 1px 0 rgba(255,255,255,0.03) !important;
-    transition: transform var(--ms-duration-normal) var(--ms-easing-default), box-shadow var(--ms-duration-normal) var(--ms-easing-default), border-color var(--ms-duration-fast) var(--ms-easing-default) !important;
+    background: linear-gradient(155deg, rgba(30, 30, 46, 0.65) 0%, rgba(15, 15, 25, 0.45) 100%) !important;
+    border: 1px solid var(--ob-border) !important;
+    border-radius: var(--ob-radius) !important;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.15), 0 4px 12px -2px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.03) !important;
+    transition: all 0.2s ease !important;
 }
 
 [data-testid="stVerticalBlockBorderWrapper"]:hover {
-    border-color: rgba(14, 165, 233, 0.12) !important;
-    box-shadow: 
-        0 4px 12px -2px rgba(0,0,0,0.20), 
-        0 0 20px rgba(14, 165, 233, 0.04),
-        inset 0 1px 0 rgba(255,255,255,0.04) !important;
+    border-color: rgba(124, 58, 237, 0.12) !important;
+    box-shadow: 0 4px 12px -2px rgba(0,0,0,0.25), 0 0 20px rgba(124, 58, 237, 0.05), inset 0 1px 0 rgba(255,255,255,0.04) !important;
 }
 
 /* Expander */
 [data-testid="stExpander"] {
-    background: linear-gradient(155deg, rgba(30, 41, 59, 0.55) 0%, rgba(15, 23, 42, 0.40) 100%) !important;
-    border: 1px solid rgba(148, 163, 184, 0.08) !important;
-    border-radius: var(--ms-radius-lg) !important;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.10) !important;
-    transition: transform var(--ms-duration-fast) var(--ms-easing-default), box-shadow var(--ms-duration-fast) var(--ms-easing-default) !important;
+    background: linear-gradient(155deg, rgba(30, 30, 46, 0.6) 0%, rgba(15, 15, 25, 0.4) 100%) !important;
+    border: 1px solid var(--ob-border) !important;
+    border-radius: var(--ob-radius) !important;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.12) !important;
 }
 
 [data-testid="stExpander"]:hover {
-    box-shadow: 0 4px 16px rgba(0,0,0,0.15), 0 0 0 1px rgba(14, 165, 233, 0.06) !important;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.18), 0 0 0 1px rgba(124, 58, 237, 0.06) !important;
 }
 
 /* 隐藏 Streamlit 默认顶栏 */
 #MainMenu {visibility: hidden;}
 header {visibility: hidden;}
 footer {visibility: hidden;}
+
+/* 响应式 */
+@media (max-width: 768px) {
+    .main .block-container {
+        padding-left: 1rem !important;
+        padding-right: 1rem !important;
+    }
+    .gradient-title { font-size: 2rem; }
+    .card-container { padding: 1.25rem; }
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -1235,14 +1113,13 @@ def load_model():
 try:
     model, descriptor_names = load_model()
     model_ready = True
-
-    # ===== 初始化 SHAP Explainer =====
     import shap
     explainer = shap.TreeExplainer(model)
 except Exception as e:
-    st.error(f"❌ 模型加载失败: {e}")
+    st.error(f"模型加载失败: {e}")
     st.info("请先运行 'python train_model_v2.py' 训练模型")
     model_ready = False
+
 # ========== 加载 pKa 模型 ==========
 @st.cache_resource
 def load_pka_model():
@@ -1252,9 +1129,8 @@ def load_pka_model():
 try:
     pka_model = load_pka_model()
     pka_ready = True
-except Exception as e:
+except Exception:
     pka_ready = False
-    st.error(f"DEBUG pKa load error: {type(e).__name__}: {e}")
 
 # ========== 特征计算 ==========
 def compute_features(smiles_string):
@@ -1299,22 +1175,19 @@ def show_3d_molecule(smiles):
     except Exception:
         return None
 
-# ========== pKa 化学因素分析（结构化学版）==========
+# ========== pKa 化学因素分析 ==========
 def analyze_pka_chemistry(smiles, pka_val):
     mol = Chem.MolFromSmiles(smiles)
     if mol is None:
         return {}
     is_acidic = pka_val < 7
     factors = {}
-    # 1. 诱导效应
     en_atoms = sum(1 for atom in mol.GetAtoms() if atom.GetAtomicNum() in [7,8,9,17,35])
     inductive = min(en_atoms * 0.4, 3.0)
     factors['诱导效应\n(Inductive)'] = inductive if is_acidic else -inductive * 0.6
-    # 2. 共轭效应
     aromatic = Descriptors.NumAromaticRings(mol)
     resonance = min(aromatic * 1.2, 3.0)
     factors['共轭效应\n(Resonance)'] = resonance if is_acidic else resonance * 0.5
-    # 3. 分子内氢键
     hbond_pat1 = Chem.MolFromSmarts('[OH]c1ccccc1C(=O)[OH]')
     hbond_pat2 = Chem.MolFromSmarts('[OH]c1ccccc1[OH]')
     has_hbond = False
@@ -1324,36 +1197,30 @@ def analyze_pka_chemistry(smiles, pka_val):
         has_hbond = True
     hbond_score = 1.5 if has_hbond else 0.0
     factors['分子内氢键\n(Intra-HB)'] = hbond_score if is_acidic else -hbond_score * 0.5
-    # 4. 空间位阻
     rot_bonds = Descriptors.NumRotatableBonds(mol)
     steric = -min(rot_bonds * 0.25, 2.0)
     factors['空间位阻\n(Steric)'] = steric if is_acidic else -steric
-    # 5. 杂化/芳香性
     sp2_score = 1.0 if aromatic > 0 else -0.5
     factors['杂化/芳香性\n(Hybridization)'] = sp2_score if is_acidic else -sp2_score
     return factors
 
 # ========== Kimi AI 解释 ==========
 def explain_with_kimi(smiles, prediction, features, shap_features=None, shap_values=None, pka_value=None, pka_type=None):
-
     if not KIMI_API_KEY:
-        return "⚠️ 未配置 Kimi API Key。请在 .env 文件中写入：KIMI_API_KEY=sk-你的密钥"
+        return "未配置 Kimi API Key。请在 .env 文件中写入：KIMI_API_KEY=sk-你的密钥"
 
-    # 在代码里精确判断溶解度等级（避免 LLM 数值比较错误）
     if prediction > 0:
         solubility_level = "易溶于水"
         solubility_desc = "logS > 0，属于高溶解度"
     elif prediction > -2:
         solubility_level = "中等溶解"
-        solubility_desc = "-2 < logS ≤ 0，属于中等溶解度"
+        solubility_desc = "-2 < logS <= 0，属于中等溶解度"
     else:
         solubility_level = "难溶于水"
-        solubility_desc = "logS ≤ -2，属于低溶解度"
+        solubility_desc = "logS <= -2，属于低溶解度"
 
-    # 构建 SHAP 洞察文本
     shap_text = ""
     if shap_features and shap_values and len(shap_features) == len(shap_values):
-        import numpy as np
         abs_vals = np.abs(np.array(shap_values))
         sorted_idx = np.argsort(abs_vals)[::-1][:5]
         top_features = [shap_features[i] for i in sorted_idx]
@@ -1364,37 +1231,35 @@ def explain_with_kimi(smiles, prediction, features, shap_features=None, shap_val
             shap_lines.append(f"- {name}: 贡献值 {val:+.3f}（{direction}）")
         shap_text = "\n".join(shap_lines)
 
-    # 构建 pKa 相关文本（如果有）
     pka_section = ""
     pka_task = ""
     if pka_value is not None and pka_type is not None:
         if pka_type == "acid":
             pka_label = "酸性分子"
             pka_desc_full = f"pKa = {pka_value:.2f} (< 5)，属于酸性分子。在酸性环境（如胃，pH ~1.5）中主要以分子态存在，脂溶性较高，容易被胃黏膜吸收。"
-            ionization_desc = "在生理 pH 范围内，该分子倾向于释放质子 (H⁺)，形成共轭碱。"
+            ionization_desc = "在生理 pH 范围内，该分子倾向于释放质子 (H+)，形成共轭碱。"
         elif pka_type == "base":
             pka_label = "碱性分子"
             pka_desc_full = f"pKa = {pka_value:.2f} (> 9)，属于碱性分子。在碱性环境中主要以分子态存在，在胃中容易电离，主要在小肠吸收。"
-            ionization_desc = "在生理 pH 范围内，该分子倾向于结合质子 (H⁺)，形成共轭酸。"
+            ionization_desc = "在生理 pH 范围内，该分子倾向于结合质子 (H+)，形成共轭酸。"
         else:
             pka_label = "两性/中性分子"
-            pka_desc_full = f"pKa = {pka_value:.2f} (5–9 之间)，属于两性或中性分子。电离行为随环境 pH 变化剧烈，在不同生理部位的存在形态差异大。"
+            pka_desc_full = f"pKa = {pka_value:.2f} (5-9 之间)，属于两性或中性分子。电离行为随环境 pH 变化剧烈，在不同生理部位的存在形态差异大。"
             ionization_desc = "该分子既可能释放也可能结合质子，具体取决于所处环境的 pH。"
 
-        pka_section = f"""
-【pKa 与电离行为分析】
+        pka_section = f"""【pKa 与电离行为分析】
 - 预测 pKa: {pka_value:.2f}
 - 酸碱性判定: {pka_label}
 - 电离特征: {ionization_desc}
 - 生理意义: {pka_desc_full}
 
-【溶解度 × pKa 联动提示】
+【溶解度 x pKa 联动提示】
 溶解度 (logS) 和 pKa 共同决定药物在体内的吸收行为：
 - 分子态（非电离）脂溶性高，易穿透细胞膜被吸收
 - 离子态水溶性好，有利于在血液中运输和肾脏排泄
-- 当前分子：logS = {prediction:.2f}（{solubility_level}），pKa = {pka_value:.2f}（{pka_label}）
-"""
-        pka_task = f"""5. **pKa 结构化学深度解析**（4–5句话）：
+- 当前分子：logS = {prediction:.2f}（{solubility_level}），pKa = {pka_value:.2f}（{pka_label}）"""
+
+        pka_task = f"""5. **pKa 结构化学深度解析**（4-5句话）：
    - 从 SMILES 识别该分子的**可电离基团**（如 -COOH、脂肪胺、芳香胺、酚羟基、杂环氮等），并指出其直接连接的化学环境。
    - 用**电子效应**解释该 pKa = {pka_value:.2f} 的合理性：附近是否有吸电子基团（-I, -M）拉低 pKa / 推电子基团（+I, +M）升高 pKa？是否有共轭稳定化/去稳定化？是否存在分子内氢键或空间位阻影响质子转移？
    - 简要说明该分子在胃 (pH 1.5)、小肠 (pH 6.8)、血液 (pH 7.4) 中的**电离状态趋势**（以分子态比例高低描述即可，不做精确计算）。
@@ -1407,7 +1272,7 @@ def explain_with_kimi(smiles, prediction, features, shap_features=None, shap_val
 
 【分子基本性质】
 - 分子量: {features['MolWt']:.1f} g/mol
-- 极性表面积 (TPSA): {features['TPSA']:.1f} Å²
+- 极性表面积 (TPSA): {features['TPSA']:.1f} A2
 - 氢键供体数: {features['NumHDonors']}
 - 氢键受体数: {features['NumHAcceptors']}
 - 脂水分配系数 (LogP): {features['LogP']:.2f}
@@ -1421,35 +1286,35 @@ def explain_with_kimi(smiles, prediction, features, shap_features=None, shap_val
 【已由程序精确判定的溶解度结论（严禁修改或重新判断）】
 该分子的预测溶解度 logS = {prediction:.3f}，判定结果为：**{solubility_level}**。
 判定依据：{solubility_desc}。
-⚠️ 重要：上述结论已由程序精确计算得出，你只需在回答中直接复述，不可重新判断或做数值比较。
+重要：上述结论已由程序精确计算得出，你只需在回答中直接复述，不可重新判断或做数值比较。
 {pka_section}
+
 请用中文回答，严格按以下段落组织，重点放在**结构解析**上：
 
 1. **溶解度结论**（1句话）：直接复述——该分子属于「{solubility_level}」。
 
-2. **分子骨架与官能团识别**（3–4句话）：
+2. **分子骨架与官能团识别**（3-4句话）：
    - 从 SMILES 字符串解析该分子的**核心骨架**（如苯环、甾体、糖类、肽链、脂肪链等）。
-   - 列出分子中存在的**主要官能团**（如羟基 -OH、羧基 -COOH、氨基 -NH₂、酰胺 -CONH-、醚键 -O-、酯基 -COOR、卤素、硝基、磺酸基、杂环氮等）。
-   - 指出是否存在**可电离基团**及其直接连接的化学环境（如羧基连接在芳香环上还是脂肪链上，氨基是伯胺/仲胺/叔胺，是否邻近吸电子基团等）。
+   - 列出分子中存在的**主要官能团**（如羟基 -OH、羧基 -COOH、氨基 -NH2、酰胺 -CONH-、醚键 -O-、酯基 -COOR、卤素、硝基、磺酸基、杂环氮等）。
+   - 指出是否存在**可电离基团**及其直接连接的化学环境。
    - 描述分子的**整体构型特征**（如线性/分支/稠环/大环、刚性 vs 柔性、亲水面与疏水面的空间分布趋势）。
 
-3. **结构-溶解度深度解析**（4–5句话）：
+3. **结构-溶解度深度解析**（4-5句话）：
    - 结合具体官能团解释：哪些基团**推动水溶**（如羟基、羧基、氨基形成氢键），哪些**阻碍水溶**（如长烷基链、大芳香疏水面）。
-   - 结合 SHAP 分析结果，说明模型最关注的结构特征（如 LogP、TPSA、氢键数目、芳香环数）如何与该分子的实际官能团组成对应。
-   - 若分子同时含有亲水与疏水基团，分析二者的**相对比例与空间布局**如何决定整体溶解度（如表面活性剂式的两亲性、被包裹的极性基团等）。
+   - 结合 SHAP 分析结果，说明模型最关注的结构特征如何与该分子的实际官能团组成对应。
+   - 若分子同时含有亲水与疏水基团，分析二者的**相对比例与空间布局**如何决定整体溶解度。
    - 提及**分子间相互作用**：该分子与水之间能形成多少氢键网络，疏水部分是否导致水分子有序化（疏水效应）。
 
-4. **SHAP 关键特征与结构对应**（2–3句话）：
-   - 引用 SHAP 贡献值最高的 1–2 个特征的具体数值。
-   - 明确指出这些特征在分子结构上的**物理对应物**（如「高 TPSA 贡献 +0.35」对应「分子含 3 个羟基和 1 个羧基」）。
+4. **SHAP 关键特征与结构对应**（2-3句话）：
+   - 引用 SHAP 贡献值最高的 1-2 个特征的具体数值。
+   - 明确指出这些特征在分子结构上的**物理对应物**。
 
 {pka_task}
 
 要求:
-- **以结构化学为核心**，避免空泛的科普描述和简单的生活类比；如举类比，必须紧扣官能团行为（不超过1句）。
+- **以结构化学为核心**，避免空泛的科普描述和简单的生活类比。
 - 第2段必须基于 SMILES 识别出**至少2个具体官能团**和**骨架类型**。
 - 第3段必须引用分子性质数据（LogP、TPSA、H-Bond 数目等）和 SHAP 贡献值。
-- 若包含 pKa 段落，必须从**电子效应**（诱导效应、共轭效应、场效应）和**空间环境**（邻位取代基、环张力、分子内氢键）解释该 pKa 的合理性，而非仅复述 pH 分布。
 - 语言准确但不过度学术，适合具备基础有机化学知识的高中生理解。"""
 
     try:
@@ -1482,27 +1347,24 @@ if "ai_explanation" not in st.session_state:
 
 # ========== 网页界面 ==========
 st.markdown("""
-<h1 class="gradient-title">🧪 Molecular Solubility Predictor</h1>
-<p class="subtitle">Predict Aqueous Solubility from Molecular Structure with AI-Powered Insights</p>
+<div style="text-align:center; margin-top:1rem; margin-bottom:0.5rem;">
+    <div class="tagline">MOLECULAR SOLUBILITY PREDICTION</div>
+    <h1 class="gradient-title">SoluVis</h1>
+    <p class="subtitle">Predict Aqueous Solubility from Molecular Structure with AI-Powered Insights</p>
+</div>
 """, unsafe_allow_html=True)
 
 st.markdown("""
 <div class="card-container" style="padding: 1.2rem 1.5rem; margin-bottom: 2rem;">
-    <p style="margin: 0; color: var(--ms-text-secondary); line-height: 1.7;">
-        <b style="color: var(--ms-text-primary);">Welcome!</b> This app predicts how well a molecule dissolves in water (logS)
+    <p style="margin: 0; color: var(--ob-text-secondary); line-height: 1.7;">
+        <b style="color: var(--ob-text-primary);">Welcome!</b> This app predicts how well a molecule dissolves in water (logS)
         using a <b>Machine Learning</b> model trained on <b>11,000+ organic compounds</b>.
         Explore molecular properties, 3D structures, pKa profiles, and AI-generated explanations.
     </p>
     <div style="display: flex; gap: 1rem; margin-top: 1rem; flex-wrap: wrap;">
-        <div style="display: flex; align-items: center; gap: 0.4rem; color: var(--ms-accent-primary); font-weight: 500; font-size: 0.875rem;">
-            <span style="font-size: 1.1rem;">👇</span> 快速选择
-        </div>
-        <div style="display: flex; align-items: center; gap: 0.4rem; color: var(--ms-accent-primary); font-weight: 500; font-size: 0.875rem;">
-            <span style="font-size: 1.1rem;">🔍</span> 名称搜索
-        </div>
-        <div style="display: flex; align-items: center; gap: 0.4rem; color: var(--ms-accent-primary); font-weight: 500; font-size: 0.875rem;">
-            <span style="font-size: 1.1rem;">✏️</span> SMILES 输入
-        </div>
+        <span class="badge badge-primary"><span style="margin-right:4px;">&#128071;</span> 快速选择</span>
+        <span class="badge badge-success"><span style="margin-right:4px;">&#128269;</span> 名称搜索</span>
+        <span class="badge badge-warn"><span style="margin-right:4px;">&#9997;</span> SMILES 输入</span>
     </div>
 </div>
 """, unsafe_allow_html=True)
@@ -1511,9 +1373,7 @@ st.markdown("""
 
 # --- 方式1：下拉菜单 ---
 with st.container(border=True):
-    st.markdown("""
-    <div class="card-title">👇 方式 1：快速选择常见分子</div>
-    """, unsafe_allow_html=True)
+    st.markdown("""<div class="card-title">&#128071; 方式 1：快速选择常见分子</div>""", unsafe_allow_html=True)
     selected_molecule = st.selectbox(
         "选择分子",
         list(MOLECULE_DB.keys()),
@@ -1531,12 +1391,10 @@ with st.container(border=True):
             st.session_state.ai_explanation = None
             st.rerun()
 
-# --- 方式2：三层搜索（本地 → PubChem → 引导）---
+# --- 方式2：三层搜索 ---
 with st.container(border=True):
-    st.markdown("""
-    <div class="card-title">🔍 方式 2：名称搜索（本地库 + PubChem API）</div>
-    """, unsafe_allow_html=True)
-    st.caption("💡 支持中英文，如 阿司匹林 / Aspirin / Ibuprofen / 咖啡因")
+    st.markdown("""<div class="card-title">&#128269; 方式 2：名称搜索（本地库 + PubChem API）</div>""", unsafe_allow_html=True)
+    st.caption("支持中英文，如 阿司匹林 / Aspirin / Ibuprofen / 咖啡因")
     search_col1, search_col2 = st.columns([4, 1])
     with search_col1:
         search_name = st.text_input(
@@ -1546,54 +1404,47 @@ with st.container(border=True):
             label_visibility="collapsed"
         )
     with search_col2:
-        search_clicked = st.button("🔍 搜索", key="search_btn", use_container_width=True)
+        search_clicked = st.button("&#128269; 搜索", key="search_btn", use_container_width=True)
 
     if search_clicked and search_name:
         query = search_name.strip().lower()
         
-        # ===== 第一层：本地精确匹配 =====
         if query in SEARCH_INDEX:
             found_smiles = SEARCH_INDEX[query]
-            st.success(f"✅ 本地精确匹配：`{search_name}` → `{found_smiles}`")
+            st.success(f"本地精确匹配：`{search_name}` -> `{found_smiles}`")
             if found_smiles != st.session_state.smiles_input_box:
                 st.session_state.smiles_input_box = found_smiles
                 st.session_state.predicted_smiles = None
                 st.session_state.predicted_logS = None
                 st.session_state.ai_explanation = None
-            st.info("👇 点击下方的 **Predict** 按钮查看结果")
-        
+            st.info("点击下方的 **Predict** 按钮查看结果")
         else:
-            # ===== 第二层：本地模糊匹配 =====
             matches = [k for k in SEARCH_INDEX.keys() if query in k or k in query]
             if matches:
                 matches.sort(key=lambda x: (0 if x.startswith(query) else 1, len(x)))
                 best_match = matches[0]
                 found_smiles = SEARCH_INDEX[best_match]
-                st.success(f"✅ 本地模糊匹配：`{search_name}` → `{best_match}` → `{found_smiles}`")
+                st.success(f"本地模糊匹配：`{search_name}` -> `{best_match}` -> `{found_smiles}`")
                 if found_smiles != st.session_state.smiles_input_box:
                     st.session_state.smiles_input_box = found_smiles
                     st.session_state.predicted_smiles = None
                     st.session_state.predicted_logS = None
                     st.session_state.ai_explanation = None
-                st.info("👇 点击下方的 **Predict** 按钮查看结果")
-            
+                st.info("点击下方的 **Predict** 按钮查看结果")
             else:
-                # ===== 第三层：PubChem API（保留原有代码逻辑）=====
-                with st.spinner("🌐 本地未找到，正在查询 PubChem API..."):
+                with st.spinner("本地未找到，正在查询 PubChem API..."):
                     found_smiles, status = search_pubchem_final(search_name)
                 
                 if found_smiles:
-                    st.success(f"✅ PubChem 匹配：`{search_name}` → `{found_smiles}` ({status})")
+                    st.success(f"PubChem 匹配：`{search_name}` -> `{found_smiles}` ({status})")
                     if found_smiles != st.session_state.smiles_input_box:
                         st.session_state.smiles_input_box = found_smiles
                         st.session_state.predicted_smiles = None
                         st.session_state.predicted_logS = None
                         st.session_state.ai_explanation = None
-                    st.info("👇 点击下方的 **Predict** 按钮查看结果")
-                
+                    st.info("点击下方的 **Predict** 按钮查看结果")
                 else:
-                    # ===== 第四层：失败引导 =====
-                    st.error(f"❌ 未找到：`{search_name}`")
+                    st.error(f"未找到：`{search_name}`")
                     st.info("尝试建议：")
                     st.markdown("""
                     - 检查拼写（如 **Aspirin** 而非 **Aspriin**）
@@ -1601,13 +1452,13 @@ with st.container(border=True):
                     - 直接输入 SMILES（方式3）
                     """)
                     st.markdown("""
-                    <div style="background: linear-gradient(135deg, rgba(14, 165, 233, 0.08), rgba(14, 165, 233, 0.03)); padding: 18px; border-radius: 12px; border-left: 3px solid var(--ms-accent-primary);">
-                    <h4 style="color: #7dd3fc; margin-top: 0;">🔍 如何手动获取 SMILES？</h4>
-                    <ol style="color: var(--ms-text-secondary); margin-bottom: 0;">
-                        <li>访问 <a href="https://pubchem.ncbi.nlm.nih.gov" target="_blank"><b>https://pubchem.ncbi.nlm.nih.gov</b></a></li>
+                    <div style="background: linear-gradient(135deg, rgba(124, 58, 237, 0.08), rgba(124, 58, 237, 0.02)); padding: 18px; border-radius: 16px; border-left: 3px solid #7c3aed;">
+                    <h4 style="color: #a78bfa; margin-top: 0; font-family: 'Space Grotesk', sans-serif;">如何手动获取 SMILES？</h4>
+                    <ol style="color: var(--ob-text-secondary); margin-bottom: 0;">
+                        <li>访问 <a href="https://pubchem.ncbi.nlm.nih.gov" target="_blank" style="color: #a78bfa;"><b>https://pubchem.ncbi.nlm.nih.gov</b></a></li>
                         <li>在搜索框输入分子名称（英文，如 <b>Aspirin</b>）</li>
                         <li>进入化合物页面，找到 <b>Canonical SMILES</b> 字段</li>
-                        <li>复制 SMILES 字符串（如 <code>CC(=O)Oc1ccccc1C(=O)O</code>）</li>
+                        <li>复制 SMILES 字符串（如 <code style="background: rgba(124,58,237,0.1); padding: 2px 6px; border-radius: 4px;">CC(=O)Oc1ccccc1C(=O)O</code>）</li>
                         <li>粘贴到下方的 "方式 3" 文本框中，点击 Predict</li>
                     </ol>
                     </div>
@@ -1615,10 +1466,8 @@ with st.container(border=True):
 
 # --- 方式3：SMILES 直接输入 ---
 with st.container(border=True):
-    st.markdown("""
-    <div class="card-title">✏️ 方式 3：直接输入 SMILES</div>
-    """, unsafe_allow_html=True)
-    st.caption("💡 可从下拉菜单自动填入，也可手动编辑或粘贴外部 SMILES")
+    st.markdown("""<div class="card-title">&#9997; 方式 3：直接输入 SMILES</div>""", unsafe_allow_html=True)
+    st.caption("可从下拉菜单自动填入，也可手动编辑或粘贴外部 SMILES")
 
     smiles_input = st.text_input(
         "当前 SMILES",
@@ -1635,7 +1484,7 @@ with st.container(border=True):
 st.markdown("<br>", unsafe_allow_html=True)
 btn_col1, btn_col2, btn_col3 = st.columns([1, 2, 1])
 with btn_col2:
-    predict_button = st.button("🔮 Predict Solubility", use_container_width=True)
+    predict_button = st.button("&#128302; Predict Solubility", use_container_width=True)
 st.markdown("<br>", unsafe_allow_html=True)
 
 # ========== 执行预测 ==========
@@ -1643,12 +1492,12 @@ if predict_button and model_ready:
     current = st.session_state.smiles_input_box.strip()
     
     if not current:
-        st.warning("⚠️ 请先输入或选择一个分子的 SMILES")
+        st.warning("请先输入或选择一个分子的 SMILES")
     else:
         result = compute_features(current)
         
         if result is None:
-            st.error(f"❌ Invalid SMILES: `{current}`")
+            st.error(f"Invalid SMILES: `{current}`")
             st.info("该 SMILES 无法被 RDKit 解析。可能原因：")
             st.markdown("""
             - 分子含有金属/配位键，RDKit 不支持
@@ -1662,14 +1511,11 @@ if predict_button and model_ready:
             
             st.session_state.predicted_smiles = current
             st.session_state.predicted_logS = float(prediction)
-                        # ===== pKa 预测 =====
+            
             if pka_ready:
                 pka_pred = pka_model.predict(X_input)[0]
                 st.session_state.predicted_pka = float(pka_pred)
 
-
-
-            # ===== 计算 SHAP 值 =====
             shap_values = explainer.shap_values(X_input)[0]
             desc_shap = shap_values[:8]
             fp_shap_sum = shap_values[8:].sum()
@@ -1694,16 +1540,14 @@ if st.session_state.predicted_smiles and st.session_state.predicted_logS is not 
         features, _ = result_display
         prediction = st.session_state.predicted_logS
         
-        st.markdown("""
-        <div class="card-title">📊 预测结果概览</div>
-        """, unsafe_allow_html=True)
+        st.markdown("""<div class="card-title">&#128202; 预测结果概览</div>""", unsafe_allow_html=True)
         
         try:
             mol = Chem.MolFromSmiles(st.session_state.predicted_smiles)
             img = Draw.MolToImage(mol, size=(380, 380), kekulize=True)
         except Exception as e:
             img = None
-            st.warning(f"⚠️ 结构图生成失败: {e}")
+            st.warning(f"结构图生成失败: {e}")
         
         col_left, col_right = st.columns([1, 1.2])
         
@@ -1735,39 +1579,37 @@ if st.session_state.predicted_smiles and st.session_state.predicted_logS is not 
             
             st.markdown(f"""
             <div class="{css_class}">
-                <div style="font-size: 1.1rem; font-weight: 700; color: {color};">➜ {interp}</div>
+                <div style="font-size: 1.1rem; font-weight: 700; color: {color};">-> {interp}</div>
             </div>
             """, unsafe_allow_html=True)
             
             st.markdown("""
-            <div style="background: rgba(148, 163, 184, 0.06); border-radius: 10px; padding: 1rem; font-size: 0.875rem; color: var(--ms-text-tertiary); border: 1px solid rgba(148, 163, 184, 0.08);">
-            <b style="color: var(--ms-text-secondary);">Interpretation guide:</b><br>
-            • logS > 0: Very soluble (like ethanol)<br>
-            • -2 < logS < 0: Moderately soluble<br>
-            • logS < -2: Poorly soluble (like many drug molecules)
+            <div style="background: rgba(255, 255, 255, 0.03); border-radius: 14px; padding: 1rem; font-size: 0.85rem; color: var(--ob-text-tertiary); border: 1px solid var(--ob-border); font-family: 'JetBrains Mono', monospace;">
+            <b style="color: var(--ob-text-secondary);">Interpretation guide:</b><br>
+            <span style="color: #34d399;">&#9679;</span> logS > 0: Very soluble (like ethanol)<br>
+            <span style="color: #fbbf24;">&#9679;</span> -2 < logS < 0: Moderately soluble<br>
+            <span style="color: #f87171;">&#9679;</span> logS < -2: Poorly soluble (like many drug molecules)
             </div>
             """, unsafe_allow_html=True)
-                # ========== pKa 预测结果 ==========
+        
+        # ========== pKa 预测结果 ==========
         if "predicted_pka" in st.session_state:
             st.markdown("<br>", unsafe_allow_html=True)
-            st.markdown("""
-            <div class="card-title">⚡ pKa & Ionization Profile</div>
-            """, unsafe_allow_html=True)
+            st.markdown("""<div class="card-title">&#9889; pKa & Ionization Profile</div>""", unsafe_allow_html=True)
             
             pka_val = st.session_state.predicted_pka
             
-            # 判断酸碱性倾向（简化版：pKa < 7 倾向酸性，>7 倾向碱性）
             if pka_val < 5:
                 pka_type = "acid"
                 pka_label = "酸性分子 (Acidic)"
                 pka_css = "pka-acid"
-                pka_text_color = "#f87171"
+                pka_text_color = "#a78bfa"
                 pka_desc = "pKa 较低，在酸性环境中以分子态为主，脂溶性高"
             elif pka_val > 9:
                 pka_type = "base"
                 pka_label = "碱性分子 (Basic)"
                 pka_css = "pka-base"
-                pka_text_color = "#60a5fa"
+                pka_text_color = "#22d3ee"
                 pka_desc = "pKa 较高，在碱性环境中以分子态为主"
             else:
                 pka_type = "amphoteric"
@@ -1783,18 +1625,15 @@ if st.session_state.predicted_smiles and st.session_state.predicted_logS is not 
                 st.metric("Predicted pKa", f"{pka_val:.2f}")
                 st.markdown(f"""
                 <div class="{pka_css}" style="margin-top: 0.8rem;">
-                    <div style="font-size: 1.1rem; font-weight: 700; color: {pka_text_color};">➜ {pka_label}</div>
-                    <div style="font-size: 0.85rem; color: var(--ms-text-tertiary); margin-top: 0.4rem;">{pka_desc}</div>
+                    <div style="font-size: 1.1rem; font-weight: 700; color: {pka_text_color};">-> {pka_label}</div>
+                    <div style="font-size: 0.85rem; color: var(--ob-text-tertiary); margin-top: 0.4rem;">{pka_desc}</div>
                 </div>
                 """, unsafe_allow_html=True)
             
             with col_pka2:
-                # 生理环境分布图
                 import matplotlib.pyplot as plt
                 import matplotlib.font_manager as fm
-                import glob
                 
-                # 复用字体设置（简化版，因为前面 SHAP 已经设置过，这里快速复用）
                 try:
                     for font in fm.fontManager.ttflist:
                         if font.name in ('Noto Sans CJK SC', 'Noto Sans CJK'):
@@ -1804,24 +1643,21 @@ if st.session_state.predicted_smiles and st.session_state.predicted_logS is not 
                     pass
                 plt.rcParams['axes.unicode_minus'] = False
                 
-                # 生理环境 pH 值
                 env_ph = [1.5, 4.5, 6.8, 7.4]
                 env_names = ['Stomach\n胃', 'Duodenum\n十二指肠', 'Small Intestine\n小肠', 'Blood/Brain\n血液/脑']
                 
-                # 计算分子态比例（Henderson-Hasselbalch 方程）
                 if pka_type == "acid":
                     fractions = [1 / (1 + 10**(ph - pka_val)) for ph in env_ph]
                 else:
                     fractions = [1 / (1 + 10**(pka_val - ph)) for ph in env_ph]
                 
-                # 深色主题适配
-                plt.rcParams['figure.facecolor'] = '#0f172a'
-                plt.rcParams['axes.facecolor'] = '#1e293b'
-                plt.rcParams['axes.edgecolor'] = '#334155'
-                plt.rcParams['axes.labelcolor'] = '#94a3b8'
-                plt.rcParams['xtick.color'] = '#94a3b8'
-                plt.rcParams['ytick.color'] = '#94a3b8'
-                plt.rcParams['text.color'] = '#f8fafc'
+                plt.rcParams['figure.facecolor'] = '#0a0a0f'
+                plt.rcParams['axes.facecolor'] = '#1e1e2e'
+                plt.rcParams['axes.edgecolor'] = '#2a2a3a'
+                plt.rcParams['axes.labelcolor'] = '#a0a0b0'
+                plt.rcParams['xtick.color'] = '#a0a0b0'
+                plt.rcParams['ytick.color'] = '#a0a0b0'
+                plt.rcParams['text.color'] = '#f0f0f5'
                 fig, ax = plt.subplots(figsize=(7, 3.2))
                 colors_bar = ['#f87171', '#fbbf24', '#34d399', '#60a5fa']
                 bars = ax.bar(env_names, [f*100 for f in fractions], color=colors_bar, edgecolor='white', width=0.6)
@@ -1829,7 +1665,7 @@ if st.session_state.predicted_smiles and st.session_state.predicted_logS is not 
                 for bar, frac in zip(bars, fractions):
                     height = bar.get_height()
                     ax.text(bar.get_x() + bar.get_width()/2., height + 2,
-                            f'{frac*100:.1f}%', ha='center', va='bottom', fontsize=10)
+                            f'{frac*100:.1f}%', ha='center', va='bottom', fontsize=10, fontfamily='monospace')
                 
                 ax.set_ylabel('分子态比例 (Unionized %)', fontsize=11)
                 ax.set_ylim(0, 105)
@@ -1842,9 +1678,7 @@ if st.session_state.predicted_smiles and st.session_state.predicted_logS is not 
             
             # 药理学洞察
             st.markdown("<br>", unsafe_allow_html=True)
-            st.markdown("""
-            <div class="card-title">💊 药理学分析</div>
-            """, unsafe_allow_html=True)
+            st.markdown("""<div class="card-title">&#128138; 药理学分析</div>""", unsafe_allow_html=True)
             
             with st.container(border=True):
                 if pka_type == "acid":
@@ -1860,57 +1694,52 @@ if st.session_state.predicted_smiles and st.session_state.predicted_logS is not 
                 else:
                     st.info("**两性分子**：在不同 pH 环境下电离行为复杂，吸收部位取决于具体结构。可能需要特殊制剂（如肠溶片）来优化生物利用度。")
             
-            # 溶解度 × pKa 联动分析
+            # 溶解度 x pKa 联动分析
             st.markdown("<br>", unsafe_allow_html=True)
-            st.markdown("""
-            <div class="card-title">🔗 溶解度 × pKa 联动分析</div>
-            """, unsafe_allow_html=True)
+            st.markdown("""<div class="card-title">&#128279; 溶解度 x pKa 联动分析</div>""", unsafe_allow_html=True)
             
             logS = prediction
             parts = []
             
             if logS > 0:
-                parts.append("💧 **溶解度**：易溶于水，有利于溶出。")
+                parts.append("**溶解度**：易溶于水，有利于溶出。")
             elif logS > -2:
-                parts.append("💧 **溶解度**：中等，可能需要辅料助溶。")
+                parts.append("**溶解度**：中等，可能需要辅料助溶。")
             else:
-                parts.append("💧 **溶解度**：较低，生物利用度可能受限。")
+                parts.append("**溶解度**：较低，生物利用度可能受限。")
             
             if pka_type == "acid":
                 if pka_val < 4:
-                    parts.append(f"⚡ **pKa**：弱酸性 (pKa={pka_val:.1f})，胃吸收好，**空腹服用**效果更佳。")
+                    parts.append(f"**pKa**：弱酸性 (pKa={pka_val:.1f})，胃吸收好，**空腹服用**效果更佳。")
                 else:
-                    parts.append(f"⚡ **pKa**：中等酸性 (pKa={pka_val:.1f})，全肠道吸收，对服药时间要求不高。")
+                    parts.append(f"**pKa**：中等酸性 (pKa={pka_val:.1f})，全肠道吸收，对服药时间要求不高。")
             elif pka_type == "base":
                 if pka_val > 9:
-                    parts.append(f"⚡ **pKa**：强碱性 (pKa={pka_val:.1f})，胃吸收差，**餐后服用**可减少胃刺激，主要在小肠吸收。")
+                    parts.append(f"**pKa**：强碱性 (pKa={pka_val:.1f})，胃吸收差，**餐后服用**可减少胃刺激，主要在小肠吸收。")
                 else:
-                    parts.append(f"⚡ **pKa**：弱碱性 (pKa={pka_val:.1f})，小肠吸收为主，血液中有利于排泄。")
+                    parts.append(f"**pKa**：弱碱性 (pKa={pka_val:.1f})，小肠吸收为主，血液中有利于排泄。")
             else:
-                parts.append(f"⚡ **pKa**：接近中性 (pKa={pka_val:.1f})，吸收行为较复杂。")
+                parts.append(f"**pKa**：接近中性 (pKa={pka_val:.1f})，吸收行为较复杂。")
             
-            # 综合判断
             if logS > 0 and pka_type == "acid" and pka_val < 4:
-                parts.append("✅ **综合**：高溶解度 + 胃吸收优势 = **口服生物利用度极佳**，适合做成普通片剂。")
+                parts.append("**综合**：高溶解度 + 胃吸收优势 = **口服生物利用度极佳**，适合做成普通片剂。")
             elif logS < -2 and pka_type == "base" and pka_val > 9:
-                parts.append("⚠️ **综合**：低溶解度 + 强碱性 = **口服吸收双重挑战**，可能需要肠溶片或注射剂型。")
+                parts.append("**综合**：低溶解度 + 强碱性 = **口服吸收双重挑战**，可能需要肠溶片或注射剂型。")
             elif logS > 0 and pka_type == "base" and pka_val > 9:
-                parts.append("✅ **综合**：高溶解度弥补了胃吸收劣势，进入小肠后吸收良好，总体生物利用度可接受。")
+                parts.append("**综合**：高溶解度弥补了胃吸收劣势，进入小肠后吸收良好，总体生物利用度可接受。")
             
             st.info(" | ".join(parts))
 
             # ========== 结构化学深度分析 ==========
             st.markdown("<br>", unsafe_allow_html=True)
-            st.markdown("""
-            <div class="card-title">🧬 结构化学视角：为什么是这个 pKa？</div>
-            """, unsafe_allow_html=True)
+            st.markdown("""<div class="card-title">&#129516; 结构化学视角：为什么是这个 pKa？</div>""", unsafe_allow_html=True)
 
             chem_factors = analyze_pka_chemistry(st.session_state.predicted_smiles, pka_val)
 
             col_3d, col_chem = st.columns([1, 1.2])
 
             with col_3d:
-                st.markdown("<div style='font-weight: 600; color: var(--ms-text-secondary); margin-bottom: 0.5rem;'>🎯 3D 球棍模型（可旋转缩放）</div>", unsafe_allow_html=True)
+                st.markdown("<div style='font-weight: 600; color: var(--ob-text-secondary); margin-bottom: 0.5rem; font-family: \"Space Grotesk\", sans-serif;'>&#127919; 3D 球棍模型（可旋转缩放）</div>", unsafe_allow_html=True)
                 html_3d = show_3d_molecule(st.session_state.predicted_smiles)
                 if html_3d:
                     components.html(html_3d, height=340)
@@ -1922,7 +1751,6 @@ if st.session_state.predicted_smiles and st.session_state.predicted_logS is not 
                     import matplotlib.pyplot as plt
                     import matplotlib.font_manager as fm
 
-                    # 复用中文字体设置
                     for font in fm.fontManager.ttflist:
                         if font.name in ('Noto Sans CJK SC', 'Noto Sans CJK'):
                             plt.rcParams['font.family'] = font.name
@@ -1931,16 +1759,15 @@ if st.session_state.predicted_smiles and st.session_state.predicted_logS is not 
 
                     names = list(chem_factors.keys())
                     vals = list(chem_factors.values())
-                    colors = ['#ff0051' if v > 0 else '#008bfb' for v in vals]
+                    colors = ['#a78bfa' if v > 0 else '#06b6d4' for v in vals]
 
-                    # 深色主题适配
-                    plt.rcParams['figure.facecolor'] = '#0f172a'
-                    plt.rcParams['axes.facecolor'] = '#1e293b'
-                    plt.rcParams['axes.edgecolor'] = '#334155'
-                    plt.rcParams['axes.labelcolor'] = '#94a3b8'
-                    plt.rcParams['xtick.color'] = '#94a3b8'
-                    plt.rcParams['ytick.color'] = '#94a3b8'
-                    plt.rcParams['text.color'] = '#f8fafc'
+                    plt.rcParams['figure.facecolor'] = '#0a0a0f'
+                    plt.rcParams['axes.facecolor'] = '#1e1e2e'
+                    plt.rcParams['axes.edgecolor'] = '#2a2a3a'
+                    plt.rcParams['axes.labelcolor'] = '#a0a0b0'
+                    plt.rcParams['xtick.color'] = '#a0a0b0'
+                    plt.rcParams['ytick.color'] = '#a0a0b0'
+                    plt.rcParams['text.color'] = '#f0f0f5'
                     fig, ax = plt.subplots(figsize=(6, 4))
                     bars = ax.barh(range(len(vals)), vals, color=colors, edgecolor='white', height=0.55)
                     ax.invert_yaxis()
@@ -1965,8 +1792,8 @@ if st.session_state.predicted_smiles and st.session_state.predicted_logS is not 
 
                     from matplotlib.patches import Patch
                     legend_elements = [
-                        Patch(facecolor='#ff0051', label=f'增强{"酸性" if pka_val < 7 else "碱性"}'),
-                        Patch(facecolor='#008bfb', label=f'减弱{"酸性" if pka_val < 7 else "碱性"}')
+                        Patch(facecolor='#a78bfa', label=f'增强{"酸性" if pka_val < 7 else "碱性"}'),
+                        Patch(facecolor='#06b6d4', label=f'减弱{"酸性" if pka_val < 7 else "碱性"}')
                     ]
                     ax.legend(handles=legend_elements, loc='lower right', fontsize=9)
 
@@ -1975,20 +1802,17 @@ if st.session_state.predicted_smiles and st.session_state.predicted_logS is not 
                     plt.close(fig)
 
                     st.caption("""
-                    💡 **如何读懂这张图**：  
-                    红色条越长 = 该因素越推动分子**释放/结合质子**；  
-                    蓝色条越长 = 该因素越**抵抗**质子转移。  
+                    **如何读懂这张图**：  
+                    紫色条越长 = 该因素越推动分子**释放/结合质子**；  
+                    青色条越长 = 该因素越**抵抗**质子转移。  
                     和 SHAP 不同，这些不是机器学习权重，而是**真实的结构化学效应**。
                     """)
                 else:
                     st.info("化学因素分析暂不可用")
 
-
         # ========== 分子描述符 ==========
         st.markdown("<br>", unsafe_allow_html=True)
-        st.markdown("""
-        <div class="card-title">📊 Molecular Descriptors</div>
-        """, unsafe_allow_html=True)
+        st.markdown("""<div class="card-title">&#128202; Molecular Descriptors</div>""", unsafe_allow_html=True)
         
         with st.container(border=True):
             desc_col1, desc_col2, desc_col3, desc_col4 = st.columns(4)
@@ -2000,14 +1824,14 @@ if st.session_state.predicted_smiles and st.session_state.predicted_logS is not 
                 st.metric("H-Bond Donors", f"{features['NumHDonors']}")
                 st.metric("H-Bond Acceptors", f"{features['NumHAcceptors']}")
             with desc_col3:
-                st.metric("TPSA (Å²)", f"{features['TPSA']:.1f}")
+                st.metric("TPSA (A2)", f"{features['TPSA']:.1f}")
                 st.metric("Rotatable Bonds", f"{features['NumRotatableBonds']}")
             with desc_col4:
                 st.metric("Aromatic Rings", f"{features['NumAromaticRings']}")
                 st.metric("Aliphatic Rings", f"{features['NumAliphaticRings']}")
         
         st.info("""
-        💡 **Chemistry Insight:** 
+        **Chemistry Insight:** 
         - **TPSA** (Topological Polar Surface Area) measures how much of the molecule is polar. 
            Higher TPSA usually means better water solubility.
         - **H-Bond Donors/Acceptors** tell us how well the molecule can form hydrogen bonds with water.
@@ -2016,9 +1840,7 @@ if st.session_state.predicted_smiles and st.session_state.predicted_logS is not 
 
         # ========== SHAP 可解释性分析 ==========
         st.markdown("<br>", unsafe_allow_html=True)
-        st.markdown("""
-        <div class="card-title">🔍 为什么是这个预测结果？</div>
-        """, unsafe_allow_html=True)
+        st.markdown("""<div class="card-title">&#128269; 为什么是这个预测结果？</div>""", unsafe_allow_html=True)
         st.caption("基于 SHAP (SHapley Additive exPlanations) 分析每个特征对预测的贡献")
 
         if "shap_values" in st.session_state:
@@ -2027,10 +1849,7 @@ if st.session_state.predicted_smiles and st.session_state.predicted_logS is not 
             import numpy as np
             import glob
 
-            # 强制重新扫描系统字体
             fm.fontManager = fm.FontManager()
-
-            # 显式添加 packages.txt 安装的 Noto / 文泉驿字体（.ttc 集合文件）
             font_paths = (
                 glob.glob('/usr/share/fonts/opentype/noto/*.ttc') +
                 glob.glob('/usr/share/fonts/truetype/noto/*.ttc') +
@@ -2044,7 +1863,6 @@ if st.session_state.predicted_smiles and st.session_state.predicted_logS is not 
                 except Exception:
                     pass
 
-            # 查找中文字体（按优先级）
             chinese_font = None
             for font in fm.fontManager.ttflist:
                 if font.name in ('Noto Sans CJK SC', 'Noto Sans CJK'):
@@ -2056,48 +1874,37 @@ if st.session_state.predicted_smiles and st.session_state.predicted_logS is not 
 
             if chinese_font:
                 plt.rcParams['font.family'] = chinese_font
-            else:
-                print("Chinese font not found. Available fonts:",
-                      [f.name for f in fm.fontManager.ttflist[:30]])
-
             plt.rcParams['axes.unicode_minus'] = False
-
-
 
             shap_vals = np.array(st.session_state.shap_values)
             names = st.session_state.shap_names
 
-            # 按绝对值排序取 Top 8
             abs_vals = np.abs(shap_vals)
             sorted_idx = np.argsort(abs_vals)[::-1][:8]
             top_shap = shap_vals[sorted_idx]
             top_names = [names[i] for i in sorted_idx]
 
-            # 颜色
-            colors = ['#ff0051' if v > 0 else '#008bfb' for v in top_shap]
+            colors = ['#a78bfa' if v > 0 else '#06b6d4' for v in top_shap]
 
-            # 画图
-            # 深色主题适配
-            plt.rcParams['figure.facecolor'] = '#0f172a'
-            plt.rcParams['axes.facecolor'] = '#1e293b'
-            plt.rcParams['axes.edgecolor'] = '#334155'
-            plt.rcParams['axes.labelcolor'] = '#94a3b8'
-            plt.rcParams['xtick.color'] = '#94a3b8'
-            plt.rcParams['ytick.color'] = '#94a3b8'
-            plt.rcParams['text.color'] = '#f8fafc'
+            plt.rcParams['figure.facecolor'] = '#0a0a0f'
+            plt.rcParams['axes.facecolor'] = '#1e1e2e'
+            plt.rcParams['axes.edgecolor'] = '#2a2a3a'
+            plt.rcParams['axes.labelcolor'] = '#a0a0b0'
+            plt.rcParams['xtick.color'] = '#a0a0b0'
+            plt.rcParams['ytick.color'] = '#a0a0b0'
+            plt.rcParams['text.color'] = '#f0f0f5'
             fig, ax = plt.subplots(figsize=(8, 4.5))
             bars = ax.barh(range(len(top_shap)), top_shap, color=colors, edgecolor="white", height=0.6)
             ax.invert_yaxis()
 
             for i, (bar, val) in enumerate(zip(bars, top_shap)):
                 width = bar.get_width()
-                # 正值标签放右侧外部；负值标签放条形内部，避免与Y轴文字重叠
                 if width >= 0:
                     label_x = width + 0.05
                     align = "left"
                     text_color = "black"
                 else:
-                    label_x = width + 0.12  # 放在条形内部，从左侧向右偏移
+                    label_x = width + 0.12
                     align = "left"
                     text_color = "white"
                 ax.text(label_x, i, f"{val:+.3f}", va="center", ha=align, fontsize=10, fontweight="bold", color=text_color)
@@ -2107,7 +1914,6 @@ if st.session_state.predicted_smiles and st.session_state.predicted_logS is not 
             ax.axvline(x=0, color="black", linewidth=0.8)
             ax.set_xlabel("对溶解度的贡献值 (logS)", fontsize=11)
 
-            # 兼容 expected_value 各种结构
             ev = explainer.expected_value
             if isinstance(ev, (list, tuple, np.ndarray)):
                 base_value = float(np.array(ev).flatten()[0])
@@ -2121,8 +1927,8 @@ if st.session_state.predicted_smiles and st.session_state.predicted_logS is not 
 
             from matplotlib.patches import Patch
             legend_elements = [
-                Patch(facecolor="#ff0051", label="推动易溶 (正贡献)"),
-                Patch(facecolor="#008bfb", label="推动难溶 (负贡献)")
+                Patch(facecolor="#a78bfa", label="推动易溶 (正贡献)"),
+                Patch(facecolor="#06b6d4", label="推动难溶 (负贡献)")
             ]
             ax.legend(handles=legend_elements, loc="lower right", fontsize=9)
 
@@ -2130,7 +1936,6 @@ if st.session_state.predicted_smiles and st.session_state.predicted_logS is not 
             st.pyplot(fig, width="stretch")
             plt.close(fig)
 
-            # 文字解读（与预测值一致）
             if prediction > 0:
                 solubility_level = "易溶于水"
             elif prediction > -2:
@@ -2157,7 +1962,7 @@ if st.session_state.predicted_smiles and st.session_state.predicted_logS is not 
                     direction = "推动易溶" if val > 0 else "推动难溶"
                     supporting.append("**" + name + "**（" + f"{val:+.3f}" + "，" + direction + "）")
 
-            parts = ["💡 **关键分析**：模型预测该分子 **" + solubility_level + "**（logS = " + f"{prediction:.3f}" + "）。"]
+            parts = ["**关键分析**：模型预测该分子 **" + solubility_level + "**（logS = " + f"{prediction:.3f}" + "）。"]
             if supporting:
                 parts.append("推动这一结果的主要因素：" + ", ".join(supporting) + "。")
             if resisting:
@@ -2169,23 +1974,20 @@ if st.session_state.predicted_smiles and st.session_state.predicted_logS is not 
             insight_text = " ".join(parts)
             st.info(insight_text)
 
-        # ========== Kimi AI 解释（手动触发）==========
+        # ========== Kimi AI 解释 ==========
         st.markdown("<br>", unsafe_allow_html=True)
-        st.markdown("""
-        <div class="card-title">🧠 AI Chemistry Explanation</div>
-        """, unsafe_allow_html=True)
+        st.markdown("""<div class="card-title">&#129504; AI Chemistry Explanation</div>""", unsafe_allow_html=True)
         
         with st.container(border=True):
             if st.session_state.ai_explanation:
                 st.markdown(st.session_state.ai_explanation)
-                if st.button("🗑️ 清除解释", key="clear_ai"):
+                if st.button("清除解释", key="clear_ai"):
                     st.session_state.ai_explanation = None
                     st.rerun()
             else:
                 st.caption("AI 解释需要手动调用（消耗 API 额度）")
-                if st.button("🤖 生成 AI 解释", key="gen_ai", use_container_width=True):
+                if st.button("生成 AI 解释", key="gen_ai", use_container_width=True):
                     with st.spinner("正在分析分子结构..."):
-                        # 判断 pKa 类型
                         pka_val = st.session_state.get("predicted_pka")
                         if pka_val is not None:
                             if pka_val < 5:
@@ -2213,8 +2015,8 @@ if st.session_state.predicted_smiles and st.session_state.predicted_logS is not 
 # ========== 页脚 ==========
 st.markdown("""
 <div class="footer">
-    <div style="font-weight: 600; color: var(--ms-text-secondary); margin-bottom: 0.3rem;">Molecular Solubility Predictor</div>
-    <div>Built by Leonlee | ML: Random Forest + RDKit (V2: 11,000+ molecules) | AI: Kimi (Moonshot AI) | DB: 100+ local + PubChem API</div>
-    <div style="margin-top: 0.5rem; font-size: 0.75rem; color: #b0bec5;">🧪 科学计算 · 🤖 人工智能 · 🎯 药物化学</div>
+    <div style="font-weight: 600; color: var(--ob-text-secondary); margin-bottom: 0.3rem; font-family: 'Space Grotesk', sans-serif; font-size: 1rem;">SoluVis</div>
+    <div>Built with Streamlit | ML: Random Forest + RDKit (V2: 11,000+ molecules) | AI: Kimi (Moonshot AI) | DB: 100+ local + PubChem API</div>
+    <div style="margin-top: 0.5rem; font-size: 0.75rem; color: #6b6b7b;">科学计算 - 人工智能 - 药物化学 | Orbita Deep Space Theme</div>
 </div>
 """, unsafe_allow_html=True)
