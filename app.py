@@ -381,14 +381,23 @@ html, body, [class*="css"] {
 }
 
 /* 页面根背景 - 深蓝暗色 + 科学网格 */
-.stApp {
+html, body {
+    background: #0f172a !important;
+}
+
+.stApp,
+[data-testid="stAppViewContainer"],
+[data-testid="stAppViewContainer"] > .stApp {
     background: 
         radial-gradient(ellipse 80% 60% at 50% -10%, rgba(14, 165, 233, 0.06) 0%, transparent 60%),
         radial-gradient(ellipse 60% 50% at 80% 100%, rgba(139, 92, 246, 0.04) 0%, transparent 50%),
         linear-gradient(135deg, #0a0f1d 0%, #0f172a 40%, #111827 100%) !important;
+    background-color: #0f172a !important;
     position: relative;
 }
-.stApp::before {
+
+.stApp::before,
+[data-testid="stAppViewContainer"]::before {
     content: '';
     position: fixed;
     top: 0; left: 0; right: 0; bottom: 0;
@@ -400,6 +409,17 @@ html, body, [class*="css"] {
     z-index: 0;
     mask-image: radial-gradient(ellipse 70% 60% at 50% 40%, black 0%, transparent 100%);
     -webkit-mask-image: radial-gradient(ellipse 70% 60% at 50% 40%, black 0%, transparent 100%);
+}
+
+/* Streamlit 1.57+ 强制覆盖 */
+.reportview-container,
+.main .block-container,
+section[data-testid="stSidebar"],
+.css-1y4p8pa,
+.css-12oz5g7,
+.css-18e3th9 {
+    background: transparent !important;
+    background-color: transparent !important;
 }
 
 .main .block-container {
