@@ -1297,8 +1297,12 @@ components.html("""
     });
     
     var mouseStarX = W / 2, mouseStarY = H / 2;
+    var mouseTrail = [];
+    var maxTrail = 20;
     document.addEventListener('mousemove', function(e) {
         mouseStarX = e.clientX; mouseStarY = e.clientY;
+        mouseTrail.push({x: e.clientX, y: e.clientY, age: 0});
+        if (mouseTrail.length > maxTrail) mouseTrail.shift();
     }, { passive: true });
     
     var frame = 0;
@@ -1333,65 +1337,99 @@ components.html("""
 
         frame++;
         
-        // 绘制连线（仅亮星层，距离近时）
+        // 鼠标附近星星连线网络（所有层）
         for (var i = 0; i < stars.length; i++) {
-            if (stars[i].layer !== 0) continue;
+            var dmx = stars[i].x - mouseStarX, dmy = stars[i].y - mouseStarY;
+            var dMouse = Math.sqrt(dmx*dmx + dmy*dmy);
+            if (dMouse > 280) continue;
             for (var j = i + 1; j < stars.length; j++) {
-                if (stars[j].layer !== 0) continue;
-                var dx = stars[i].x - stars[j].x;
-                var dy = stars[i].y - stars[j].y;
-                var dist = Math.sqrt(dx * dx + dy * dy);
-                if (dist < 120) {
+                var dx = stars[i].x - stars[j].x, dy = stars[i].y - stars[j].y;
+                var dist = Math.sqrt(dx*dx + dy*dy);
+                if (dist < 180) {
+                    var lineAlpha = 0.12 * (1 - dist/180) * (1 - dMouse/280);
                     ctx.beginPath();
                     ctx.moveTo(stars[i].x, stars[i].y);
                     ctx.lineTo(stars[j].x, stars[j].y);
-                    ctx.strokeStyle = 'rgba(167,139,250,' + (0.06 * (1 - dist / 120)) + ')';
-                    ctx.lineWidth = 0.5;
+                    ctx.strokeStyle = 'rgba(167,139,250,' + lineAlpha + ')';
+                    ctx.lineWidth = 0.8;
                     ctx.stroke();
                 }
             }
         }
-        
+
         // 绘制粒子
         for (var i = 0; i < stars.length; i++) {
             var s = stars[i];
-            // 位置微动
             s.x += s.vx;
             s.y += s.vy;
-            // 鼠标轻微排斥
-            var mdx = s.x - mouseStarX, mdy = s.y - mouseStarY;
-            var mDist = Math.sqrt(mdx * mdx + mdy * mdy);
-            if (mDist < 150 && mDist > 0) {
-                var repel = (150 - mDist) / 150 * 0.15;
-                s.x += (mdx / mDist) * repel;
-                s.y += (mdy / mDist) * repel;
+
+            // 鼠标吸引效果（星座聚集）
+            var mdx = mouseStarX - s.x, mdy = mouseStarY - s.y;
+            var mDist = Math.sqrt(mdx*mdx + mdy*mdy);
+            if (mDist < 250 && mDist > 5) {
+                var attract = (250 - mDist) / 250 * 0.35 * (1 - s.layer * 0.3);
+                s.x += (mdx / mDist) * attract;
+                s.y += (mdy / mDist) * attract;
             }
+
             // 边界环绕
-            if (s.x < -10) s.x = W + 10; if (s.x > W + 10) s.x = -10;
-            if (s.y < -10) s.y = H + 10; if (s.y > H + 10) s.y = -10;
-            
+            if (s.x < -20) s.x = W + 20; if (s.x > W + 20) s.x = -20;
+            if (s.y < -20) s.y = H + 20; if (s.y > H + 20) s.y = -20;
+
             // 闪烁
             var twinkle = Math.sin(frame * s.twinkleSpeed + s.twinklePhase);
-            var curAlpha = s.alpha * (0.6 + 0.4 * twinkle);
-            s.r = s.baseR * (0.85 + 0.15 * twinkle);
-            
-            // 发光效果（仅大星）
-            if (s.layer === 0) {
-                var glow = ctx.createRadialGradient(s.x, s.y, 0, s.x, s.y, s.r * 4);
-                glow.addColorStop(0, s.color + (curAlpha * 0.5) + ')');
-                glow.addColorStop(1, s.color + '0)');
-                ctx.beginPath();
-                ctx.arc(s.x, s.y, s.r * 4, 0, Math.PI * 2);
-                ctx.fillStyle = glow;
-                ctx.fill();
+            var curAlpha = s.alpha * (0.5 + 0.5 * twinkle);
+            s.r = s.baseR * (0.8 + 0.2 * twinkle);
+
+            // 鼠标附近增亮
+            if (mDist < 200) {
+                curAlpha = Math.min(1, curAlpha + (200 - mDist)/200 * 0.4);
+                s.r *= 1 + (200 - mDist)/200 * 0.5;
             }
-            
+
+            // 发光效果
+            var glowR = s.r * (s.layer === 0 ? 8 : 5);
+            var glow = ctx.createRadialGradient(s.x, s.y, 0, s.x, s.y, glowR);
+            glow.addColorStop(0, s.color + (curAlpha * 0.5) + ')');
+            glow.addColorStop(1, s.color + '0)');
+            ctx.beginPath();
+            ctx.arc(s.x, s.y, glowR, 0, Math.PI*2);
+            ctx.fillStyle = glow;
+            ctx.fill();
+
             // 核心星点
             ctx.beginPath();
-            ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+            ctx.arc(s.x, s.y, s.r, 0, Math.PI*2);
             ctx.fillStyle = s.color + curAlpha + ')';
             ctx.fill();
         }
+
+        // 鼠标轨迹光带
+        for (var t = 0; t < mouseTrail.length; t++) {
+            var pt = mouseTrail[t];
+            pt.age++;
+            var life = 1 - pt.age / 40;
+            if (life <= 0) continue;
+            var tr = 2 + life * 4;
+            var tg = ctx.createRadialGradient(pt.x, pt.y, 0, pt.x, pt.y, tr);
+            tg.addColorStop(0, 'rgba(196,181,253,' + (life * 0.35) + ')');
+            tg.addColorStop(1, 'rgba(124,58,237,0)');
+            ctx.beginPath();
+            ctx.arc(pt.x, pt.y, tr, 0, Math.PI*2);
+            ctx.fillStyle = tg;
+            ctx.fill();
+        }
+        while (mouseTrail.length > 0 && mouseTrail[0].age > 40) mouseTrail.shift();
+
+        // 鼠标核心光晕
+        var mGlow = ctx.createRadialGradient(mouseStarX, mouseStarY, 0, mouseStarX, mouseStarY, 60);
+        mGlow.addColorStop(0, 'rgba(196,181,253,0.15)');
+        mGlow.addColorStop(0.4, 'rgba(124,58,237,0.06)');
+        mGlow.addColorStop(1, 'rgba(124,58,237,0)');
+        ctx.beginPath();
+        ctx.arc(mouseStarX, mouseStarY, 60, 0, Math.PI*2);
+        ctx.fillStyle = mGlow;
+        ctx.fill();
         
         requestAnimationFrame(animate);
     }
