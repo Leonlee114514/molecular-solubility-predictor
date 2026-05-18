@@ -1286,6 +1286,51 @@ def show_3d_molecule(smiles):
     except Exception:
         return None
 
+
+def mol_to_dark_image(mol, size=(400, 400)):
+    """生成适配深色主题的2D分子结构图（PIL后处理）"""
+    from PIL import Image
+
+    # 先生成RDKit标准白底图像
+    img = Draw.MolToImage(mol, size=size, kekulize=True)
+    img = img.convert("RGBA")
+
+    # 创建深色背景画布
+    bg_color = (26, 26, 46, 255)  # #1a1a2e
+    new_img = Image.new("RGBA", img.size, bg_color)
+
+    pixels = img.load()
+    new_pixels = new_img.load()
+
+    for i in range(img.width):
+        for j in range(img.height):
+            r, g, b, a = pixels[i, j]
+
+            # 完全透明跳过
+            if a == 0:
+                continue
+
+            brightness = (r + g + b) / 3
+
+            # 白色/近白色背景 → 透明（透出深色背景）
+            if brightness > 242:
+                continue
+
+            # 近黑色（碳骨架C、H默认色）→ 亮银灰
+            if brightness < 55:
+                new_pixels[i, j] = (195, 195, 215, a)
+            # 深灰（键线、阴影）→ 中亮灰
+            elif brightness < 130 and max(r, g, b) - min(r, g, b) < 50:
+                new_pixels[i, j] = (165, 165, 185, a)
+            else:
+                # 彩色原子（O红、N蓝、S黄、Cl绿等）保持原色并轻微提亮
+                new_r = min(255, int(r * 1.08 + 10))
+                new_g = min(255, int(g * 1.08 + 10))
+                new_b = min(255, int(b * 1.08 + 10))
+                new_pixels[i, j] = (new_r, new_g, new_b, a)
+
+    return new_img
+
 # ========== pKa 化学因素分析 ==========
 def analyze_pka_chemistry(smiles, pka_val):
     mol = Chem.MolFromSmiles(smiles)
@@ -1655,7 +1700,7 @@ if st.session_state.predicted_smiles and st.session_state.predicted_logS is not 
         
         try:
             mol = Chem.MolFromSmiles(st.session_state.predicted_smiles)
-            img = Draw.MolToImage(mol, size=(380, 380), kekulize=True)
+            img = mol_to_dark_image(mol, size=(400, 400))
         except Exception as e:
             img = None
             st.warning(f"结构图生成失败: {e}")
