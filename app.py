@@ -322,8 +322,8 @@ st.markdown("""
 
 /* ─── 1. 核心变量 ─── */
 :root {
-    --ob-bg-primary: #0a0a0f;
-    --ob-bg-surface: #1e1e2e;
+    --ob-bg-primary: #0d0d14;
+    --ob-bg-surface: #1a1a2e;
     --ob-bg-elevated: rgba(30, 30, 46, 0.6);
     --ob-nebula: #7c3aed;
     --ob-nebula-light: #a78bfa;
@@ -333,15 +333,18 @@ st.markdown("""
     --ob-text-primary: #f0f0f5;
     --ob-text-secondary: #a0a0b0;
     --ob-text-tertiary: #6b6b7b;
-    --ob-border: rgba(255, 255, 255, 0.06);
+    --ob-border: rgba(255, 255, 255, 0.08);
     --ob-border-hover: rgba(124, 58, 237, 0.3);
     --ob-radius: 16px;
     --ob-radius-sm: 12px;
 }
 
 /* ─── 2. 全局基础 ─── */
-html, body {
+html, body,
+[data-testid="stAppViewContainer"],
+[data-testid="stAppViewContainer"] > .stApp {
     background: var(--ob-bg-primary) !important;
+    background-color: var(--ob-bg-primary) !important;
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
     -webkit-font-smoothing: antialiased;
     color: var(--ob-text-primary);
@@ -349,61 +352,62 @@ html, body {
 
 .stApp {
     background:
-        radial-gradient(ellipse 80% 50% at 20% 40%, rgba(124, 58, 237, 0.08) 0%, transparent 70%),
-        radial-gradient(ellipse 60% 40% at 80% 20%, rgba(6, 182, 212, 0.06) 0%, transparent 60%),
-        radial-gradient(ellipse 50% 50% at 50% 80%, rgba(251, 191, 36, 0.03) 0%, transparent 50%),
-        linear-gradient(180deg, #0a0a0f 0%, #0c0c14 50%, #0a0a0f 100%) !important;
+        radial-gradient(ellipse 80% 50% at 20% 40%, rgba(124, 58, 237, 0.10) 0%, transparent 70%),
+        radial-gradient(ellipse 60% 40% at 80% 20%, rgba(6, 182, 212, 0.08) 0%, transparent 60%),
+        radial-gradient(ellipse 50% 50% at 50% 80%, rgba(251, 191, 36, 0.04) 0%, transparent 50%),
+        linear-gradient(180deg, #0d0d14 0%, #12121c 50%, #0d0d14 100%) !important;
     background-color: var(--ob-bg-primary) !important;
     position: relative;
+    min-height: 100vh;
 }
 
-/* 粒子层叠加 */
+/* 粒子星空层 */
 .stApp::before {
     content: '';
     position: fixed;
     top: 0; left: 0; right: 0; bottom: 0;
     background-image:
-        radial-gradient(2px 2px at 20px 30px, rgba(124, 58, 237, 0.4), transparent),
-        radial-gradient(1.5px 1.5px at 40px 70px, rgba(6, 182, 212, 0.4), transparent),
-        radial-gradient(2px 2px at 50px 160px, rgba(124, 58, 237, 0.3), transparent),
-        radial-gradient(1px 1px at 90px 40px, rgba(251, 191, 36, 0.3), transparent),
-        radial-gradient(2px 2px at 130px 80px, rgba(6, 182, 212, 0.4), transparent),
-        radial-gradient(1.5px 1.5px at 160px 120px, rgba(124, 58, 237, 0.3), transparent),
-        radial-gradient(1px 1px at 200px 50px, rgba(255, 255, 255, 0.2), transparent),
-        radial-gradient(2px 2px at 230px 180px, rgba(6, 182, 212, 0.3), transparent),
-        radial-gradient(1.5px 1.5px at 280px 90px, rgba(124, 58, 237, 0.4), transparent),
-        radial-gradient(1px 1px at 320px 140px, rgba(251, 191, 36, 0.3), transparent),
-        radial-gradient(2px 2px at 360px 30px, rgba(6, 182, 212, 0.3), transparent),
-        radial-gradient(1.5px 1.5px at 400px 100px, rgba(124, 58, 237, 0.3), transparent),
-        radial-gradient(1px 1px at 440px 170px, rgba(255, 255, 255, 0.2), transparent),
-        radial-gradient(2px 2px at 480px 60px, rgba(6, 182, 212, 0.4), transparent),
-        radial-gradient(1.5px 1.5px at 520px 130px, rgba(124, 58, 237, 0.3), transparent),
-        radial-gradient(1px 1px at 560px 40px, rgba(251, 191, 36, 0.3), transparent),
-        radial-gradient(2px 2px at 600px 150px, rgba(6, 182, 212, 0.3), transparent),
-        radial-gradient(1.5px 1.5px at 640px 80px, rgba(124, 58, 237, 0.4), transparent),
-        radial-gradient(1px 1px at 680px 190px, rgba(255, 255, 255, 0.2), transparent),
-        radial-gradient(2px 2px at 720px 50px, rgba(6, 182, 212, 0.4), transparent),
-        radial-gradient(1.5px 1.5px at 760px 110px, rgba(124, 58, 237, 0.3), transparent),
-        radial-gradient(1px 1px at 800px 160px, rgba(251, 191, 36, 0.3), transparent);
-    background-size: 800px 200px;
-    animation: particleFloat 20s linear infinite;
+        radial-gradient(2px 2px at 40px 60px, rgba(124, 58, 237, 0.5), transparent),
+        radial-gradient(1.5px 1.5px at 80px 140px, rgba(6, 182, 212, 0.5), transparent),
+        radial-gradient(2px 2px at 100px 320px, rgba(124, 58, 237, 0.4), transparent),
+        radial-gradient(1px 1px at 180px 80px, rgba(251, 191, 36, 0.4), transparent),
+        radial-gradient(2px 2px at 260px 160px, rgba(6, 182, 212, 0.5), transparent),
+        radial-gradient(1.5px 1.5px at 320px 240px, rgba(124, 58, 237, 0.4), transparent),
+        radial-gradient(1px 1px at 400px 100px, rgba(255, 255, 255, 0.3), transparent),
+        radial-gradient(2px 2px at 460px 360px, rgba(6, 182, 212, 0.4), transparent),
+        radial-gradient(1.5px 1.5px at 560px 180px, rgba(124, 58, 237, 0.5), transparent),
+        radial-gradient(1px 1px at 640px 280px, rgba(251, 191, 36, 0.4), transparent),
+        radial-gradient(2px 2px at 720px 60px, rgba(6, 182, 212, 0.4), transparent),
+        radial-gradient(1.5px 1.5px at 800px 200px, rgba(124, 58, 237, 0.4), transparent),
+        radial-gradient(1px 1px at 880px 340px, rgba(255, 255, 255, 0.3), transparent),
+        radial-gradient(2px 2px at 960px 120px, rgba(6, 182, 212, 0.5), transparent),
+        radial-gradient(1.5px 1.5px at 1040px 260px, rgba(124, 58, 237, 0.4), transparent),
+        radial-gradient(1px 1px at 1120px 80px, rgba(251, 191, 36, 0.4), transparent),
+        radial-gradient(2px 2px at 1200px 300px, rgba(6, 182, 212, 0.4), transparent),
+        radial-gradient(1.5px 1.5px at 1280px 160px, rgba(124, 58, 237, 0.5), transparent),
+        radial-gradient(1px 1px at 1360px 380px, rgba(255, 255, 255, 0.3), transparent),
+        radial-gradient(2px 2px at 1440px 100px, rgba(6, 182, 212, 0.5), transparent),
+        radial-gradient(1.5px 1.5px at 1520px 220px, rgba(124, 58, 237, 0.4), transparent),
+        radial-gradient(1px 1px at 1600px 320px, rgba(251, 191, 36, 0.4), transparent);
+    background-size: 800px 400px;
+    animation: particleFloat 25s linear infinite;
     pointer-events: none;
     z-index: 0;
-    opacity: 0.5;
+    opacity: 0.6;
 }
 
 /* 星云光晕叠加 */
 .stApp::after {
     content: '';
     position: fixed;
-    top: 10%; left: 50%;
+    top: 5%; left: 50%;
     transform: translateX(-50%);
-    width: 600px; height: 600px;
-    background: radial-gradient(circle, rgba(124, 58, 237, 0.08) 0%, rgba(6, 182, 212, 0.04) 40%, transparent 70%);
+    width: 800px; height: 500px;
+    background: radial-gradient(ellipse at center, rgba(124, 58, 237, 0.10) 0%, rgba(6, 182, 212, 0.05) 40%, transparent 70%);
     border-radius: 50%;
     pointer-events: none;
     z-index: 0;
-    animation: nebulaPulse 8s ease-in-out infinite;
+    animation: nebulaPulse 10s ease-in-out infinite;
 }
 
 .main .block-container {
@@ -483,7 +487,7 @@ code, pre, .mono {
 
 /* ─── 4. 卡片容器 ─── */
 .card-container {
-    background: linear-gradient(155deg, rgba(30, 30, 46, 0.75) 0%, rgba(15, 15, 25, 0.55) 50%, rgba(30, 30, 46, 0.45) 100%);
+    background: linear-gradient(155deg, rgba(35, 35, 55, 0.85) 0%, rgba(20, 20, 35, 0.70) 50%, rgba(30, 30, 50, 0.60) 100%);
     border: 1px solid var(--ob-border);
     border-radius: var(--ob-radius);
     padding: 1.5rem;
@@ -1100,8 +1104,114 @@ footer {visibility: hidden;}
     .gradient-title { font-size: 2rem; }
     .card-container { padding: 1.25rem; }
 }
+
+/* ─── 交互增强：鼠标悬停光效 ─── */
+.cursor-glow {
+    position: fixed;
+    width: 300px;
+    height: 300px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(124, 58, 237, 0.08) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 9999;
+    transform: translate(-50%, -50%);
+    transition: opacity 0.3s ease;
+    mix-blend-mode: screen;
+}
 </style>
 """, unsafe_allow_html=True)
+
+# ========== 交互增强：鼠标跟随光晕 + 卡片 tilt 效果 ==========
+components.html("""
+<script>
+(function() {
+    // 鼠标跟随光晕
+    const glow = document.createElement('div');
+    glow.className = 'cursor-glow';
+    document.body.appendChild(glow);
+    
+    let mouseX = window.innerWidth / 2;
+    let mouseY = window.innerHeight / 2;
+    let currentX = mouseX;
+    let currentY = mouseY;
+    let isMoving = false;
+    let moveTimeout;
+    
+    document.addEventListener('mousemove', function(e) {
+        mouseX = e.clientX;
+        mouseY = e.clientY;
+        isMoving = true;
+        glow.style.opacity = '1';
+        clearTimeout(moveTimeout);
+        moveTimeout = setTimeout(() => { isMoving = false; }, 100);
+    });
+    
+    document.addEventListener('mouseleave', function() {
+        glow.style.opacity = '0';
+    });
+    
+    function animate() {
+        currentX += (mouseX - currentX) * 0.08;
+        currentY += (mouseY - currentY) * 0.08;
+        glow.style.left = currentX + 'px';
+        glow.style.top = currentY + 'px';
+        requestAnimationFrame(animate);
+    }
+    animate();
+    
+    // 卡片 3D tilt 效果
+    const cards = document.querySelectorAll('.card-container, [data-testid="stVerticalBlockBorderWrapper"]');
+    cards.forEach(card => {
+        card.addEventListener('mousemove', function(e) {
+            const rect = card.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            const centerX = rect.width / 2;
+            const centerY = rect.height / 2;
+            const rotateX = (y - centerY) / centerY * -2;
+            const rotateY = (x - centerX) / centerX * 2;
+            card.style.transform = 'perspective(1000px) rotateX(' + rotateX + 'deg) rotateY(' + rotateY + 'deg) translateY(-4px)';
+        });
+        
+        card.addEventListener('mouseleave', function() {
+            card.style.transform = '';
+        });
+    });
+    
+    // 按钮点击涟漪效果
+    const buttons = document.querySelectorAll('.stButton > button');
+    buttons.forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            const ripple = document.createElement('span');
+            ripple.style.cssText = `
+                position: absolute;
+                border-radius: 50%;
+                background: rgba(255,255,255,0.3);
+                transform: scale(0);
+                animation: rippleAnim 0.6s ease-out;
+                pointer-events: none;
+            `;
+            const rect = btn.getBoundingClientRect();
+            const size = Math.max(rect.width, rect.height);
+            ripple.style.width = ripple.style.height = size + 'px';
+            ripple.style.left = (e.clientX - rect.left - size/2) + 'px';
+            ripple.style.top = (e.clientY - rect.top - size/2) + 'px';
+            btn.appendChild(ripple);
+            setTimeout(() => ripple.remove(), 600);
+        });
+    });
+    
+    // 动态添加涟漪动画
+    const style = document.createElement('style');
+    style.textContent = `
+        @keyframes rippleAnim {
+            to { transform: scale(4); opacity: 0; }
+        }
+    `;
+    document.head.appendChild(style);
+})();
+</script>
+""", height=0)
 
 # ========== 加载 V2 模型 ==========
 @st.cache_resource
