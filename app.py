@@ -592,66 +592,82 @@ code, pre, .mono {
 
 /* ─── 6. 输入框 ─── */
 .stTextInput > div > div > input,
-.stTextInput > div > div > textarea {
+.stTextInput > div > div > textarea,
+.stTextInput [data-baseweb="input"] > div,
+.stTextInput [data-baseweb="input"] input {
     border-radius: var(--ob-radius-sm) !important;
-    border: 1.5px solid rgba(255, 255, 255, 0.08) !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
     padding: 0.625rem 1rem !important;
     font-size: 0.9375rem !important;
-    background: var(--ob-bg-surface) !important;
+    background: linear-gradient(135deg, rgba(30, 30, 46, 0.9) 0%, rgba(15, 15, 25, 0.7) 100%) !important;
     color: var(--ob-text-primary) !important;
     box-shadow: inset 0 1px 3px rgba(0,0,0,0.2) !important;
     transition: border-color 0.15s ease, box-shadow 0.15s ease !important;
     font-family: 'JetBrains Mono', monospace !important;
 }
 
-.stTextInput > div > div > input::placeholder {
+.stTextInput > div > div > input::placeholder,
+.stTextInput [data-baseweb="input"] input::placeholder {
     color: var(--ob-text-tertiary) !important;
 }
 
-.stTextInput > div > div > input:focus {
+.stTextInput > div > div > input:focus,
+.stTextInput [data-baseweb="input"] > div:focus-within {
     border-color: var(--ob-nebula) !important;
     box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.15), inset 0 1px 3px rgba(0,0,0,0.2) !important;
     outline: none !important;
 }
 
 /* ─── Selectbox ─── */
-.stSelectbox > div > div > div {
+.stSelectbox [data-baseweb="select"] > div,
+.stSelectbox [data-baseweb="select"] > div > div,
+.stSelectbox [data-baseweb="select"] input {
     border-radius: var(--ob-radius-sm) !important;
-    border: 1.5px solid rgba(255, 255, 255, 0.06) !important;
-    background: linear-gradient(135deg, rgba(30, 30, 46, 0.85) 0%, rgba(15, 15, 25, 0.65) 100%) !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    background: linear-gradient(135deg, rgba(30, 30, 46, 0.9) 0%, rgba(15, 15, 25, 0.7) 100%) !important;
     color: var(--ob-text-primary) !important;
-    box-shadow: inset 0 1px 3px rgba(0,0,0,0.15) !important;
+    box-shadow: inset 0 1px 3px rgba(0,0,0,0.2) !important;
     transition: border-color 0.15s ease, box-shadow 0.15s ease !important;
 }
 
-.stSelectbox > div > div > div:hover {
-    border-color: rgba(124, 58, 237, 0.3) !important;
+.stSelectbox [data-baseweb="select"] > div:hover {
+    border-color: rgba(124, 58, 237, 0.35) !important;
 }
 
-.stSelectbox > div > div > div:focus-within {
+.stSelectbox [data-baseweb="select"] > div:focus-within {
     border-color: var(--ob-nebula) !important;
-    box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.12), inset 0 1px 3px rgba(0,0,0,0.15) !important;
+    box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.15), inset 0 1px 3px rgba(0,0,0,0.2) !important;
 }
 
-.stSelectbox ul {
+/* 清除 selectbox 原生白色背景 */
+.stSelectbox svg,
+.stSelectbox [data-baseweb="select"] svg {
+    color: var(--ob-text-secondary) !important;
+}
+
+.stSelectbox ul,
+.stSelectbox [role="listbox"] {
     background: linear-gradient(135deg, #1e1e2e 0%, #0f0f17 100%) !important;
-    border: 1px solid rgba(255, 255, 255, 0.06) !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
     border-radius: var(--ob-radius-sm) !important;
     box-shadow: 0 10px 30px -5px rgba(0,0,0,0.4) !important;
 }
 
-.stSelectbox ul li {
+.stSelectbox ul li,
+.stSelectbox [role="option"] {
     color: var(--ob-text-secondary) !important;
     transition: background 0.15s ease, color 0.15s ease !important;
 }
 
-.stSelectbox ul li:hover {
-    background: rgba(124, 58, 237, 0.1) !important;
+.stSelectbox ul li:hover,
+.stSelectbox [role="option"]:hover {
+    background: rgba(124, 58, 237, 0.12) !important;
     color: var(--ob-text-primary) !important;
 }
 
-.stSelectbox ul li[aria-selected="true"] {
-    background: rgba(124, 58, 237, 0.15) !important;
+.stSelectbox ul li[aria-selected="true"],
+.stSelectbox [aria-selected="true"] {
+    background: rgba(124, 58, 237, 0.18) !important;
     color: var(--ob-nebula-light) !important;
     font-weight: 600 !important;
 }
@@ -2068,7 +2084,8 @@ if st.session_state.predicted_smiles and st.session_state.predicted_logS is not 
                 label_x = width * 0.5
                 ax.text(label_x, i, f"{val:+.3f}", va="center", ha="center", fontsize=10, fontweight="bold",
                         color="#ffffff",
-                        bbox=dict(boxstyle="round,pad=0.2", facecolor=(0, 0, 0, 0.35), edgecolor="none"))
+                        bbox=dict(boxstyle="round,pad=0.3", facecolor=(0, 0, 0, 0.5),
+                                  edgecolor=(1, 1, 1, 0.15), linewidth=0.5))
 
             ax.set_yticks(range(len(top_names)))
             ax.set_yticklabels(top_names, fontsize=11)
