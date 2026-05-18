@@ -1277,12 +1277,15 @@ def show_3d_molecule(smiles):
         AllChem.EmbedMolecule(mol, AllChem.ETKDGv3())
         AllChem.MMFFOptimizeMolecule(mol, maxIters=500)
         mb = Chem.MolToMolBlock(mol)
-        view = py3Dmol.view(width=380, height=340)
+        view = py3Dmol.view(width=500, height=420)
         view.addModel(mb, 'mol')
         view.setStyle({'stick': {'radius': 0.15}, 'sphere': {'scale': 0.25}})
         view.zoomTo()
         view.setBackgroundColor('#1a1a2e')
-        return view._make_html()
+        html = view._make_html()
+        # 包裹自适应容器，防止溢出截断
+        html = f'<div style="width:100%;max-width:100%;overflow:hidden;border-radius:12px;">{html}</div>'
+        return html
     except Exception:
         return None
 
@@ -1893,13 +1896,13 @@ if st.session_state.predicted_smiles and st.session_state.predicted_logS is not 
 
             chem_factors = analyze_pka_chemistry(st.session_state.predicted_smiles, pka_val)
 
-            col_3d, col_chem = st.columns([1.1, 1.3])
+            col_3d, col_chem = st.columns([1, 1])
 
             with col_3d:
                 st.markdown("<div style='font-weight: 600; color: var(--ob-text-secondary); margin-bottom: 0.5rem; font-family: \"Space Grotesk\", sans-serif;'>&#127919; 3D 球棍模型（可旋转缩放）</div>", unsafe_allow_html=True)
                 html_3d = show_3d_molecule(st.session_state.predicted_smiles)
                 if html_3d:
-                    components.html(html_3d, height=340)
+                    components.html(html_3d, height=420, scrolling=False)
                 else:
                     st.info("3D 模型生成失败（需安装 py3Dmol）")
 
@@ -1925,18 +1928,21 @@ if st.session_state.predicted_smiles and st.session_state.predicted_logS is not 
                     plt.rcParams['xtick.color'] = '#a0a0b0'
                     plt.rcParams['ytick.color'] = '#a0a0b0'
                     plt.rcParams['text.color'] = '#f0f0f5'
-                    fig, ax = plt.subplots(figsize=(7, 4.2))
+                    fig, ax = plt.subplots(figsize=(8, 4.5))
                     bars = ax.barh(range(len(vals)), vals, color=colors, edgecolor=(1, 1, 1, 0.15), height=0.6, linewidth=0.5)
                     ax.invert_yaxis()
                     ax.axvline(x=0, color='#f0f0f5', linewidth=1.0, alpha=0.4)
 
+                    # 智能标签：统一放柱子内部中心，避免溢出/重叠
                     for bar, val in zip(bars, vals):
                         width = bar.get_width()
-                        # 标签统一放在条形末端外侧，白色文字
-                        label_x = width + 0.08 if width >= 0 else width - 0.08
-                        align = 'left' if width >= 0 else 'right'
+                        label_x = width * 0.5  # 柱子几何中心
+                        # 根据柱子颜色自动选文字颜色（紫/青背景上都用白色即可，加半透明底框保险）
                         ax.text(label_x, bar.get_y() + bar.get_height()/2,
-                                f'{val:+.2f}', va='center', ha=align, fontsize=10, fontweight='bold', color='#f0f0f5')
+                                f'{val:+.2f}', va='center', ha='center', fontsize=10, fontweight='bold',
+                                color='#ffffff',
+                                bbox=dict(boxstyle='round,pad=0.25', facecolor='rgba(0,0,0,0.35)',
+                                          edgecolor='none', alpha=0.9))
 
                     ax.set_yticks(range(len(names)))
                     ax.set_yticklabels(names, fontsize=10)
