@@ -2064,19 +2064,15 @@ if st.session_state.predicted_smiles and st.session_state.predicted_logS is not 
 
             for i, (bar, val) in enumerate(zip(bars, top_shap)):
                 width = bar.get_width()
-                if width >= 0:
-                    label_x = width + 0.05
-                    align = "left"
-                    text_color = "black"
-                else:
-                    label_x = width + 0.12
-                    align = "left"
-                    text_color = "white"
-                ax.text(label_x, i, f"{val:+.3f}", va="center", ha=align, fontsize=10, fontweight="bold", color=text_color)
+                # 标签统一放在柱子内部中心，避免溢出/重叠
+                label_x = width * 0.5
+                ax.text(label_x, i, f"{val:+.3f}", va="center", ha="center", fontsize=10, fontweight="bold",
+                        color="#ffffff",
+                        bbox=dict(boxstyle="round,pad=0.2", facecolor=(0, 0, 0, 0.35), edgecolor="none"))
 
             ax.set_yticks(range(len(top_names)))
             ax.set_yticklabels(top_names, fontsize=11)
-            ax.axvline(x=0, color="black", linewidth=0.8)
+            ax.axvline(x=0, color="#f0f0f5", linewidth=1.0, alpha=0.4)
             ax.set_xlabel("对溶解度的贡献值 (logS)", fontsize=11)
 
             ev = explainer.expected_value
