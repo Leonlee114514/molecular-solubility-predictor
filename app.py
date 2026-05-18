@@ -322,7 +322,7 @@ st.markdown("""
 
 /* ─── 1. 核心变量 ─── */
 :root {
-    --ob-bg-primary: #0d0d14;
+    --ob-bg-primary: #131328;
     --ob-bg-surface: #1a1a2e;
     --ob-bg-elevated: rgba(30, 30, 46, 0.6);
     --ob-nebula: #7c3aed;
@@ -352,19 +352,19 @@ html, body,
 
 .stApp {
     background:
-        /* Layer 1: 深层紫色星云（左上方） */
-        radial-gradient(ellipse 60% 45% at 15% 30%, rgba(76, 29, 149, 0.35) 0%, rgba(124, 58, 237, 0.12) 30%, transparent 65%),
+        /* Layer 1: 紫色星云（左上方） */
+        radial-gradient(ellipse 70% 55% at 18% 25%, rgba(124, 58, 237, 0.55) 0%, rgba(76, 29, 149, 0.2) 35%, transparent 70%),
         /* Layer 2: 青色星云（右上方） */
-        radial-gradient(ellipse 50% 35% at 85% 15%, rgba(8, 145, 178, 0.22) 0%, rgba(6, 182, 212, 0.08) 40%, transparent 70%),
+        radial-gradient(ellipse 55% 45% at 82% 12%, rgba(6, 182, 212, 0.4) 0%, rgba(8, 145, 178, 0.15) 40%, transparent 75%),
         /* Layer 3: 金色暖星云（下方中心） */
-        radial-gradient(ellipse 45% 40% at 50% 85%, rgba(180, 83, 9, 0.12) 0%, rgba(251, 191, 36, 0.06) 35%, transparent 60%),
-        /* Layer 4: 中央暗紫弥散光 */
-        radial-gradient(ellipse 70% 60% at 50% 45%, rgba(67, 56, 202, 0.08) 0%, transparent 55%),
-        /* Layer 5: 底部深邃暗角 */
-        radial-gradient(ellipse 90% 50% at 50% 100%, rgba(13, 13, 20, 0.9) 0%, transparent 50%),
-        /* Layer 6: 基础深色背景 */
-        linear-gradient(180deg, #0a0a12 0%, #0d0d14 25%, #11111a 50%, #0d0d14 75%, #0a0a12 100%) !important;
-    background-color: #0a0a12 !important;
+        radial-gradient(ellipse 50% 45% at 50% 80%, rgba(251, 191, 36, 0.22) 0%, rgba(180, 83, 9, 0.1) 35%, transparent 65%),
+        /* Layer 4: 中央蓝紫弥散光 */
+        radial-gradient(ellipse 80% 65% at 50% 40%, rgba(67, 56, 202, 0.18) 0%, transparent 60%),
+        /* Layer 5: 底部暗角（弱化） */
+        radial-gradient(ellipse 100% 55% at 50% 100%, rgba(13, 13, 20, 0.6) 0%, transparent 55%),
+        /* Layer 6: 基础深色背景（调亮） */
+        linear-gradient(180deg, #0f0f1c 0%, #131328 30%, #181830 50%, #131328 70%, #0f0f1c 100%) !important;
+    background-color: #131328 !important;
     position: relative;
     min-height: 100vh;
 }
@@ -375,56 +375,56 @@ html, body,
     position: fixed;
     top: 0; left: 0; right: 0; bottom: 0;
     background-image:
-        /* === 大亮点（紫/青，模拟亮星）=== */
-        radial-gradient(3px 3px at 8% 12%, rgba(167, 139, 250, 0.85), transparent),
-        radial-gradient(2.5px 2.5px at 22% 8%, rgba(34, 211, 238, 0.75), transparent),
-        radial-gradient(3px 3px at 35% 25%, rgba(139, 92, 246, 0.8), transparent),
-        radial-gradient(2px 2px at 48% 5%, rgba(251, 191, 36, 0.7), transparent),
-        radial-gradient(3px 3px at 62% 18%, rgba(6, 182, 212, 0.8), transparent),
-        radial-gradient(2.5px 2.5px at 78% 10%, rgba(167, 139, 250, 0.85), transparent),
-        radial-gradient(3px 3px at 88% 28%, rgba(34, 211, 238, 0.75), transparent),
-        radial-gradient(2px 2px at 95% 8%, rgba(196, 181, 253, 0.7), transparent),
-        radial-gradient(3px 3px at 15% 40%, rgba(6, 182, 212, 0.8), transparent),
-        radial-gradient(2.5px 2.5px at 55% 35%, rgba(139, 92, 246, 0.75), transparent),
-        radial-gradient(3px 3px at 72% 42%, rgba(251, 191, 36, 0.65), transparent),
-        radial-gradient(2px 2px at 42% 48%, rgba(196, 181, 253, 0.7), transparent),
+        /* === 大亮点（紫/青/金，模拟亮星）=== */
+        radial-gradient(3.5px 3.5px at 8% 12%, rgba(196, 181, 253, 1.0), transparent),
+        radial-gradient(3px 3px at 22% 8%, rgba(103, 232, 249, 0.95), transparent),
+        radial-gradient(3.5px 3.5px at 35% 25%, rgba(167, 139, 250, 1.0), transparent),
+        radial-gradient(2.5px 2.5px at 48% 5%, rgba(253, 224, 71, 0.9), transparent),
+        radial-gradient(3.5px 3.5px at 62% 18%, rgba(34, 211, 238, 1.0), transparent),
+        radial-gradient(3px 3px at 78% 10%, rgba(196, 181, 253, 1.0), transparent),
+        radial-gradient(3.5px 3.5px at 88% 28%, rgba(103, 232, 249, 0.95), transparent),
+        radial-gradient(2.5px 2.5px at 95% 8%, rgba(233, 213, 255, 0.9), transparent),
+        radial-gradient(3.5px 3.5px at 15% 40%, rgba(34, 211, 238, 1.0), transparent),
+        radial-gradient(3px 3px at 55% 35%, rgba(167, 139, 250, 0.95), transparent),
+        radial-gradient(3.5px 3.5px at 72% 42%, rgba(253, 224, 71, 0.85), transparent),
+        radial-gradient(2.5px 2.5px at 42% 48%, rgba(233, 213, 255, 0.9), transparent),
         /* === 中等星点 === */
-        radial-gradient(2px 2px at 5% 55%, rgba(124, 58, 237, 0.65), transparent),
-        radial-gradient(1.5px 1.5px at 18% 62%, rgba(34, 211, 238, 0.6), transparent),
-        radial-gradient(2px 2px at 28% 75%, rgba(167, 139, 250, 0.65), transparent),
-        radial-gradient(1.5px 1.5px at 40% 68%, rgba(6, 182, 212, 0.55), transparent),
-        radial-gradient(2px 2px at 52% 82%, rgba(139, 92, 246, 0.6), transparent),
-        radial-gradient(1.5px 1.5px at 65% 58%, rgba(251, 191, 36, 0.5), transparent),
-        radial-gradient(2px 2px at 75% 72%, rgba(124, 58, 237, 0.65), transparent),
-        radial-gradient(1.5px 1.5px at 85% 55%, rgba(34, 211, 238, 0.6), transparent),
-        radial-gradient(2px 2px at 92% 78%, rgba(196, 181, 253, 0.55), transparent),
-        radial-gradient(1.5px 1.5px at 12% 88%, rgba(6, 182, 212, 0.5), transparent),
-        radial-gradient(2px 2px at 32% 92%, rgba(139, 92, 246, 0.6), transparent),
-        radial-gradient(1.5px 1.5px at 58% 95%, rgba(167, 139, 250, 0.55), transparent),
-        radial-gradient(2px 2px at 82% 88%, rgba(34, 211, 238, 0.5), transparent),
+        radial-gradient(2.5px 2.5px at 5% 55%, rgba(139, 92, 246, 0.9), transparent),
+        radial-gradient(2px 2px at 18% 62%, rgba(103, 232, 249, 0.85), transparent),
+        radial-gradient(2.5px 2.5px at 28% 75%, rgba(196, 181, 253, 0.9), transparent),
+        radial-gradient(2px 2px at 40% 68%, rgba(34, 211, 238, 0.8), transparent),
+        radial-gradient(2.5px 2.5px at 52% 82%, rgba(167, 139, 250, 0.85), transparent),
+        radial-gradient(2px 2px at 65% 58%, rgba(253, 224, 71, 0.75), transparent),
+        radial-gradient(2.5px 2.5px at 75% 72%, rgba(139, 92, 246, 0.9), transparent),
+        radial-gradient(2px 2px at 85% 55%, rgba(103, 232, 249, 0.85), transparent),
+        radial-gradient(2.5px 2.5px at 92% 78%, rgba(233, 213, 255, 0.8), transparent),
+        radial-gradient(2px 2px at 12% 88%, rgba(34, 211, 238, 0.75), transparent),
+        radial-gradient(2.5px 2.5px at 32% 92%, rgba(167, 139, 250, 0.85), transparent),
+        radial-gradient(2px 2px at 58% 95%, rgba(196, 181, 253, 0.8), transparent),
+        radial-gradient(2.5px 2.5px at 82% 88%, rgba(103, 232, 249, 0.75), transparent),
         /* === 白色小星点 === */
-        radial-gradient(1.5px 1.5px at 3% 30%, rgba(255, 255, 255, 0.55), transparent),
-        radial-gradient(1px 1px at 12% 18%, rgba(255, 255, 255, 0.5), transparent),
-        radial-gradient(1.5px 1.5px at 25% 45%, rgba(255, 255, 255, 0.55), transparent),
-        radial-gradient(1px 1px at 38% 15%, rgba(255, 255, 255, 0.45), transparent),
-        radial-gradient(1.5px 1.5px at 45% 58%, rgba(255, 255, 255, 0.5), transparent),
-        radial-gradient(1px 1px at 58% 12%, rgba(255, 255, 255, 0.45), transparent),
-        radial-gradient(1.5px 1.5px at 68% 50%, rgba(255, 255, 255, 0.5), transparent),
-        radial-gradient(1px 1px at 82% 35%, rgba(255, 255, 255, 0.45), transparent),
-        radial-gradient(1.5px 1.5px at 90% 60%, rgba(255, 255, 255, 0.5), transparent),
-        radial-gradient(1px 1px at 8% 78%, rgba(255, 255, 255, 0.4), transparent),
-        radial-gradient(1.5px 1.5px at 48% 88%, rgba(255, 255, 255, 0.45), transparent),
-        radial-gradient(1px 1px at 70% 92%, rgba(255, 255, 255, 0.4), transparent),
+        radial-gradient(2px 2px at 3% 30%, rgba(255, 255, 255, 0.8), transparent),
+        radial-gradient(1.5px 1.5px at 12% 18%, rgba(255, 255, 255, 0.75), transparent),
+        radial-gradient(2px 2px at 25% 45%, rgba(255, 255, 255, 0.8), transparent),
+        radial-gradient(1.5px 1.5px at 38% 15%, rgba(255, 255, 255, 0.7), transparent),
+        radial-gradient(2px 2px at 45% 58%, rgba(255, 255, 255, 0.75), transparent),
+        radial-gradient(1.5px 1.5px at 58% 12%, rgba(255, 255, 255, 0.7), transparent),
+        radial-gradient(2px 2px at 68% 50%, rgba(255, 255, 255, 0.75), transparent),
+        radial-gradient(1.5px 1.5px at 82% 35%, rgba(255, 255, 255, 0.7), transparent),
+        radial-gradient(2px 2px at 90% 60%, rgba(255, 255, 255, 0.75), transparent),
+        radial-gradient(1.5px 1.5px at 8% 78%, rgba(255, 255, 255, 0.65), transparent),
+        radial-gradient(2px 2px at 48% 88%, rgba(255, 255, 255, 0.7), transparent),
+        radial-gradient(1.5px 1.5px at 70% 92%, rgba(255, 255, 255, 0.65), transparent),
         /* === 微星点（增加密度）=== */
-        radial-gradient(1px 1px at 7% 5%, rgba(167, 139, 250, 0.4), transparent),
-        radial-gradient(1px 1px at 30% 3%, rgba(34, 211, 238, 0.35), transparent),
-        radial-gradient(1px 1px at 50% 20%, rgba(196, 181, 253, 0.35), transparent),
-        radial-gradient(1px 1px at 60% 8%, rgba(124, 58, 237, 0.4), transparent),
-        radial-gradient(1px 1px at 80% 48%, rgba(6, 182, 212, 0.35), transparent),
-        radial-gradient(1px 1px at 95% 42%, rgba(139, 92, 246, 0.35), transparent),
-        radial-gradient(1px 1px at 20% 52%, rgba(251, 191, 36, 0.3), transparent),
-        radial-gradient(1px 1px at 45% 72%, rgba(167, 139, 250, 0.35), transparent),
-        radial-gradient(1px 1px at 88% 68%, rgba(34, 211, 238, 0.3), transparent);
+        radial-gradient(1.5px 1.5px at 7% 5%, rgba(196, 181, 253, 0.65), transparent),
+        radial-gradient(1.5px 1.5px at 30% 3%, rgba(103, 232, 249, 0.6), transparent),
+        radial-gradient(1.5px 1.5px at 50% 20%, rgba(233, 213, 255, 0.6), transparent),
+        radial-gradient(1.5px 1.5px at 60% 8%, rgba(167, 139, 250, 0.65), transparent),
+        radial-gradient(1.5px 1.5px at 80% 48%, rgba(34, 211, 238, 0.6), transparent),
+        radial-gradient(1.5px 1.5px at 95% 42%, rgba(196, 181, 253, 0.6), transparent),
+        radial-gradient(1.5px 1.5px at 20% 52%, rgba(253, 224, 71, 0.55), transparent),
+        radial-gradient(1.5px 1.5px at 45% 72%, rgba(196, 181, 253, 0.6), transparent),
+        radial-gradient(1.5px 1.5px at 88% 68%, rgba(103, 232, 249, 0.55), transparent);
     background-size: 100% 100%;
     animation: particleFloat 20s linear infinite;
     pointer-events: none;
@@ -439,11 +439,11 @@ html, body,
     top: 0; left: 0; right: 0; bottom: 0;
     background:
         /* 主星云：紫色弥散光（左上区域） */
-        radial-gradient(ellipse 55% 40% at 25% 35%, rgba(124, 58, 237, 0.18) 0%, rgba(76, 29, 149, 0.08) 35%, transparent 65%),
+        radial-gradient(ellipse 65% 50% at 25% 35%, rgba(124, 58, 237, 0.35) 0%, rgba(76, 29, 149, 0.15) 35%, transparent 65%),
         /* 副星云：青色弥散光（右上区域） */
-        radial-gradient(ellipse 45% 35% at 75% 25%, rgba(6, 182, 212, 0.12) 0%, rgba(8, 145, 178, 0.06) 40%, transparent 70%),
+        radial-gradient(ellipse 55% 45% at 75% 25%, rgba(6, 182, 212, 0.25) 0%, rgba(8, 145, 178, 0.1) 40%, transparent 70%),
         /* 底部暖光晕 */
-        radial-gradient(ellipse 50% 30% at 50% 90%, rgba(180, 83, 9, 0.08) 0%, transparent 55%),
+        radial-gradient(ellipse 55% 40% at 50% 90%, rgba(251, 191, 36, 0.15) 0%, transparent 55%),
         /* 中央微弱紫光 */
         radial-gradient(ellipse 40% 40% at 50% 50%, rgba(109, 40, 217, 0.06) 0%, transparent 50%);
     pointer-events: none;
