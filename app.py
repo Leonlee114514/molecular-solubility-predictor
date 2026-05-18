@@ -351,20 +351,8 @@ html, body,
 }
 
 .stApp {
-    background:
-        /* Layer 1: 紫色星云（左上方） */
-        radial-gradient(ellipse 70% 55% at 18% 25%, rgba(124, 58, 237, 0.55) 0%, rgba(76, 29, 149, 0.2) 35%, transparent 70%),
-        /* Layer 2: 青色星云（右上方） */
-        radial-gradient(ellipse 55% 45% at 82% 12%, rgba(6, 182, 212, 0.4) 0%, rgba(8, 145, 178, 0.15) 40%, transparent 75%),
-        /* Layer 3: 金色暖星云（下方中心） */
-        radial-gradient(ellipse 50% 45% at 50% 80%, rgba(251, 191, 36, 0.22) 0%, rgba(180, 83, 9, 0.1) 35%, transparent 65%),
-        /* Layer 4: 中央蓝紫弥散光 */
-        radial-gradient(ellipse 80% 65% at 50% 40%, rgba(67, 56, 202, 0.18) 0%, transparent 60%),
-        /* Layer 5: 底部暗角（弱化） */
-        radial-gradient(ellipse 100% 55% at 50% 100%, rgba(13, 13, 20, 0.6) 0%, transparent 55%),
-        /* Layer 6: 基础深色背景（调亮） */
-        linear-gradient(180deg, #0f0f1c 0%, #131328 30%, #181830 50%, #131328 70%, #0f0f1c 100%) !important;
-    background-color: #131328 !important;
+    background: transparent !important;
+    background-color: transparent !important;
     position: relative;
     min-height: 100vh;
 }
@@ -1315,7 +1303,34 @@ components.html("""
     
     var frame = 0;
     function animate() {
-        ctx.clearRect(0, 0, W, H);
+        // 绘制深色背景（替代 .stApp 的 CSS 背景）
+        var bgGrad = ctx.createLinearGradient(0, 0, 0, H);
+        bgGrad.addColorStop(0, '#0f0f1c');
+        bgGrad.addColorStop(0.3, '#131328');
+        bgGrad.addColorStop(0.5, '#181830');
+        bgGrad.addColorStop(0.7, '#131328');
+        bgGrad.addColorStop(1, '#0f0f1c');
+        ctx.fillStyle = bgGrad;
+        ctx.fillRect(0, 0, W, H);
+
+        // 绘制星云光晕
+        var nebulas = [
+            {x: W*0.18, y: H*0.25, rx: W*0.35, ry: H*0.28, color: 'rgba(124,58,237,'},
+            {x: W*0.82, y: H*0.12, rx: W*0.28, ry: H*0.22, color: 'rgba(6,182,212,'},
+            {x: W*0.50, y: H*0.80, rx: W*0.25, ry: H*0.20, color: 'rgba(251,191,36,'},
+            {x: W*0.50, y: H*0.40, rx: W*0.40, ry: H*0.32, color: 'rgba(67,56,202,'}
+        ];
+        nebulas.forEach(function(n) {
+            var g = ctx.createRadialGradient(n.x, n.y, 0, n.x, n.y, Math.max(n.rx, n.ry));
+            g.addColorStop(0, n.color + '0.25)');
+            g.addColorStop(0.5, n.color + '0.08)');
+            g.addColorStop(1, n.color + '0)');
+            ctx.fillStyle = g;
+            ctx.beginPath();
+            ctx.ellipse(n.x, n.y, n.rx, n.ry, 0, 0, Math.PI*2);
+            ctx.fill();
+        });
+
         frame++;
         
         // 绘制连线（仅亮星层，距离近时）
