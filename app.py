@@ -1263,7 +1263,13 @@ components.html("""
         canvas = document.createElement('canvas');
         canvas.id = 'ob-starfield';
         canvas.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;pointer-events:none;';
-        document.body.insertBefore(canvas, document.body.firstChild);
+        // 插入到 .stApp 内部作为第一个子元素，确保在 App 背景之上、内容之下
+        var app = document.querySelector('.stApp');
+        if (app) {
+            app.insertBefore(canvas, app.firstChild);
+        } else {
+            document.body.insertBefore(canvas, document.body.firstChild);
+        }
     }
     
     var ctx = canvas.getContext('2d');
