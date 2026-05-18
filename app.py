@@ -1262,7 +1262,7 @@ components.html("""
     if (!canvas) {
         canvas = document.createElement('canvas');
         canvas.id = 'ob-starfield';
-        canvas.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;z-index:-1;pointer-events:none;opacity:0.8;';
+        canvas.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;pointer-events:none;';
         document.body.insertBefore(canvas, document.body.firstChild);
     }
     
@@ -1275,11 +1275,11 @@ components.html("""
     resize();
     window.addEventListener('resize', resize);
     
-    // 粒子配置 - 3层：亮星/中星/微星
+    // 粒子配置 - 3层：亮星/中星/微星（增大尺寸和数量）
     var layers = [
-        { count: 40, minR: 1.2, maxR: 2.5, speed: 0.08, colors: ['rgba(167,139,250,', 'rgba(34,211,238,', 'rgba(196,181,253,', 'rgba(255,255,255,'] },
-        { count: 70, minR: 0.6, maxR: 1.4, speed: 0.04, colors: ['rgba(124,58,237,', 'rgba(6,182,212,', 'rgba(139,92,246,', 'rgba(251,191,36,'] },
-        { count: 100, minR: 0.3, maxR: 0.8, speed: 0.02, colors: ['rgba(167,139,250,', 'rgba(34,211,238,', 'rgba(255,255,255,'] }
+        { count: 80, minR: 1.8, maxR: 3.5, speed: 0.08, colors: ['rgba(196,181,253,', 'rgba(103,232,249,', 'rgba(233,213,255,', 'rgba(255,255,255,'] },
+        { count: 120, minR: 1.0, maxR: 2.2, speed: 0.04, colors: ['rgba(167,139,250,', 'rgba(34,211,238,', 'rgba(139,92,246,', 'rgba(253,224,71,'] },
+        { count: 180, minR: 0.5, maxR: 1.2, speed: 0.02, colors: ['rgba(196,181,253,', 'rgba(103,232,249,', 'rgba(255,255,255,'] }
     ];
     
     var stars = [];
@@ -1294,7 +1294,7 @@ components.html("""
                 vx: (Math.random() - 0.5) * layer.speed,
                 vy: (Math.random() - 0.5) * layer.speed,
                 color: colorBase,
-                alpha: 0.3 + Math.random() * 0.6,
+                alpha: 0.5 + Math.random() * 0.5,
                 twinkleSpeed: 0.005 + Math.random() * 0.015,
                 twinklePhase: Math.random() * Math.PI * 2,
                 layer: li
