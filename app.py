@@ -434,41 +434,73 @@ code, pre, .mono {
    4. 卡片与容器组件 (Surface Components)
    ═══════════════════════════════════════════════ */
 .card-container {
-    background: var(--ms-bg-surface);
-    backdrop-filter: blur(20px) saturate(180%);
-    -webkit-backdrop-filter: blur(20px) saturate(180%);
-    border: 1px solid rgba(148, 163, 184, 0.08);
+    background: linear-gradient(135deg, rgba(30, 41, 59, 0.70) 0%, rgba(30, 41, 59, 0.40) 100%);
+    backdrop-filter: blur(24px) saturate(200%);
+    -webkit-backdrop-filter: blur(24px) saturate(200%);
+    border: 1px solid rgba(148, 163, 184, 0.10);
     border-radius: var(--ms-radius-lg);
     padding: var(--ms-space-5);
     margin-bottom: var(--ms-space-5);
-    box-shadow: var(--ms-shadow-md);
-    transition: transform var(--ms-duration-normal) var(--ms-easing-default),
-                box-shadow var(--ms-duration-normal) var(--ms-easing-default),
-                border-color var(--ms-duration-fast) var(--ms-easing-default);
+    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.20), 0 2px 4px -2px rgba(0,0,0,0.10), inset 0 1px 0 rgba(255,255,255,0.03);
+    transition: transform var(--ms-duration-normal) var(--ms-easing-default), box-shadow var(--ms-duration-normal) var(--ms-easing-default), border-color var(--ms-duration-fast) var(--ms-easing-default);
     will-change: transform, box-shadow;
+    position: relative;
+    overflow: hidden;
+}
+
+.card-container::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent 0%, rgba(14, 165, 233, 0.15) 20%, rgba(6, 182, 212, 0.10) 50%, rgba(14, 165, 233, 0.15) 80%, transparent 100%);
 }
 
 .card-container:hover {
-    transform: translateY(-2px);
-    box-shadow: var(--ms-shadow-lg), var(--ms-shadow-glow);
-    border-color: rgba(14, 165, 233, 0.15);
+    transform: translateY(-3px);
+    box-shadow: 0 20px 25px -5px rgba(0,0,0,0.25), 0 8px 10px -6px rgba(0,0,0,0.15), 0 0 30px rgba(14, 165, 233, 0.10), inset 0 1px 0 rgba(255,255,255,0.05);
+    border-color: rgba(14, 165, 233, 0.20);
 }
 
-/* 分子扩散入场动画 */
+/* 分子扩散入场动画 - 带模糊消散效果 */
 @keyframes molecularDiffuse {
     from {
         opacity: 0;
-        transform: translateY(16px) scale(0.98);
+        transform: translateY(20px) scale(0.97);
+        filter: blur(2px);
     }
     to {
         opacity: 1;
         transform: translateY(0) scale(1);
+        filter: blur(0px);
     }
 }
 
+/* 原子逐个出现 - 用于 metric 数值 */
+@keyframes atomicAppear {
+    from { opacity: 0; transform: translateY(12px) scale(0.95); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* 卡片交错入场 */
 .card-container {
     animation: molecularDiffuse var(--ms-duration-slow) var(--ms-easing-decelerate) both;
-    animation-delay: calc(var(--card-index, 0) * 60ms);
+}
+
+/* Streamlit 原生容器的分子扩散 */
+[data-testid="stVerticalBlock"] > [data-testid="stVerticalBlockBorderWrapper"],
+[data-testid="stExpander"] {
+    animation: molecularDiffuse var(--ms-duration-slow) var(--ms-easing-decelerate) both;
+}
+
+/* Metric 数值原子逐个出现 */
+[data-testid="stMetricValue"] {
+    animation: atomicAppear var(--ms-duration-normal) var(--ms-easing-decelerate) both;
+}
+
+/* 分子结构图入场 */
+.stImage > img {
+    animation: molecularDiffuse var(--ms-duration-slow) var(--ms-easing-decelerate) both;
 }
 
 /* ═══════════════════════════════════════════════
@@ -515,8 +547,16 @@ code, pre, .mono {
 }
 
 .stButton > button:active {
-    transform: translateY(0) scale(0.98);
+    transform: translateY(0) scale(0.97);
     transition-duration: var(--ms-duration-instant) !important;
+    box-shadow: 0 2px 4px -1px rgba(0,0,0,0.20), inset 0 2px 4px rgba(0,0,0,0.10) !important;
+}
+
+/* 按钮加载态光效 */
+.stButton > button[disabled],
+.stButton > button[data-disabled="true"] {
+    opacity: 0.7;
+    filter: saturate(0.7);
 }
 
 /* 次要按钮 - 共价键主题 */
@@ -574,6 +614,7 @@ code, pre, .mono {
     color: var(--ms-text-primary) !important;
     letter-spacing: -0.02em;
     line-height: 1.2;
+    text-shadow: 0 0 20px rgba(14, 165, 233, 0.10);
 }
 
 [data-testid="stMetricLabel"] {
@@ -588,6 +629,20 @@ code, pre, .mono {
 [data-testid="stMetricDelta"] {
     font-size: 0.875rem !important;
     font-weight: 600 !important;
+}
+
+/* Metric 容器美化 */
+[data-testid="stMetric"] {
+    background: rgba(148, 163, 184, 0.03);
+    border-radius: var(--ms-radius-md);
+    padding: var(--ms-space-3) var(--ms-space-4);
+    border: 1px solid rgba(148, 163, 184, 0.06);
+    transition: background var(--ms-duration-fast) var(--ms-easing-default), border-color var(--ms-duration-fast) var(--ms-easing-default);
+}
+
+[data-testid="stMetric"]:hover {
+    background: rgba(14, 165, 233, 0.04);
+    border-color: rgba(14, 165, 233, 0.10);
 }
 
 /* ─── 结果状态卡片 ─── */
@@ -645,6 +700,27 @@ code, pre, .mono {
     background: linear-gradient(90deg, #ef4444, #f87171);
 }
 
+/* 结果卡片内部发光 */
+.result-high, .result-moderate, .result-low {
+    position: relative;
+    overflow: hidden;
+    transition: transform var(--ms-duration-normal) var(--ms-easing-default), box-shadow var(--ms-duration-normal) var(--ms-easing-default);
+}
+
+.result-high:hover, .result-moderate:hover, .result-low:hover {
+    transform: scale(1.01);
+}
+
+.result-high:hover {
+    box-shadow: 0 0 20px rgba(16, 185, 129, 0.08);
+}
+.result-moderate:hover {
+    box-shadow: 0 0 20px rgba(245, 158, 11, 0.08);
+}
+.result-low:hover {
+    box-shadow: 0 0 20px rgba(239, 68, 68, 0.08);
+}
+
 /* pKa 状态 */
 .pka-acid {
     background: linear-gradient(135deg, rgba(239, 68, 68, 0.08), rgba(239, 68, 68, 0.03));
@@ -686,6 +762,27 @@ code, pre, .mono {
 .pka-amphoteric::before {
     content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
     background: linear-gradient(90deg, #f59e0b, #fbbf24);
+}
+
+/* pKa 卡片统一样式增强 */
+.pka-acid, .pka-base, .pka-amphoteric {
+    position: relative;
+    overflow: hidden;
+    transition: transform var(--ms-duration-normal) var(--ms-easing-default), box-shadow var(--ms-duration-normal) var(--ms-easing-default);
+}
+
+.pka-acid:hover, .pka-base:hover, .pka-amphoteric:hover {
+    transform: scale(1.01);
+}
+
+.pka-acid:hover {
+    box-shadow: 0 0 20px rgba(239, 68, 68, 0.08);
+}
+.pka-base:hover {
+    box-shadow: 0 0 20px rgba(59, 130, 246, 0.08);
+}
+.pka-amphoteric:hover {
+    box-shadow: 0 0 20px rgba(245, 158, 11, 0.08);
 }
 
 /* ═══════════════════════════════════════════════
@@ -753,6 +850,7 @@ code, pre, .mono {
     gap: var(--ms-space-2);
     border-bottom: 1px solid rgba(148, 163, 184, 0.10);
     padding-bottom: var(--ms-space-1);
+    margin-bottom: var(--ms-space-3);
 }
 
 .stTabs [data-baseweb="tab"] {
@@ -764,20 +862,27 @@ code, pre, .mono {
     background: transparent !important;
     border: none !important;
     border-bottom: 2px solid transparent !important;
-    transition: color var(--ms-duration-fast) var(--ms-easing-default),
-                border-color var(--ms-duration-fast) var(--ms-easing-default),
-                background var(--ms-duration-fast) var(--ms-easing-default) !important;
+    transition: color var(--ms-duration-fast) var(--ms-easing-default), border-color var(--ms-duration-fast) var(--ms-easing-default), background var(--ms-duration-fast) var(--ms-easing-default), text-shadow var(--ms-duration-fast) var(--ms-easing-default) !important;
+    position: relative;
 }
 
 .stTabs [data-baseweb="tab"]:hover {
     color: var(--ms-text-primary) !important;
     background: rgba(14, 165, 233, 0.05) !important;
+    text-shadow: 0 0 12px rgba(14, 165, 233, 0.15);
 }
 
 .stTabs [aria-selected="true"] {
     color: var(--ms-accent-primary) !important;
     border-bottom-color: var(--ms-accent-primary) !important;
     background: linear-gradient(180deg, rgba(14, 165, 233, 0.08), transparent) !important;
+    text-shadow: 0 0 16px rgba(14, 165, 233, 0.20);
+    font-weight: 600 !important;
+}
+
+/* Tab 内容区域入场 */
+.stTabs [data-baseweb="tab-panel"] {
+    animation: molecularDiffuse var(--ms-duration-slow) var(--ms-easing-decelerate) both;
 }
 
 /* ═══════════════════════════════════════════════
@@ -787,19 +892,34 @@ code, pre, .mono {
     border-radius: var(--ms-radius-lg);
     border: 1px solid rgba(148, 163, 184, 0.10);
     box-shadow: var(--ms-shadow-md);
-    transition: transform var(--ms-duration-normal) var(--ms-easing-default),
-                box-shadow var(--ms-duration-normal) var(--ms-easing-default);
+    transition: transform var(--ms-duration-normal) var(--ms-easing-default), box-shadow var(--ms-duration-normal) var(--ms-easing-default), border-color var(--ms-duration-fast) var(--ms-easing-default);
+    animation: molecularDiffuse var(--ms-duration-slow) var(--ms-easing-decelerate) both;
 }
 
 .stImage > img:hover {
-    transform: scale(1.01);
-    box-shadow: var(--ms-shadow-lg);
+    transform: scale(1.02);
+    box-shadow: var(--ms-shadow-lg), 0 0 30px rgba(14, 165, 233, 0.08);
+    border-color: rgba(14, 165, 233, 0.15);
 }
 
 /* Plotly/Matplotlib 图表容器 */
 .js-plotly-plot, .stPlotlyChart {
     border-radius: var(--ms-radius-lg);
     overflow: hidden;
+    border: 1px solid rgba(148, 163, 184, 0.08);
+    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.15);
+    transition: border-color var(--ms-duration-fast) var(--ms-easing-default), box-shadow var(--ms-duration-normal) var(--ms-easing-default);
+}
+
+.js-plotly-plot:hover, .stPlotlyChart:hover {
+    border-color: rgba(14, 165, 233, 0.10);
+    box-shadow: 0 10px 15px -3px rgba(0,0,0,0.20), 0 0 20px rgba(14, 165, 233, 0.05);
+}
+
+/* st.pyplot 输出的图表 */
+.stPlotlyChart > div,
+[data-testid="stImageContainer"] > div {
+    border-radius: var(--ms-radius-lg);
 }
 
 /* ═══════════════════════════════════════════════
@@ -827,6 +947,12 @@ hr {
    ═══════════════════════════════════════════════ */
 .stSpinner > div {
     border-color: var(--ms-accent-primary) transparent transparent transparent !important;
+    border-width: 3px !important;
+    filter: drop-shadow(0 0 6px rgba(14, 165, 233, 0.30));
+}
+
+.stSpinner {
+    animation: atomicAppear var(--ms-duration-normal) var(--ms-easing-decelerate) both;
 }
 
 /* 自定义进度条/加载态 */
@@ -838,7 +964,7 @@ hr {
 
 .loading-bar {
     height: 2px;
-    background: rgba(14, 165, 233, 0.10);
+    background: linear-gradient(90deg, rgba(14, 165, 233, 0.08), rgba(6, 182, 212, 0.05));
     border-radius: var(--ms-radius-sm);
     overflow: hidden;
     position: relative;
@@ -848,10 +974,11 @@ hr {
     content: '';
     position: absolute;
     top: 0; left: 0;
-    width: 25%; height: 100%;
-    background: linear-gradient(90deg, transparent, var(--ms-accent-primary), transparent);
+    width: 30%; height: 100%;
+    background: linear-gradient(90deg, transparent, var(--ms-accent-primary), var(--ms-accent-secondary), transparent);
     animation: electronJump 1.5s ease-in-out infinite;
     will-change: transform, opacity;
+    filter: blur(0.5px);
 }
 
 /* ═══════════════════════════════════════════════
@@ -902,16 +1029,24 @@ hr {
 }
 
 ::-webkit-scrollbar-track {
-    background: transparent;
+    background: rgba(15, 23, 42, 0.50);
+    border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb {
-    background: rgba(100, 116, 139, 0.30);
+    background: linear-gradient(180deg, rgba(100, 116, 139, 0.30), rgba(100, 116, 139, 0.20));
     border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-    background: rgba(100, 116, 139, 0.50);
+    background: linear-gradient(180deg, rgba(14, 165, 233, 0.40), rgba(14, 165, 233, 0.20));
+}
+
+/* 文字选中效果 */
+::selection {
+    background: rgba(14, 165, 233, 0.25);
+    color: var(--ms-text-primary);
+    text-shadow: 0 0 8px rgba(14, 165, 233, 0.20);
 }
 
 /* 响应式适配 */
@@ -919,13 +1054,54 @@ hr {
     .main .block-container {
         padding-left: var(--ms-space-4) !important;
         padding-right: var(--ms-space-4) !important;
+        padding-top: var(--ms-space-4) !important;
     }
     .gradient-title {
         font-size: 2rem;
+        letter-spacing: -0.02em;
+    }
+    .subtitle {
+        font-size: 0.95rem;
     }
     .card-container {
         padding: var(--ms-space-4);
+        margin-bottom: var(--ms-space-4);
     }
+    .card-title {
+        font-size: 1rem;
+    }
+    [data-testid="stMetricValue"] {
+        font-size: 1.5rem !important;
+    }
+    .stButton > button {
+        padding: 0.625rem 1rem !important;
+        font-size: 0.875rem !important;
+    }
+    .footer {
+        font-size: 0.75rem;
+        padding: var(--ms-space-4) var(--ms-space-3);
+    }
+}
+
+/* 平板适配 */
+@media (min-width: 769px) and (max-width: 1024px) {
+    .main .block-container {
+        max-width: 95% !important;
+    }
+}
+
+/* st.container(border=True) 美化 */
+[data-testid="stVerticalBlockBorderWrapper"] {
+    background: linear-gradient(135deg, rgba(30, 41, 59, 0.50) 0%, rgba(30, 41, 59, 0.25) 100%) !important;
+    border: 1px solid rgba(148, 163, 184, 0.08) !important;
+    border-radius: var(--ms-radius-lg) !important;
+    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.02) !important;
+    transition: border-color var(--ms-duration-fast) var(--ms-easing-default), box-shadow var(--ms-duration-normal) var(--ms-easing-default) !important;
+    padding: var(--ms-space-3) !important;
+}
+
+[data-testid="stVerticalBlockBorderWrapper"]:hover {
+    border-color: rgba(14, 165, 233, 0.10) !important;
 }
 
 /* Streamlit 原生组件暗黑适配 */
@@ -936,12 +1112,54 @@ hr {
 .stCaption {
     color: var(--ms-text-tertiary) !important;
     font-size: 0.8125rem !important;
+    line-height: 1.6;
+}
+
+/* st.info 容器美化 */
+[data-testid="stInfoMessage"] {
+    background: linear-gradient(135deg, rgba(14, 165, 233, 0.06), rgba(14, 165, 233, 0.02)) !important;
+    border: 1px solid rgba(14, 165, 233, 0.12) !important;
+    border-radius: var(--ms-radius-lg) !important;
+    animation: molecularDiffuse var(--ms-duration-slow) var(--ms-easing-decelerate) both;
+}
+
+/* st.success 容器美化 */
+[data-testid="stSuccessMessage"] {
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.06), rgba(16, 185, 129, 0.02)) !important;
+    border: 1px solid rgba(16, 185, 129, 0.12) !important;
+    border-radius: var(--ms-radius-lg) !important;
+    animation: molecularDiffuse var(--ms-duration-slow) var(--ms-easing-decelerate) both;
+}
+
+/* st.warning 容器美化 */
+[data-testid="stWarningMessage"] {
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.06), rgba(245, 158, 11, 0.02)) !important;
+    border: 1px solid rgba(245, 158, 11, 0.12) !important;
+    border-radius: var(--ms-radius-lg) !important;
+    animation: molecularDiffuse var(--ms-duration-slow) var(--ms-easing-decelerate) both;
+}
+
+/* st.error 容器美化 */
+[data-testid="stErrorMessage"] {
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.06), rgba(239, 68, 68, 0.02)) !important;
+    border: 1px solid rgba(239, 68, 68, 0.12) !important;
+    border-radius: var(--ms-radius-lg) !important;
+    animation: molecularDiffuse var(--ms-duration-slow) var(--ms-easing-decelerate) both;
 }
 
 [data-testid="stExpander"] {
-    background: var(--ms-bg-surface) !important;
+    background: linear-gradient(135deg, rgba(30, 41, 59, 0.60) 0%, rgba(30, 41, 59, 0.35) 100%) !important;
     border: 1px solid rgba(148, 163, 184, 0.08) !important;
     border-radius: var(--ms-radius-lg) !important;
+    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.03) !important;
+    transition: border-color var(--ms-duration-fast) var(--ms-easing-default), box-shadow var(--ms-duration-normal) var(--ms-easing-default) !important;
+    position: relative;
+    overflow: hidden;
+}
+
+[data-testid="stExpander"]:hover {
+    border-color: rgba(14, 165, 233, 0.12) !important;
+    box-shadow: 0 10px 15px -3px rgba(0,0,0,0.20), 0 0 20px rgba(14, 165, 233, 0.05), inset 0 1px 0 rgba(255,255,255,0.03) !important;
 }
 
 /* 隐藏 Streamlit 默认顶栏装饰 */
