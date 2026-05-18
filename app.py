@@ -277,13 +277,6 @@ st.markdown("""
 @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Inter:wght@300;400;500;600;700&display=swap');
 
 /* ─── 0. 粒子背景动画 ─── */
-@keyframes particleFloat {
-    0% { transform: translateY(100vh) translateX(0) scale(0); opacity: 0; }
-    10% { opacity: 0.8; }
-    90% { opacity: 0.8; }
-    100% { transform: translateY(-10vh) translateX(20px) scale(1); opacity: 0; }
-}
-
 @keyframes nebulaPulse {
     0%, 100% { opacity: 0.3; transform: scale(1); }
     50% { opacity: 0.6; transform: scale(1.1); }
@@ -414,7 +407,7 @@ html, body,
         radial-gradient(1.5px 1.5px at 45% 72%, rgba(196, 181, 253, 0.6), transparent),
         radial-gradient(1.5px 1.5px at 88% 68%, rgba(103, 232, 249, 0.55), transparent);
     background-size: 100% 100%;
-    animation: particleFloat 20s linear infinite;
+    animation: starTwinkle 4s ease-in-out infinite;
     pointer-events: none;
     z-index: 0;
     opacity: 1.0;
@@ -1239,7 +1232,7 @@ footer {visibility: hidden;}
 """, unsafe_allow_html=True)
 
 # ========== Canvas 动态粒子星空背景 ==========
-components.html("""
+st.markdown("""
 <script>
 (function() {
     'use strict';
@@ -1436,10 +1429,10 @@ components.html("""
     animate();
 })();
 </script>
-""", height=0)
+""", unsafe_allow_html=True)
 
 # ========== 交互增强：鼠标跟随光晕 + 卡片 tilt 效果 ==========
-components.html("""
+st.markdown("""
 <script>
 (function() {
     'use strict';
@@ -1532,7 +1525,7 @@ components.html("""
     }
 })();
 </script>
-""", height=0)
+""", unsafe_allow_html=True)
 
 # ========== 加载 V2 模型 ==========
 @st.cache_resource
