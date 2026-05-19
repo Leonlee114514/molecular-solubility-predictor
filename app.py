@@ -1272,15 +1272,11 @@ components.html("""
     win.addEventListener('resize', resize);
     console.log('[Orbita] Canvas size: ' + W + 'x' + H);
     
-    // 防止事件重复绑定
-    if (!doc.__obStarMouseBound) {
-        doc.__obStarMouseBound = true;
-        doc.addEventListener('mousemove', function(e) {
-            mouseStarX = e.clientX; mouseStarY = e.clientY;
-            mouseTrail.push({x: e.clientX, y: e.clientY, age: 0});
-            if (mouseTrail.length > maxTrail) mouseTrail.shift();
-        }, { passive: true });
-    }
+    doc.addEventListener('mousemove', function(e) {
+        mouseStarX = e.clientX; mouseStarY = e.clientY;
+        mouseTrail.push({x: e.clientX, y: e.clientY, age: 0});
+        if (mouseTrail.length > maxTrail) mouseTrail.shift();
+    }, { passive: true });
     
     // 粒子配置 - 3层：亮星/中星/微星（增大尺寸和数量）
     var layers = [
@@ -1309,7 +1305,7 @@ components.html("""
         }
     });
     
-    var mouseStarX = W / 2, mouseStarY = H / 2;
+    var mouseStarX = null, mouseStarY = null;
     var mouseTrail = [];
     var maxTrail = 20;
     
@@ -1323,7 +1319,7 @@ components.html("""
         bgGrad.addColorStop(0.7, '#131328');
         bgGrad.addColorStop(1, '#0f0f1c');
         ctx.fillStyle = bgGrad;
-        ctx.clearRect(0, 0, W, H);
+        ctx.fillRect(0, 0, W, H);
 
         // 绘制星云光晕
         var nebulas = [
@@ -1466,19 +1462,13 @@ components.html("""
     
     console.log('[Orbita] Cursor glow script loaded, win size: ' + win2.innerWidth + 'x' + win2.innerHeight);
     
-    if (!doc2.__obGlowMouseBound) {
-        doc2.__obGlowMouseBound = true;
-        doc2.addEventListener('mousemove', function(e) {
-            mouseX = e.clientX; mouseY = e.clientY;
-            glow.style.opacity = '1';
-            clearTimeout(moveTimeout);
-            moveTimeout = setTimeout(() => { glow.style.opacity = '0'; }, 150);
-        }, { passive: true });
-    }
-    if (!doc2.__obCursorLeaveBound) {
-        doc2.__obCursorLeaveBound = true;
-        doc2.addEventListener('mouseleave', () => glow.style.opacity = '0');
-    }
+    doc2.addEventListener('mousemove', function(e) {
+        mouseX = e.clientX; mouseY = e.clientY;
+        glow.style.opacity = '1';
+        clearTimeout(moveTimeout);
+        moveTimeout = setTimeout(() => { glow.style.opacity = '0'; }, 150);
+    }, { passive: true });
+    doc2.addEventListener('mouseleave', () => glow.style.opacity = '0');
     
     (function animate() {
         currentX += (mouseX - currentX) * 0.08;
