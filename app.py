@@ -1255,12 +1255,13 @@ components.html("""
     
     var ctx = canvas.getContext('2d');
     var W, H;
+    var win = window.parent || window;
     function resize() {
-        W = canvas.width = window.innerWidth;
-        H = canvas.height = window.innerHeight;
+        W = canvas.width = (win.innerWidth || 1920);
+        H = canvas.height = (win.innerHeight || 1080);
     }
     resize();
-    window.addEventListener('resize', resize);
+    win.addEventListener('resize', resize);
     
     // 粒子配置 - 3层：亮星/中星/微星（增大尺寸和数量）
     var layers = [
@@ -1443,11 +1444,12 @@ components.html("""
         window.parent.document.body.appendChild(glow);
     }
     
-    let mouseX = window.innerWidth / 2, mouseY = window.innerHeight / 2;
+    let win2 = window.parent || window;
+    let mouseX = win2.innerWidth / 2, mouseY = win2.innerHeight / 2;
     let currentX = mouseX, currentY = mouseY;
     let moveTimeout;
     
-    window.parent.document.addEventListener('mousemove', function(e) {
+    window.parent.win2.document.addEventListener('mousemove', function(e) {
         mouseX = e.clientX; mouseY = e.clientY;
         glow.style.opacity = '1';
         clearTimeout(moveTimeout);
