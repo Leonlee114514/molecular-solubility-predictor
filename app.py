@@ -1243,14 +1243,14 @@ components.html("""
         return;
     }
     
-    var win = window.parent || window;
+    var win = window.top || window.parent || window;
     var doc = win.document;
     
     var canvas = doc.getElementById('ob-starfield');
     if (!canvas) {
         canvas = doc.createElement('canvas');
         canvas.id = 'ob-starfield';
-        canvas.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;z-index:1;pointer-events:none;';
+        canvas.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;pointer-events:none;';
         var app = doc.querySelector('.stApp');
         if (app) {
             app.insertBefore(canvas, app.firstChild);
@@ -1458,7 +1458,7 @@ components.html("""
         window.parent.document.body.appendChild(glow);
     }
     
-    let win2 = window.parent || window;
+    let win2 = window.top || window.parent || window;
     let doc2 = win2.document;
     let mouseX = win2.innerWidth / 2, mouseY = win2.innerHeight / 2;
     let currentX = mouseX, currentY = mouseY;
