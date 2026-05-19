@@ -1599,6 +1599,8 @@ components.html("""
 <script>
 (function() {
     'use strict';
+    var win = window.parent || window;
+    var doc = win.document;
     const DARK_BG = 'linear-gradient(135deg, #1e1e2e 0%, #0f0f17 100%)';
     const DARK_BG_COLOR = '#1e1e2e';
     const BORDER = '1px solid rgba(255, 255, 255, 0.08)';
@@ -1618,67 +1620,73 @@ components.html("""
         menu.style.color = OPTION_COLOR;
 
         // 清除内部所有 div 的白色背景
-        menu.querySelectorAll('div').forEach(function(div) {
+        var divs = menu.querySelectorAll('div');
+        for (var i = 0; i < divs.length; i++) {
+            var div = divs[i];
             div.style.background = 'transparent';
             div.style.backgroundColor = 'transparent';
             div.style.backgroundImage = 'none';
-        });
+        }
 
         // 修复选项行
-        menu.querySelectorAll('[role="option"]').forEach(function(opt) {
-            opt.style.color = OPTION_COLOR;
-            opt.style.background = 'transparent';
-            opt.style.backgroundColor = 'transparent';
-            // 鼠标悬停事件
-            opt.addEventListener('mouseenter', function() {
-                opt.style.background = HOVER_BG;
-                opt.style.backgroundColor = HOVER_BG;
-                opt.style.color = '#f0f0f5';
-            });
-            opt.addEventListener('mouseleave', function() {
+        var opts = menu.querySelectorAll('[role="option"]');
+        for (var j = 0; j < opts.length; j++) {
+            (function(opt) {
+                opt.style.color = OPTION_COLOR;
+                opt.style.background = 'transparent';
+                opt.style.backgroundColor = 'transparent';
+                opt.addEventListener('mouseenter', function() {
+                    opt.style.background = HOVER_BG;
+                    opt.style.backgroundColor = HOVER_BG;
+                    opt.style.color = '#f0f0f5';
+                });
+                opt.addEventListener('mouseleave', function() {
+                    if (opt.getAttribute('aria-selected') === 'true') {
+                        opt.style.background = SELECTED_BG;
+                        opt.style.backgroundColor = SELECTED_BG;
+                        opt.style.color = SELECTED_COLOR;
+                    } else {
+                        opt.style.background = 'transparent';
+                        opt.style.backgroundColor = 'transparent';
+                        opt.style.color = OPTION_COLOR;
+                    }
+                });
                 if (opt.getAttribute('aria-selected') === 'true') {
                     opt.style.background = SELECTED_BG;
                     opt.style.backgroundColor = SELECTED_BG;
                     opt.style.color = SELECTED_COLOR;
-                } else {
-                    opt.style.background = 'transparent';
-                    opt.style.backgroundColor = 'transparent';
-                    opt.style.color = OPTION_COLOR;
                 }
-            });
-            // 初始化选中状态
-            if (opt.getAttribute('aria-selected') === 'true') {
-                opt.style.background = SELECTED_BG;
-                opt.style.backgroundColor = SELECTED_BG;
-                opt.style.color = SELECTED_COLOR;
-            }
-        });
+            })(opts[j]);
+        }
     }
 
     function scanAndFix() {
-        document.querySelectorAll('[data-baseweb="menu"], [data-baseweb="popover"], [role="listbox"]').forEach(fixMenuStyle);
+        var menus = doc.querySelectorAll('[data-baseweb="menu"], [data-baseweb="popover"], [role="listbox"]');
+        for (var k = 0; k < menus.length; k++) {
+            fixMenuStyle(menus[k]);
+        }
     }
 
-    // 监听 DOM 变化，当下拉菜单被添加到 body 时立即修复
-    const observer = new MutationObserver(function(mutations) {
+    var observer = new MutationObserver(function(mutations) {
         var needFix = false;
-        mutations.forEach(function(m) {
-            m.addedNodes.forEach(function(node) {
+        for (var m = 0; m < mutations.length; m++) {
+            var added = mutations[m].addedNodes;
+            for (var n = 0; n < added.length; n++) {
+                var node = added[n];
                 if (node.nodeType === 1) {
                     if (node.matches && (node.matches('[data-baseweb="menu"]') || node.matches('[data-baseweb="popover"]') || node.matches('[role="listbox"]'))) {
                         needFix = true;
                     }
-                    if (node.querySelector && (node.querySelector('[data-baseweb="menu"], [data-baseweb="popover"], [role="listbox"]') != null)) {
+                    if (node.querySelector && node.querySelector('[data-baseweb="menu"], [data-baseweb="popover"], [role="listbox"]') != null) {
                         needFix = true;
                     }
                 }
-            });
-        });
+            }
+        }
         if (needFix) scanAndFix();
     });
 
-    observer.observe(document.body, { childList: true, subtree: true });
-    // 首次扫描 + 定期兜底
+    observer.observe(doc.body, { childList: true, subtree: true });
     scanAndFix();
     setInterval(scanAndFix, 300);
 })();
