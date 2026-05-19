@@ -682,15 +682,15 @@ code, pre, .mono {
     color: var(--ob-text-secondary) !important;
 }
 
-/* ─── 下拉菜单容器：全面覆盖所有可能的 DOM 层级 ─── */
-.stSelectbox ul,
-.stSelectbox [role="listbox"],
-.stSelectbox [data-baseweb="menu"],
-.stSelectbox [data-baseweb="popover"],
-.stSelectbox [data-baseweb="select"] [data-baseweb="menu"],
-.stSelectbox div[data-baseweb="menu"] > div,
-.stSelectbox div[data-baseweb="menu"] > div > div,
-.stSelectbox [data-baseweb="menu"] div[role="listbox"] {
+/* ─── 下拉菜单容器：全局强制覆盖（不局限在 .stSelectbox 内部） ─── */
+/* Streamlit 的下拉菜单位于 body 层级的 portal/overlay 中 */
+[data-baseweb="menu"],
+[data-baseweb="popover"],
+[data-baseweb="select"] [data-baseweb="menu"],
+div[data-baseweb="menu"] > div,
+div[data-baseweb="menu"] > div > div,
+[data-baseweb="menu"] div[role="listbox"],
+[role="listbox"] {
     background: linear-gradient(135deg, #1e1e2e 0%, #0f0f17 100%) !important;
     border: 1px solid rgba(255, 255, 255, 0.08) !important;
     border-radius: var(--ob-radius-sm) !important;
@@ -698,26 +698,30 @@ code, pre, .mono {
     color: var(--ob-text-secondary) !important;
 }
 
+/* 清除菜单内所有 div 的默认白色背景 */
+[data-baseweb="menu"] div,
+[role="listbox"] div {
+    background: transparent !important;
+}
+
 /* 下拉选项行 */
-.stSelectbox ul li,
-.stSelectbox [role="option"],
-.stSelectbox [data-baseweb="menu"] [role="option"],
-.stSelectbox [data-baseweb="menu"] div[role="option"] {
+[role="option"],
+[data-baseweb="menu"] [role="option"],
+[data-baseweb="menu"] div[role="option"],
+ul li[role="option"] {
     color: var(--ob-text-secondary) !important;
     background: transparent !important;
     transition: background 0.15s ease, color 0.15s ease !important;
 }
 
-.stSelectbox ul li:hover,
-.stSelectbox [role="option"]:hover,
-.stSelectbox [data-baseweb="menu"] [role="option"]:hover {
+[role="option"]:hover,
+[data-baseweb="menu"] [role="option"]:hover {
     background: rgba(124, 58, 237, 0.12) !important;
     color: var(--ob-text-primary) !important;
 }
 
-.stSelectbox ul li[aria-selected="true"],
-.stSelectbox [aria-selected="true"],
-.stSelectbox [data-baseweb="menu"] [aria-selected="true"] {
+[aria-selected="true"],
+[data-baseweb="menu"] [aria-selected="true"] {
     background: rgba(124, 58, 237, 0.18) !important;
     color: var(--ob-nebula-light) !important;
     font-weight: 600 !important;
