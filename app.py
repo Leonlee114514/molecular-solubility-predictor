@@ -1323,7 +1323,7 @@ components.html("""
         bgGrad.addColorStop(0.7, '#131328');
         bgGrad.addColorStop(1, '#0f0f1c');
         ctx.fillStyle = bgGrad;
-        ctx.fillRect(0, 0, W, H);
+        ctx.clearRect(0, 0, W, H);
 
         // 绘制星云光晕
         var nebulas = [
