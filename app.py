@@ -355,7 +355,6 @@ html, body,
     content: '';
     position: fixed;
     top: 0; left: 0; right: 0; bottom: 0;
-    z-index: -1;
     background-image:
         /* === 大亮点（紫/青/金，模拟亮星）=== */
         radial-gradient(3.5px 3.5px at 8% 12%, rgba(196, 181, 253, 1.0), transparent),
@@ -419,7 +418,6 @@ html, body,
     content: '';
     position: fixed;
     top: 0; left: 0; right: 0; bottom: 0;
-    z-index: 0;
     background:
         /* 主星云：紫色弥散光（左上区域） */
         radial-gradient(ellipse 65% 50% at 25% 35%, rgba(124, 58, 237, 0.35) 0%, rgba(76, 29, 149, 0.15) 35%, transparent 65%),
@@ -1252,7 +1250,7 @@ components.html("""
     if (!canvas) {
         canvas = doc.createElement('canvas');
         canvas.id = 'ob-starfield';
-        canvas.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:0;pointer-events:none;';
+        canvas.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;z-index:1;pointer-events:none;';
         var app = doc.querySelector('.stApp');
         if (app) {
             app.insertBefore(canvas, app.firstChild);
