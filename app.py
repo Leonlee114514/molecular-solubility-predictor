@@ -1250,7 +1250,7 @@ components.html("""
     if (!canvas) {
         canvas = doc.createElement('canvas');
         canvas.id = 'ob-starfield';
-        canvas.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;pointer-events:none;';
+        canvas.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;z-index:1;pointer-events:none;';
         var app = doc.querySelector('.stApp');
         if (app) {
             app.insertBefore(canvas, app.firstChild);
@@ -1323,7 +1323,7 @@ components.html("""
         bgGrad.addColorStop(0.7, '#131328');
         bgGrad.addColorStop(1, '#0f0f1c');
         ctx.fillStyle = bgGrad;
-        ctx.fillRect(0, 0, W, H);
+        ctx.clearRect(0, 0, W, H);
 
         // 绘制星云光晕
         var nebulas = [
