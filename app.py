@@ -348,6 +348,7 @@ html, body,
     background-color: transparent !important;
     position: relative;
     min-height: 100vh;
+    z-index: 0; /* 创建层叠上下文，使 ::before/::after 的 z-index:-1 位于 .stApp 背景之下而非 html 之下 */
 }
 
 /* 粒子星空层 - 密集多层 */
