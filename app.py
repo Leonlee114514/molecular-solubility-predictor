@@ -684,45 +684,55 @@ code, pre, .mono {
 
 /* ─── 下拉菜单容器：全局强制覆盖（不局限在 .stSelectbox 内部） ─── */
 /* Streamlit 的下拉菜单位于 body 层级的 portal/overlay 中 */
-[data-baseweb="menu"],
-[data-baseweb="popover"],
-[data-baseweb="select"] [data-baseweb="menu"],
-div[data-baseweb="menu"] > div,
-div[data-baseweb="menu"] > div > div,
-[data-baseweb="menu"] div[role="listbox"],
-[role="listbox"] {
+html body [data-baseweb="menu"],
+html body [data-baseweb="popover"],
+html body [data-baseweb="select"] [data-baseweb="menu"],
+html body div[data-baseweb="menu"] > div,
+html body div[data-baseweb="menu"] > div > div,
+html body [data-baseweb="menu"] div[role="listbox"],
+html body [role="listbox"] {
     background: linear-gradient(135deg, #1e1e2e 0%, #0f0f17 100%) !important;
+    background-color: #1e1e2e !important;
     border: 1px solid rgba(255, 255, 255, 0.08) !important;
     border-radius: var(--ob-radius-sm) !important;
     box-shadow: 0 10px 30px -5px rgba(0,0,0,0.4) !important;
     color: var(--ob-text-secondary) !important;
 }
 
-/* 清除菜单内所有 div 的默认白色背景 */
-[data-baseweb="menu"] div,
-[role="listbox"] div {
+/* 清除菜单内所有 div 的默认白色背景（最高特异性） */
+html body [data-baseweb="menu"] div,
+html body [role="listbox"] div,
+html body [data-baseweb="menu"] > div > div,
+html body [data-baseweb="menu"] > div > div > div,
+html body [data-baseweb="menu"] [role="listbox"] div,
+html body [data-baseweb="menu"] [role="listbox"] > div {
     background: transparent !important;
+    background-color: transparent !important;
+    background-image: none !important;
 }
 
 /* 下拉选项行 */
-[role="option"],
-[data-baseweb="menu"] [role="option"],
-[data-baseweb="menu"] div[role="option"],
-ul li[role="option"] {
+html body [role="option"],
+html body [data-baseweb="menu"] [role="option"],
+html body [data-baseweb="menu"] div[role="option"],
+html body ul li[role="option"] {
     color: var(--ob-text-secondary) !important;
     background: transparent !important;
+    background-color: transparent !important;
     transition: background 0.15s ease, color 0.15s ease !important;
 }
 
-[role="option"]:hover,
-[data-baseweb="menu"] [role="option"]:hover {
+html body [role="option"]:hover,
+html body [data-baseweb="menu"] [role="option"]:hover {
     background: rgba(124, 58, 237, 0.12) !important;
+    background-color: rgba(124, 58, 237, 0.12) !important;
     color: var(--ob-text-primary) !important;
 }
 
-[aria-selected="true"],
-[data-baseweb="menu"] [aria-selected="true"] {
+html body [aria-selected="true"],
+html body [data-baseweb="menu"] [aria-selected="true"] {
     background: rgba(124, 58, 237, 0.18) !important;
+    background-color: rgba(124, 58, 237, 0.18) !important;
     color: var(--ob-nebula-light) !important;
     font-weight: 600 !important;
 }
@@ -1580,6 +1590,97 @@ components.html("""
         style.textContent = '@keyframes rippleAnim { 0% { transform: scale(0); opacity: 1; } 100% { transform: scale(4); opacity: 0; } }';
         window.parent.document.head.appendChild(style);
     }
+})();
+</script>
+""", height=0)
+
+# ========== 下拉菜单深色主题强制修复（JS 直接覆盖 inline style）==========
+components.html("""
+<script>
+(function() {
+    'use strict';
+    const DARK_BG = 'linear-gradient(135deg, #1e1e2e 0%, #0f0f17 100%)';
+    const DARK_BG_COLOR = '#1e1e2e';
+    const BORDER = '1px solid rgba(255, 255, 255, 0.08)';
+    const OPTION_COLOR = '#a0a0b0';
+    const HOVER_BG = 'rgba(124, 58, 237, 0.12)';
+    const SELECTED_BG = 'rgba(124, 58, 237, 0.18)';
+    const SELECTED_COLOR = '#a78bfa';
+
+    function fixMenuStyle(menu) {
+        if (menu.dataset.obFixed) return;
+        menu.dataset.obFixed = '1';
+        menu.style.background = DARK_BG;
+        menu.style.backgroundColor = DARK_BG_COLOR;
+        menu.style.border = BORDER;
+        menu.style.borderRadius = '12px';
+        menu.style.boxShadow = '0 10px 30px -5px rgba(0,0,0,0.4)';
+        menu.style.color = OPTION_COLOR;
+
+        // 清除内部所有 div 的白色背景
+        menu.querySelectorAll('div').forEach(function(div) {
+            div.style.background = 'transparent';
+            div.style.backgroundColor = 'transparent';
+            div.style.backgroundImage = 'none';
+        });
+
+        // 修复选项行
+        menu.querySelectorAll('[role="option"]').forEach(function(opt) {
+            opt.style.color = OPTION_COLOR;
+            opt.style.background = 'transparent';
+            opt.style.backgroundColor = 'transparent';
+            // 鼠标悬停事件
+            opt.addEventListener('mouseenter', function() {
+                opt.style.background = HOVER_BG;
+                opt.style.backgroundColor = HOVER_BG;
+                opt.style.color = '#f0f0f5';
+            });
+            opt.addEventListener('mouseleave', function() {
+                if (opt.getAttribute('aria-selected') === 'true') {
+                    opt.style.background = SELECTED_BG;
+                    opt.style.backgroundColor = SELECTED_BG;
+                    opt.style.color = SELECTED_COLOR;
+                } else {
+                    opt.style.background = 'transparent';
+                    opt.style.backgroundColor = 'transparent';
+                    opt.style.color = OPTION_COLOR;
+                }
+            });
+            // 初始化选中状态
+            if (opt.getAttribute('aria-selected') === 'true') {
+                opt.style.background = SELECTED_BG;
+                opt.style.backgroundColor = SELECTED_BG;
+                opt.style.color = SELECTED_COLOR;
+            }
+        });
+    }
+
+    function scanAndFix() {
+        document.querySelectorAll('[data-baseweb="menu"], [data-baseweb="popover"], [role="listbox"]').forEach(fixMenuStyle);
+    }
+
+    // 监听 DOM 变化，当下拉菜单被添加到 body 时立即修复
+    const observer = new MutationObserver(function(mutations) {
+        var needFix = false;
+        mutations.forEach(function(m) {
+            m.addedNodes.forEach(function(node) {
+                if (node.nodeType === 1) {
+                    if (node.matches && (node.matches('[data-baseweb="menu"]') || node.matches('[data-baseweb="popover"]') || node.matches('[role="listbox"]'))) {
+                        needFix = true;
+                    }
+                    if (node.querySelector && (node.querySelector('[data-baseweb="menu"], [data-baseweb="popover"], [role="listbox"]') != null)) {
+                        needFix = true;
+                    }
+                }
+            });
+        });
+        if (needFix) scanAndFix();
+    });
+
+    observer.observe(document.body, { childList: true, subtree: true });
+    // 首次扫描 + 定期兜底
+    scanAndFix();
+    setInterval(scanAndFix, 300);
 })();
 </script>
 """, height=0)
