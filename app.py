@@ -682,28 +682,42 @@ code, pre, .mono {
     color: var(--ob-text-secondary) !important;
 }
 
+/* ─── 下拉菜单容器：全面覆盖所有可能的 DOM 层级 ─── */
 .stSelectbox ul,
-.stSelectbox [role="listbox"] {
+.stSelectbox [role="listbox"],
+.stSelectbox [data-baseweb="menu"],
+.stSelectbox [data-baseweb="popover"],
+.stSelectbox [data-baseweb="select"] [data-baseweb="menu"],
+.stSelectbox div[data-baseweb="menu"] > div,
+.stSelectbox div[data-baseweb="menu"] > div > div,
+.stSelectbox [data-baseweb="menu"] div[role="listbox"] {
     background: linear-gradient(135deg, #1e1e2e 0%, #0f0f17 100%) !important;
     border: 1px solid rgba(255, 255, 255, 0.08) !important;
     border-radius: var(--ob-radius-sm) !important;
     box-shadow: 0 10px 30px -5px rgba(0,0,0,0.4) !important;
+    color: var(--ob-text-secondary) !important;
 }
 
+/* 下拉选项行 */
 .stSelectbox ul li,
-.stSelectbox [role="option"] {
+.stSelectbox [role="option"],
+.stSelectbox [data-baseweb="menu"] [role="option"],
+.stSelectbox [data-baseweb="menu"] div[role="option"] {
     color: var(--ob-text-secondary) !important;
+    background: transparent !important;
     transition: background 0.15s ease, color 0.15s ease !important;
 }
 
 .stSelectbox ul li:hover,
-.stSelectbox [role="option"]:hover {
+.stSelectbox [role="option"]:hover,
+.stSelectbox [data-baseweb="menu"] [role="option"]:hover {
     background: rgba(124, 58, 237, 0.12) !important;
     color: var(--ob-text-primary) !important;
 }
 
 .stSelectbox ul li[aria-selected="true"],
-.stSelectbox [aria-selected="true"] {
+.stSelectbox [aria-selected="true"],
+.stSelectbox [data-baseweb="menu"] [aria-selected="true"] {
     background: rgba(124, 58, 237, 0.18) !important;
     color: var(--ob-nebula-light) !important;
     font-weight: 600 !important;
