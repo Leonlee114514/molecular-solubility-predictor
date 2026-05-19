@@ -615,6 +615,19 @@ code, pre, .mono {
 }
 
 /* ─── 6. 输入框 ─── */
+/* 先彻底清除所有外层容器的默认白边/灰边 */
+.stTextInput > div,
+.stTextInput > div > div,
+.stTextInput [data-baseweb="input"],
+.stTextInput [data-baseweb="input"] > div,
+.stTextInput [data-baseweb="input"] > div > div,
+.stTextInput [data-testid="stTextInput"] > div {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+}
+
+/* 真正的 input 输入框样式（与 selectbox 统一） */
 .stTextInput > div > div > input,
 .stTextInput > div > div > textarea,
 .stTextInput [data-baseweb="input"] > div,
