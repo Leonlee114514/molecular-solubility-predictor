@@ -1220,12 +1220,11 @@ footer {visibility: hidden;}
     width: 300px;
     height: 300px;
     border-radius: 50%;
-    background: radial-gradient(circle, rgba(124, 58, 237, 0.08) 0%, transparent 70%);
+    background: radial-gradient(circle, rgba(124, 58, 237, 0.22) 0%, rgba(124, 58, 237, 0.08) 40%, transparent 70%);
     pointer-events: none;
     z-index: 9999;
     transform: translate3d(-50%, -50%, 0);
     transition: opacity 0.3s ease;
-    mix-blend-mode: screen;
     will-change: transform;
 }
 </style>
@@ -1236,32 +1235,52 @@ components.html("""
 <script>
 (function() {
     'use strict';
-    // 检查是否偏好减弱动画
-    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    console.log('[Orbita] Starfield script loaded');
     
-    var canvas = window.parent.document.getElementById('ob-starfield');
+    // 检查是否偏好减弱动画
+    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        console.log('[Orbita] prefers-reduced-motion is enabled, skipping starfield');
+        return;
+    }
+    
+    var win = window.parent || window;
+    var doc = win.document;
+    
+    var canvas = doc.getElementById('ob-starfield');
     if (!canvas) {
-        canvas = window.parent.document.createElement('canvas');
+        canvas = doc.createElement('canvas');
         canvas.id = 'ob-starfield';
-        canvas.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;pointer-events:none;';
-        // 插入到 .stApp 内部作为第一个子元素，确保在 App 背景之上、内容之下
-        var app = window.parent.document.querySelector('.stApp');
+        canvas.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;z-index:1;pointer-events:none;';
+        var app = doc.querySelector('.stApp');
         if (app) {
             app.insertBefore(canvas, app.firstChild);
         } else {
-            window.parent.document.body.insertBefore(canvas, window.parent.document.body.firstChild);
+            doc.body.insertBefore(canvas, doc.body.firstChild);
         }
+        console.log('[Orbita] Starfield canvas created');
+    } else {
+        console.log('[Orbita] Starfield canvas already exists, reusing');
     }
     
     var ctx = canvas.getContext('2d');
     var W, H;
-    var win = window.parent || window;
     function resize() {
         W = canvas.width = (win.innerWidth || 1920);
         H = canvas.height = (win.innerHeight || 1080);
     }
     resize();
     win.addEventListener('resize', resize);
+    console.log('[Orbita] Canvas size: ' + W + 'x' + H);
+    
+    // 防止事件重复绑定
+    if (!doc.__obStarMouseBound) {
+        doc.__obStarMouseBound = true;
+        doc.addEventListener('mousemove', function(e) {
+            mouseStarX = e.clientX; mouseStarY = e.clientY;
+            mouseTrail.push({x: e.clientX, y: e.clientY, age: 0});
+            if (mouseTrail.length > maxTrail) mouseTrail.shift();
+        }, { passive: true });
+    }
     
     // 粒子配置 - 3层：亮星/中星/微星（增大尺寸和数量）
     var layers = [
@@ -1293,11 +1312,6 @@ components.html("""
     var mouseStarX = W / 2, mouseStarY = H / 2;
     var mouseTrail = [];
     var maxTrail = 20;
-    window.parent.document.addEventListener('mousemove', function(e) {
-        mouseStarX = e.clientX; mouseStarY = e.clientY;
-        mouseTrail.push({x: e.clientX, y: e.clientY, age: 0});
-        if (mouseTrail.length > maxTrail) mouseTrail.shift();
-    }, { passive: true });
     
     var frame = 0;
     function animate() {
@@ -1445,17 +1459,26 @@ components.html("""
     }
     
     let win2 = window.parent || window;
+    let doc2 = win2.document;
     let mouseX = win2.innerWidth / 2, mouseY = win2.innerHeight / 2;
     let currentX = mouseX, currentY = mouseY;
     let moveTimeout;
     
-    window.parent.win2.document.addEventListener('mousemove', function(e) {
-        mouseX = e.clientX; mouseY = e.clientY;
-        glow.style.opacity = '1';
-        clearTimeout(moveTimeout);
-        moveTimeout = setTimeout(() => { glow.style.opacity = '0'; }, 150);
-    }, { passive: true });
-    window.parent.document.addEventListener('mouseleave', () => glow.style.opacity = '0');
+    console.log('[Orbita] Cursor glow script loaded, win size: ' + win2.innerWidth + 'x' + win2.innerHeight);
+    
+    if (!doc2.__obGlowMouseBound) {
+        doc2.__obGlowMouseBound = true;
+        doc2.addEventListener('mousemove', function(e) {
+            mouseX = e.clientX; mouseY = e.clientY;
+            glow.style.opacity = '1';
+            clearTimeout(moveTimeout);
+            moveTimeout = setTimeout(() => { glow.style.opacity = '0'; }, 150);
+        }, { passive: true });
+    }
+    if (!doc2.__obCursorLeaveBound) {
+        doc2.__obCursorLeaveBound = true;
+        doc2.addEventListener('mouseleave', () => glow.style.opacity = '0');
+    }
     
     (function animate() {
         currentX += (mouseX - currentX) * 0.08;
@@ -1463,6 +1486,7 @@ components.html("""
         glow.style.transform = 'translate3d(' + (currentX - 150) + 'px, ' + (currentY - 150) + 'px, 0)';
         requestAnimationFrame(animate);
     })();
+    console.log('[Orbita] Cursor glow initialized at ' + currentX + ',' + currentY);
     
     // 卡片 3D tilt 效果（更克制的角度，避免与CSS hover冲突）
     function bindTilt() {
