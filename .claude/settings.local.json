@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -m py_compile app.py)",
+      "Bash(python -m py_compile pubchem_final.py)",
+      "Bash(python *)"
+    ]
+  }
+}

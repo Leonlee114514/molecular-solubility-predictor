@@ -184,14 +184,14 @@ def load_cache():
         try:
             with open(CACHE_FILE, "r", encoding="utf-8") as f:
                 pubchem_cache = json.load(f)
-        except:
+        except (json.JSONDecodeError, OSError, IOError):
             pubchem_cache = {}
 
 def save_cache():
     try:
         with open(CACHE_FILE, "w", encoding="utf-8") as f:
             json.dump(pubchem_cache, f, ensure_ascii=False, indent=2)
-    except:
+    except (OSError, IOError):
         pass
 
 load_cache()
@@ -274,8 +274,7 @@ st.markdown("""
    ORBITA THEME: Deep Space Molecular Universe
    ═══════════════════════════════════════════════ */
 
-@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Inter:wght@300;400;500;600;700&display=swap');
-
+/* Google Fonts removed — system font stack for China accessibility */
 /* ─── 0. 粒子背景动画 ─── */
 @keyframes nebulaPulse {
     0%, 100% { opacity: 0.3; transform: scale(1); }
@@ -348,7 +347,7 @@ html, body,
 [data-testid="stAppViewContainer"] > .stApp {
     background: var(--ob-bg-primary) !important;
     background-color: var(--ob-bg-primary) !important;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
+    font-family: 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, sans-serif !important;
     -webkit-font-smoothing: antialiased;
     color: var(--ob-text-primary);
 }
@@ -452,12 +451,12 @@ html, body,
 }
 
 code, pre, .mono {
-    font-family: 'JetBrains Mono', 'Fira Code', monospace !important;
+    font-family: 'Cascadia Code', 'Consolas', 'Menlo', monospace !important;
 }
 
 /* ─── 3. 排版 ─── */
 .gradient-title {
-    font-family: 'Space Grotesk', sans-serif !important;
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif !important;
     font-weight: 700;
     font-size: clamp(2.2rem, 5vw, 3.2rem);
     text-align: center;
@@ -480,13 +479,13 @@ code, pre, .mono {
     font-weight: 400;
     line-height: 1.5;
     margin-bottom: 2rem;
-    font-family: 'Inter', sans-serif;
+    font-family: 'Segoe UI', system-ui, sans-serif;
     letter-spacing: 0.02em;
 }
 
 .tagline {
     text-align: center;
-    font-family: 'JetBrains Mono', monospace !important;
+    font-family: 'Cascadia Code', 'Consolas', monospace !important;
     font-size: 0.75rem;
     color: var(--ob-nebula-light);
     letter-spacing: 0.15em;
@@ -495,7 +494,7 @@ code, pre, .mono {
 }
 
 .card-title {
-    font-family: 'Space Grotesk', sans-serif !important;
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif !important;
     color: var(--ob-text-primary);
     font-size: 1.125rem;
     font-weight: 600;
@@ -582,7 +581,7 @@ code, pre, .mono {
     border: none !important;
     border-radius: var(--ob-radius-sm) !important;
     padding: 0.75rem 1.5rem !important;
-    font-family: 'Space Grotesk', sans-serif !important;
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif !important;
     font-size: 0.9375rem !important;
     font-weight: 600 !important;
     letter-spacing: 0.01em !important;
@@ -650,7 +649,7 @@ code, pre, .mono {
     color: var(--ob-text-primary) !important;
     box-shadow: inset 0 1px 3px rgba(0,0,0,0.2) !important;
     transition: border-color 0.15s ease, box-shadow 0.15s ease !important;
-    font-family: 'JetBrains Mono', monospace !important;
+    font-family: 'Cascadia Code', 'Consolas', monospace !important;
 }
 
 .stTextInput > div > div > input::placeholder,
@@ -750,22 +749,6 @@ html body div[role="listbox"] [aria-selected="true"] {
     font-weight: 600 !important;
 }
 
-/* ─── 备用：若 Base Web 下拉菜单仍显示白底，强制选项文字为深色以确保可读 ─── */
-body [data-baseweb="menu"] [role="option"],
-body div[role="listbox"] [role="option"],
-body ul[role="listbox"] li {
-    color: #1a1a2e !important;
-}
-body [data-baseweb="menu"] [role="option"]:hover,
-body div[role="listbox"] [role="option"]:hover {
-    color: #7c3aed !important;
-}
-body [data-baseweb="menu"] [aria-selected="true"],
-body div[role="listbox"] [aria-selected="true"] {
-    color: #7c3aed !important;
-    font-weight: 600 !important;
-}
-
 /* ─── 7. Metric ─── */
 [data-testid="stMetric"] {
     background: linear-gradient(135deg, rgba(30, 30, 46, 0.55) 0%, rgba(15, 15, 25, 0.4) 100%);
@@ -783,7 +766,7 @@ body div[role="listbox"] [aria-selected="true"] {
 }
 
 [data-testid="stMetricValue"] {
-    font-family: 'JetBrains Mono', monospace !important;
+    font-family: 'Cascadia Code', 'Consolas', monospace !important;
     font-size: 1.85rem !important;
     font-weight: 700 !important;
     letter-spacing: -0.02em;
@@ -795,7 +778,7 @@ body div[role="listbox"] [aria-selected="true"] {
 }
 
 [data-testid="stMetricLabel"] {
-    font-family: 'JetBrains Mono', monospace !important;
+    font-family: 'Cascadia Code', 'Consolas', monospace !important;
     font-size: 0.7rem !important;
     color: var(--ob-text-tertiary) !important;
     font-weight: 500 !important;
@@ -943,7 +926,7 @@ body div[role="listbox"] [aria-selected="true"] {
     position: relative;
     overflow: hidden;
     animation: molecularDiffuse 0.25s ease both;
-    font-family: 'Inter', sans-serif !important;
+    font-family: 'Segoe UI', system-ui, sans-serif !important;
 }
 
 .stAlert::before {
@@ -1006,7 +989,7 @@ body div[role="listbox"] [aria-selected="true"] {
 .stTabs [data-baseweb="tab"] {
     border-radius: 12px 12px 0 0 !important;
     padding: 0.5rem 1rem !important;
-    font-family: 'Space Grotesk', sans-serif !important;
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif !important;
     font-weight: 500 !important;
     font-size: 0.875rem !important;
     color: var(--ob-text-secondary) !important;
@@ -1128,7 +1111,7 @@ hr::after {
     border-top: 1px solid var(--ob-border);
     margin-top: 3rem;
     position: relative;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: 'Cascadia Code', 'Consolas', monospace;
 }
 .footer::before {
     content: '';
@@ -1173,7 +1156,7 @@ hr::after {
     align-items: center;
     padding: 0.25rem 0.5rem;
     border-radius: 6px;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: 'Cascadia Code', 'Consolas', monospace;
     font-size: 0.7rem;
     font-weight: 500;
     letter-spacing: 0.04em;
@@ -1223,7 +1206,7 @@ hr::after {
 .stCaption {
     color: var(--ob-text-tertiary) !important;
     font-size: 0.8125rem !important;
-    font-family: 'JetBrains Mono', monospace !important;
+    font-family: 'Cascadia Code', 'Consolas', monospace !important;
 }
 
 /* st.container(border=True) */
@@ -1354,7 +1337,7 @@ footer {visibility: hidden;}
 
 """, unsafe_allow_html=True)
 
-# ========== JS 强制覆盖下拉菜单样式（components.html iframe → parent）==========
+# ========== JS 强制覆盖下拉菜单样式（合并优化版，无轮询）==========
 components.html("""
 <script>
 (function() {
@@ -1363,45 +1346,92 @@ components.html("""
     var doc = win.document;
     if (!doc || !doc.body) return;
 
-    var DARK = '#1a1a2e';
+    var DARK_BG = '#1a1a2e';
     var TEXT = '#e0e0e0';
-    var SELECTED = 'rgba(124,58,237,0.35)';
+    var HOVER_BG = 'rgba(124, 58, 237, 0.25)';
+    var SELECTED_BG = 'rgba(124, 58, 237, 0.35)';
+    var SELECTED_COLOR = '#ffffff';
+    var fixedMenus = new WeakSet();
 
-    function fix() {
-        // 尝试多种可能的选择器
-        var selectors = ['[data-baseweb="menu"]', '[data-baseweb="popover"]', 'div[role="listbox"]', 'ul[role="listbox"]'];
-        selectors.forEach(function(sel) {
-            var menus = doc.querySelectorAll(sel);
-            menus.forEach(function(menu) {
-                menu.style.backgroundColor = DARK;
-                var opts = menu.querySelectorAll('[role="option"]');
-                opts.forEach(function(o) {
-                    o.style.backgroundColor = 'transparent';
-                    o.style.color = TEXT;
-                    if (o.getAttribute('aria-selected') === 'true') {
-                        o.style.backgroundColor = SELECTED;
-                        o.style.color = '#ffffff';
-                    }
-                });
-                var lbs = menu.querySelectorAll('[role="listbox"]');
-                lbs.forEach(function(lb) {
-                    lb.style.backgroundColor = DARK;
-                });
+    function applyMenuStyle(menu) {
+        if (fixedMenus.has(menu)) return;
+        fixedMenus.add(menu);
+        menu.style.background = DARK_BG;
+        menu.style.backgroundColor = DARK_BG;
+        menu.style.border = '1px solid rgba(255, 255, 255, 0.08)';
+        menu.style.borderRadius = '12px';
+        menu.style.boxShadow = '0 10px 30px -5px rgba(0,0,0,0.4)';
+        menu.style.color = TEXT;
+    }
+
+    function fixAllMenus() {
+        var menus = doc.querySelectorAll('[data-baseweb="menu"], [data-baseweb="popover"], [role="listbox"]');
+        menus.forEach(function(menu) {
+            applyMenuStyle(menu);
+            // clean inner divs
+            var divs = menu.querySelectorAll('div');
+            for (var i = 0; i < divs.length; i++) {
+                divs[i].style.background = 'transparent';
+                divs[i].style.backgroundColor = 'transparent';
+                divs[i].style.backgroundImage = 'none';
+            }
+            // fix option rows
+            var opts = menu.querySelectorAll('[role="option"]');
+            opts.forEach(function(opt) {
+                opt.style.color = TEXT;
+                opt.style.background = 'transparent';
+                opt.style.backgroundColor = 'transparent';
+                if (opt.getAttribute('aria-selected') === 'true') {
+                    opt.style.background = SELECTED_BG;
+                    opt.style.backgroundColor = SELECTED_BG;
+                    opt.style.color = SELECTED_COLOR;
+                    opt.style.fontWeight = '600';
+                }
+                if (!opt.dataset.obHover) {
+                    opt.dataset.obHover = '1';
+                    opt.addEventListener('mouseenter', function() {
+                        if (opt.getAttribute('aria-selected') !== 'true') {
+                            opt.style.background = HOVER_BG;
+                            opt.style.backgroundColor = HOVER_BG;
+                            opt.style.color = '#ffffff';
+                        }
+                    });
+                    opt.addEventListener('mouseleave', function() {
+                        if (opt.getAttribute('aria-selected') !== 'true') {
+                            opt.style.background = 'transparent';
+                            opt.style.backgroundColor = 'transparent';
+                            opt.style.color = TEXT;
+                        }
+                    });
+                }
             });
         });
     }
 
-    var obs = new MutationObserver(function() {
-        [50, 100, 200, 400, 800].forEach(function(t){ setTimeout(fix, t); });
-    });
-    obs.observe(doc.documentElement || doc.body, { childList: true, subtree: true });
+    var pending = false;
+    function scheduleFix() {
+        if (pending) return;
+        pending = true;
+        requestAnimationFrame(function() {
+            pending = false;
+            fixAllMenus();
+        });
+    }
 
-    doc.body.addEventListener('click', function() {
-        [50, 150, 300, 600, 1000, 1500].forEach(function(t){ setTimeout(fix, t); });
+    var observer = new MutationObserver(function(mutations) {
+        for (var m = 0; m < mutations.length; m++) {
+            var added = mutations[m].addedNodes;
+            for (var n = 0; n < added.length; n++) {
+                if (added[n].nodeType === 1) {
+                    scheduleFix();
+                    break;
+                }
+            }
+        }
     });
-
-    setInterval(fix, 200);
-    fix();
+    observer.observe(doc.documentElement || doc.body, { childList: true, subtree: true });
+    doc.body.addEventListener('click', function() { setTimeout(fixAllMenus, 100); });
+    fixAllMenus();
 })();
 </script>
 """, height=0)
@@ -1458,11 +1488,11 @@ components.html("""
         }, { passive: true });
     }
     
-    // 粒子配置 - 3层：亮星/中星/微星（增大尺寸和数量）
+    // 粒子配置 - 3层（优化数量：从380减至200）
     var layers = [
-        { count: 80, minR: 1.8, maxR: 3.5, speed: 0.08, colors: ['rgba(196,181,253,', 'rgba(103,232,249,', 'rgba(233,213,255,', 'rgba(255,255,255,'] },
-        { count: 120, minR: 1.0, maxR: 2.2, speed: 0.04, colors: ['rgba(167,139,250,', 'rgba(34,211,238,', 'rgba(139,92,246,', 'rgba(253,224,71,'] },
-        { count: 180, minR: 0.5, maxR: 1.2, speed: 0.02, colors: ['rgba(196,181,253,', 'rgba(103,232,249,', 'rgba(255,255,255,'] }
+        { count: 50, minR: 1.8, maxR: 3.5, speed: 0.08, colors: ['rgba(196,181,253,', 'rgba(103,232,249,', 'rgba(233,213,255,', 'rgba(255,255,255,'] },
+        { count: 70, minR: 1.0, maxR: 2.2, speed: 0.04, colors: ['rgba(167,139,250,', 'rgba(34,211,238,', 'rgba(139,92,246,', 'rgba(253,224,71,'] },
+        { count: 80, minR: 0.5, maxR: 1.2, speed: 0.02, colors: ['rgba(196,181,253,', 'rgba(103,232,249,', 'rgba(255,255,255,'] }
     ];
     
     var stars = [];
@@ -1521,22 +1551,27 @@ components.html("""
 
         frame++;
         
-        // 鼠标附近星星连线网络（所有层）
-        for (var i = 0; i < stars.length; i++) {
+        // 鼠标附近星星连线网络（限制范围，仅检查亮星和中星层）
+        var lineCount = 0;
+        var maxLines = 30;
+        for (var i = 0; i < stars.length && lineCount < maxLines; i++) {
             var dmx = stars[i].x - mouseStarX, dmy = stars[i].y - mouseStarY;
             var dMouse = Math.sqrt(dmx*dmx + dmy*dmy);
-            if (dMouse > 280) continue;
-            for (var j = i + 1; j < stars.length; j++) {
+            if (dMouse > 200) continue;
+            // 只与有限数量的邻居连线
+            for (var j = i + 1; j < stars.length && lineCount < maxLines; j++) {
+                if (stars[j].layer > 1) continue; // 跳过微星层
                 var dx = stars[i].x - stars[j].x, dy = stars[i].y - stars[j].y;
                 var dist = Math.sqrt(dx*dx + dy*dy);
-                if (dist < 180) {
-                    var lineAlpha = 0.12 * (1 - dist/180) * (1 - dMouse/280);
+                if (dist < 120) {
+                    var lineAlpha = 0.1 * (1 - dist/120) * (1 - dMouse/200);
                     ctx.beginPath();
                     ctx.moveTo(stars[i].x, stars[i].y);
                     ctx.lineTo(stars[j].x, stars[j].y);
                     ctx.strokeStyle = 'rgba(167,139,250,' + lineAlpha + ')';
-                    ctx.lineWidth = 0.8;
+                    ctx.lineWidth = 0.6;
                     ctx.stroke();
+                    lineCount++;
                 }
             }
         }
@@ -1615,9 +1650,19 @@ components.html("""
         ctx.fillStyle = mGlow;
         ctx.fill();
         
-        requestAnimationFrame(animate);
+        animFrameId = requestAnimationFrame(animate);
     }
-    animate();
+
+    var animFrameId = requestAnimationFrame(animate);
+
+    // 页面不可见时暂停动画，节省 CPU
+    document.addEventListener('visibilitychange', function() {
+        if (document.hidden) {
+            if (animFrameId) { cancelAnimationFrame(animFrameId); animFrameId = null; }
+        } else {
+            if (!animFrameId) animFrameId = requestAnimationFrame(animate);
+        }
+    });
 })();
 </script>
 """, height=0)
@@ -1729,105 +1774,6 @@ components.html("""
 </script>
 """, height=0)
 
-# ========== 下拉菜单深色主题强制修复（JS 直接覆盖 inline style）==========
-components.html("""
-<script>
-(function() {
-    'use strict';
-    var win = window.parent || window;
-    var doc = win.document;
-    const DARK_BG = 'linear-gradient(135deg, #1e1e2e 0%, #0f0f17 100%)';
-    const DARK_BG_COLOR = '#1e1e2e';
-    const BORDER = '1px solid rgba(255, 255, 255, 0.08)';
-    const OPTION_COLOR = '#a0a0b0';
-    const HOVER_BG = 'rgba(124, 58, 237, 0.12)';
-    const SELECTED_BG = 'rgba(124, 58, 237, 0.18)';
-    const SELECTED_COLOR = '#a78bfa';
-
-    function fixMenuStyle(menu) {
-        if (menu.dataset.obFixed) return;
-        menu.dataset.obFixed = '1';
-        menu.style.background = DARK_BG;
-        menu.style.backgroundColor = DARK_BG_COLOR;
-        menu.style.border = BORDER;
-        menu.style.borderRadius = '12px';
-        menu.style.boxShadow = '0 10px 30px -5px rgba(0,0,0,0.4)';
-        menu.style.color = OPTION_COLOR;
-
-        // 清除内部所有 div 的白色背景
-        var divs = menu.querySelectorAll('div');
-        for (var i = 0; i < divs.length; i++) {
-            var div = divs[i];
-            div.style.background = 'transparent';
-            div.style.backgroundColor = 'transparent';
-            div.style.backgroundImage = 'none';
-        }
-
-        // 修复选项行
-        var opts = menu.querySelectorAll('[role="option"]');
-        for (var j = 0; j < opts.length; j++) {
-            (function(opt) {
-                opt.style.color = OPTION_COLOR;
-                opt.style.background = 'transparent';
-                opt.style.backgroundColor = 'transparent';
-                opt.addEventListener('mouseenter', function() {
-                    opt.style.background = HOVER_BG;
-                    opt.style.backgroundColor = HOVER_BG;
-                    opt.style.color = '#f0f0f5';
-                });
-                opt.addEventListener('mouseleave', function() {
-                    if (opt.getAttribute('aria-selected') === 'true') {
-                        opt.style.background = SELECTED_BG;
-                        opt.style.backgroundColor = SELECTED_BG;
-                        opt.style.color = SELECTED_COLOR;
-                    } else {
-                        opt.style.background = 'transparent';
-                        opt.style.backgroundColor = 'transparent';
-                        opt.style.color = OPTION_COLOR;
-                    }
-                });
-                if (opt.getAttribute('aria-selected') === 'true') {
-                    opt.style.background = SELECTED_BG;
-                    opt.style.backgroundColor = SELECTED_BG;
-                    opt.style.color = SELECTED_COLOR;
-                }
-            })(opts[j]);
-        }
-    }
-
-    function scanAndFix() {
-        var menus = doc.querySelectorAll('[data-baseweb="menu"], [data-baseweb="popover"], [role="listbox"]');
-        for (var k = 0; k < menus.length; k++) {
-            fixMenuStyle(menus[k]);
-        }
-    }
-
-    var observer = new MutationObserver(function(mutations) {
-        var needFix = false;
-        for (var m = 0; m < mutations.length; m++) {
-            var added = mutations[m].addedNodes;
-            for (var n = 0; n < added.length; n++) {
-                var node = added[n];
-                if (node.nodeType === 1) {
-                    if (node.matches && (node.matches('[data-baseweb="menu"]') || node.matches('[data-baseweb="popover"]') || node.matches('[role="listbox"]'))) {
-                        needFix = true;
-                    }
-                    if (node.querySelector && node.querySelector('[data-baseweb="menu"], [data-baseweb="popover"], [role="listbox"]') != null) {
-                        needFix = true;
-                    }
-                }
-            }
-        }
-        if (needFix) scanAndFix();
-    });
-
-    observer.observe(doc.body, { childList: true, subtree: true });
-    scanAndFix();
-    setInterval(scanAndFix, 300);
-})();
-</script>
-""", height=0)
-
 # ========== 加载 V2 模型 ==========
 @st.cache_resource
 def load_model():
@@ -1838,12 +1784,15 @@ def load_model():
 try:
     model, descriptor_names = load_model()
     model_ready = True
-    import shap
-    explainer = shap.TreeExplainer(model)
 except Exception as e:
     st.error(f"模型加载失败: {e}")
     st.info("请先运行 'python train_model_v2.py' 训练模型")
     model_ready = False
+
+@st.cache_resource
+def get_shap_explainer():
+    import shap
+    return shap.TreeExplainer(model)
 
 # ========== 加载 pKa 模型 ==========
 @st.cache_resource
@@ -1858,6 +1807,7 @@ except Exception:
     pka_ready = False
 
 # ========== 特征计算 ==========
+@st.cache_data(show_spinner=False)
 def compute_features(smiles_string):
     if not smiles_string:
         return None
@@ -1882,6 +1832,7 @@ def compute_features(smiles_string):
     return features, fp_array
 
 # ========== 3D 分子展示 ==========
+@st.cache_data(show_spinner=False)
 def show_3d_molecule(smiles):
     try:
         import py3Dmol
@@ -1906,51 +1857,47 @@ def show_3d_molecule(smiles):
 
 
 def mol_to_dark_image(mol, size=(400, 400)):
-    """生成适配深色主题的高清2D分子结构图（3x超采样抗锯齿）"""
-    from PIL import Image, ImageFilter, ImageEnhance
+    """生成适配深色主题的高清2D分子结构图（3x超采样抗锯齿，numpy矢量化）"""
+    import numpy as np
+    from PIL import Image, ImageFilter
 
     scale = 3
     big_size = (size[0] * scale, size[1] * scale)
 
-    # 1. 以3倍分辨率生成原始图像（RDKit原生渲染，边缘平滑）
+    # 1. 以3倍分辨率生成原始图像
     img_big = Draw.MolToImage(mol, size=big_size, kekulize=True)
     img_big = img_big.convert("RGBA")
 
-    # 2. 在高分辨率上进行颜色替换（此时单像素误差在缩小后会被平均）
-    pixels = img_big.load()
-    for i in range(img_big.width):
-        for j in range(img_big.height):
-            r, g, b, a = pixels[i, j]
-            if a == 0:
-                continue
+    # 2. numpy 矢量化颜色替换
+    arr = np.array(img_big, dtype=np.uint16)
+    r, g, b, a = arr[:, :, 0], arr[:, :, 1], arr[:, :, 2], arr[:, :, 3]
+    alpha_mask = a == 0
+    brightness = (r + g + b) / 3.0
 
-            brightness = (r + g + b) / 3
+    bg_mask = (brightness > 245) & ~alpha_mask
+    black_mask = (brightness < 60) & ~alpha_mask
+    grey_mask = (brightness < 140) & ~alpha_mask & (np.maximum(np.maximum(r, g), b) - np.minimum(np.minimum(r, g), b) < 50)
+    color_mask = ~bg_mask & ~black_mask & ~grey_mask & ~alpha_mask
 
-            # 白色背景 → 深色背景
-            if brightness > 245:
-                pixels[i, j] = (26, 26, 46, 255)
-            # 近黑色碳骨架 → 亮银灰（增强对比度）
-            elif brightness < 60:
-                pixels[i, j] = (210, 210, 230, a)
-            # 深灰色键线阴影 → 中亮灰
-            elif brightness < 140 and max(r, g, b) - min(r, g, b) < 50:
-                pixels[i, j] = (175, 175, 195, a)
-            else:
-                # 彩色原子提亮+饱和度增强
-                new_r = min(255, int(r * 1.12 + 15))
-                new_g = min(255, int(g * 1.12 + 15))
-                new_b = min(255, int(b * 1.12 + 15))
-                pixels[i, j] = (new_r, new_g, new_b, a)
+    arr[bg_mask, 0], arr[bg_mask, 1], arr[bg_mask, 2], arr[bg_mask, 3] = 26, 26, 46, 255
+    arr[black_mask, 0], arr[black_mask, 1], arr[black_mask, 2] = 210, 210, 230
+    arr[grey_mask, 0], arr[grey_mask, 1], arr[grey_mask, 2] = 175, 175, 195
 
-    # 3. 高质量缩小到目标尺寸 → 自然抗锯齿
+    if color_mask.any():
+        arr[color_mask, 0] = np.clip(arr[color_mask, 0] * 1.12 + 15, 0, 255)
+        arr[color_mask, 1] = np.clip(arr[color_mask, 1] * 1.12 + 15, 0, 255)
+        arr[color_mask, 2] = np.clip(arr[color_mask, 2] * 1.12 + 15, 0, 255)
+
+    img_big = Image.fromarray(arr.astype(np.uint8), "RGBA")
+
+    # 3. 高质量缩小到目标尺寸
     img = img_big.resize(size, Image.LANCZOS)
-
-    # 4. 添加微妙的外发光边框，增强科技感
     img = img.filter(ImageFilter.SMOOTH_MORE)
 
     return img
 
 # ========== pKa 化学因素分析 ==========
+@st.cache_data(show_spinner=False)
 def analyze_pka_chemistry(smiles, pka_val):
     mol = Chem.MolFromSmiles(smiles)
     if mol is None:
@@ -2314,8 +2261,9 @@ if predict_button and model_ready:
                 """)
             else:
                 features, fp_array = result
+                st.session_state.cached_features = features
                 X_input = np.hstack([list(features.values()), fp_array]).reshape(1, -1)
-                
+
                 status.update(label="Step 2/4: Random Forest 预测溶解度...")
                 prediction = model.predict(X_input)[0]
                 st.session_state.predicted_smiles = current
@@ -2327,7 +2275,7 @@ if predict_button and model_ready:
                     st.session_state.predicted_pka = float(pka_pred)
                 
                 status.update(label="Step 4/4: SHAP 可解释性分析...")
-                shap_values = explainer.shap_values(X_input)[0]
+                shap_values = get_shap_explainer().shap_values(X_input)[0]
                 desc_shap = shap_values[:8]
                 fp_shap_sum = shap_values[8:].sum()
                 combined_shap = list(desc_shap) + [fp_shap_sum]
@@ -2344,339 +2292,227 @@ if predict_button and model_ready:
 # ========== 显示预测结果（Tab分组版）==========
 if st.session_state.predicted_smiles and st.session_state.predicted_logS is not None:
 
-    result_display = compute_features(st.session_state.predicted_smiles)
-
-    if result_display is None:
-        st.error("显示时解析失败，请重新输入 SMILES")
-    else:
+    features = st.session_state.get("cached_features")
+    if features is None:
+        result_display = compute_features(st.session_state.predicted_smiles)
+        if result_display is None:
+            st.error("显示时解析失败，请重新输入 SMILES")
+            st.stop()
         features, _ = result_display
-        prediction = st.session_state.predicted_logS
+    prediction = st.session_state.predicted_logS
 
-        # ── 预计算pKa相关变量（供多Tab使用）──
-        pka_val = st.session_state.get("predicted_pka")
-        pka_type = pka_label = pka_css = pka_text_color = pka_desc = None
-        if pka_val is not None:
-            if pka_val < 5:
-                pka_type, pka_label, pka_css, pka_text_color, pka_desc =                     "acid", "酸性分子 (Acidic)", "pka-acid", "#a78bfa", "pKa 较低，在酸性环境中以分子态为主，脂溶性高"
-            elif pka_val > 9:
-                pka_type, pka_label, pka_css, pka_text_color, pka_desc =                     "base", "碱性分子 (Basic)", "pka-base", "#22d3ee", "pKa 较高，在碱性环境中以分子态为主"
-            else:
-                pka_type, pka_label, pka_css, pka_text_color, pka_desc =                     "amphoteric", "两性/中性 (Amphoteric/Neutral)", "pka-amphoteric", "#fbbf24", "pKa 接近中性，电离行为随 pH 变化剧烈"
-
-        # ── 溶解度判定（供多Tab使用）──
-        if prediction > 0:
-            interp, color, css_class = "Highly soluble (易溶于水)", "#34d399", "result-high"
-        elif prediction > -2:
-            interp, color, css_class = "Moderately soluble (中等溶解)", "#fbbf24", "result-moderate"
+    # ── 预计算pKa相关变量（供多Tab使用）──
+    pka_val = st.session_state.get("predicted_pka")
+    pka_type = pka_label = pka_css = pka_text_color = pka_desc = None
+    if pka_val is not None:
+        if pka_val < 5:
+            pka_type, pka_label, pka_css, pka_text_color, pka_desc =                     "acid", "酸性分子 (Acidic)", "pka-acid", "#a78bfa", "pKa 较低，在酸性环境中以分子态为主，脂溶性高"
+        elif pka_val > 9:
+            pka_type, pka_label, pka_css, pka_text_color, pka_desc =                     "base", "碱性分子 (Basic)", "pka-base", "#22d3ee", "pKa 较高，在碱性环境中以分子态为主"
         else:
-            interp, color, css_class = "Poorly soluble (难溶于水)", "#f87171", "result-low"
+            pka_type, pka_label, pka_css, pka_text_color, pka_desc =                     "amphoteric", "两性/中性 (Amphoteric/Neutral)", "pka-amphoteric", "#fbbf24", "pKa 接近中性，电离行为随 pH 变化剧烈"
 
-        # ═════════════════════════════════════════
-        # TAB 分组
-        # ═════════════════════════════════════════
-        tab_overview, tab_profile, tab_pharma, tab_explain = st.tabs([
-            "Prediction Overview",
-            "Molecular Profile",
-            "Pharmacology",
-            "Explainability"
-        ])
+    # ── 溶解度判定（供多Tab使用）──
+    if prediction > 0:
+        interp, color, css_class = "Highly soluble (易溶于水)", "#34d399", "result-high"
+    elif prediction > -2:
+        interp, color, css_class = "Moderately soluble (中等溶解)", "#fbbf24", "result-moderate"
+    else:
+        interp, color, css_class = "Poorly soluble (难溶于水)", "#f87171", "result-low"
 
-        # =========================================
-        # TAB 1: Prediction Overview
-        # =========================================
-        with tab_overview:
-            st.markdown("""<div class="card-title">&#128202; Prediction Overview</div>""", unsafe_allow_html=True)
+    # ═════════════════════════════════════════
+    # TAB 分组
+    # ═════════════════════════════════════════
+    tab_overview, tab_profile, tab_pharma, tab_explain = st.tabs([
+        "Prediction Overview",
+        "Molecular Profile",
+        "Pharmacology",
+        "Explainability"
+    ])
 
-            try:
-                mol = Chem.MolFromSmiles(st.session_state.predicted_smiles)
-                img = mol_to_dark_image(mol, size=(400, 400))
-            except Exception as e:
-                img = None
-                st.warning(f"结构图生成失败: {e}")
+    # =========================================
+    # TAB 1: Prediction Overview
+    # =========================================
+    with tab_overview:
+        st.markdown("""<div class="card-title">&#128202; Prediction Overview</div>""", unsafe_allow_html=True)
 
-            col_left, col_right = st.columns([1, 1.2])
+        try:
+            mol = Chem.MolFromSmiles(st.session_state.predicted_smiles)
+            img = mol_to_dark_image(mol, size=(400, 400))
+        except Exception as e:
+            img = None
+            st.warning(f"结构图生成失败: {e}")
 
-            with col_left:
-                if img is not None:
-                    st.image(img, caption="Molecular Structure", use_container_width=True)
-                else:
-                    st.info("无法显示结构图")
+        col_left, col_right = st.columns([1, 1.2])
 
-            with col_right:
-                st.markdown("<br>", unsafe_allow_html=True)
-                st.metric(label="Predicted Solubility (logS)", value=f"{prediction:.3f}")
+        with col_left:
+            if img is not None:
+                st.image(img, caption="Molecular Structure", use_container_width=True)
+            else:
+                st.info("无法显示结构图")
+
+        with col_right:
+            st.markdown("<br>", unsafe_allow_html=True)
+            st.metric(label="Predicted Solubility (logS)", value=f"{prediction:.3f}")
+            st.markdown(f"""
+            <div class="{css_class}">
+                <div style="font-size: 1.1rem; font-weight: 700; color: {color};">-> {interp}</div>
+            </div>
+            """, unsafe_allow_html=True)
+            st.markdown("""
+            <div style="background: rgba(255, 255, 255, 0.03); border-radius: 14px; padding: 1rem; font-size: 0.85rem; color: var(--ob-text-tertiary); border: 1px solid var(--ob-border); font-family: 'Cascadia Code', 'Consolas', monospace;">
+            <b style="color: var(--ob-text-secondary);">Interpretation guide:</b><br>
+            <span style="color: #34d399;">&#9679;</span> logS > 0: Very soluble (like ethanol)<br>
+            <span style="color: #fbbf24;">&#9679;</span> -2 < logS < 0: Moderately soluble<br>
+            <span style="color: #f87171;">&#9679;</span> logS < -2: Poorly soluble (like many drug molecules)
+            </div>
+            """, unsafe_allow_html=True)
+
+        if pka_val is not None:
+            st.markdown("<br>", unsafe_allow_html=True)
+            st.markdown("""<div class="card-title">&#9889; pKa Snapshot</div>""", unsafe_allow_html=True)
+            c1, c2 = st.columns(2)
+            with c1:
+                st.metric("Predicted pKa", f"{pka_val:.2f}")
+            with c2:
                 st.markdown(f"""
-                <div class="{css_class}">
-                    <div style="font-size: 1.1rem; font-weight: 700; color: {color};">-> {interp}</div>
-                </div>
-                """, unsafe_allow_html=True)
-                st.markdown("""
-                <div style="background: rgba(255, 255, 255, 0.03); border-radius: 14px; padding: 1rem; font-size: 0.85rem; color: var(--ob-text-tertiary); border: 1px solid var(--ob-border); font-family: 'JetBrains Mono', monospace;">
-                <b style="color: var(--ob-text-secondary);">Interpretation guide:</b><br>
-                <span style="color: #34d399;">&#9679;</span> logS > 0: Very soluble (like ethanol)<br>
-                <span style="color: #fbbf24;">&#9679;</span> -2 < logS < 0: Moderately soluble<br>
-                <span style="color: #f87171;">&#9679;</span> logS < -2: Poorly soluble (like many drug molecules)
+                <div class="{pka_css}" style="margin-top: 0.2rem;">
+                    <div style="font-size: 1rem; font-weight: 700; color: {pka_text_color};">-> {pka_label}</div>
+                    <div style="font-size: 0.8rem; color: var(--ob-text-tertiary); margin-top: 0.3rem;">{pka_desc}</div>
                 </div>
                 """, unsafe_allow_html=True)
 
-            if pka_val is not None:
-                st.markdown("<br>", unsafe_allow_html=True)
-                st.markdown("""<div class="card-title">&#9889; pKa Snapshot</div>""", unsafe_allow_html=True)
-                c1, c2 = st.columns(2)
-                with c1:
-                    st.metric("Predicted pKa", f"{pka_val:.2f}")
-                with c2:
-                    st.markdown(f"""
-                    <div class="{pka_css}" style="margin-top: 0.2rem;">
-                        <div style="font-size: 1rem; font-weight: 700; color: {pka_text_color};">-> {pka_label}</div>
-                        <div style="font-size: 0.8rem; color: var(--ob-text-tertiary); margin-top: 0.3rem;">{pka_desc}</div>
-                    </div>
-                    """, unsafe_allow_html=True)
+    # =========================================
+    # TAB 2: Molecular Profile
+    # =========================================
+    with tab_profile:
+        st.markdown("""<div class="card-title">&#128202; Molecular Descriptors</div>""", unsafe_allow_html=True)
+        with st.container(border=True):
+            desc_col1, desc_col2, desc_col3, desc_col4 = st.columns(4)
+            with desc_col1:
+                st.metric("Molecular Weight", f"{features['MolWt']:.1f}")
+                st.metric("LogP (Hydrophobicity)", f"{features['LogP']:.2f}")
+            with desc_col2:
+                st.metric("H-Bond Donors", f"{features['NumHDonors']}")
+                st.metric("H-Bond Acceptors", f"{features['NumHAcceptors']}")
+            with desc_col3:
+                st.metric("TPSA (A2)", f"{features['TPSA']:.1f}")
+                st.metric("Rotatable Bonds", f"{features['NumRotatableBonds']}")
+            with desc_col4:
+                st.metric("Aromatic Rings", f"{features['NumAromaticRings']}")
+                st.metric("Aliphatic Rings", f"{features['NumAliphaticRings']}")
+        st.info("""
+        **Chemistry Insight:**
+        - **TPSA** (Topological Polar Surface Area) measures how much of the molecule is polar.
+           Higher TPSA usually means better water solubility.
+        - **H-Bond Donors/Acceptors** tell us how well the molecule can form hydrogen bonds with water.
+        - **LogP** measures lipophilicity. Lower LogP means the molecule prefers water over oil.
+        """)
 
-        # =========================================
-        # TAB 2: Molecular Profile
-        # =========================================
-        with tab_profile:
-            st.markdown("""<div class="card-title">&#128202; Molecular Descriptors</div>""", unsafe_allow_html=True)
-            with st.container(border=True):
-                desc_col1, desc_col2, desc_col3, desc_col4 = st.columns(4)
-                with desc_col1:
-                    st.metric("Molecular Weight", f"{features['MolWt']:.1f}")
-                    st.metric("LogP (Hydrophobicity)", f"{features['LogP']:.2f}")
-                with desc_col2:
-                    st.metric("H-Bond Donors", f"{features['NumHDonors']}")
-                    st.metric("H-Bond Acceptors", f"{features['NumHAcceptors']}")
-                with desc_col3:
-                    st.metric("TPSA (A2)", f"{features['TPSA']:.1f}")
-                    st.metric("Rotatable Bonds", f"{features['NumRotatableBonds']}")
-                with desc_col4:
-                    st.metric("Aromatic Rings", f"{features['NumAromaticRings']}")
-                    st.metric("Aliphatic Rings", f"{features['NumAliphaticRings']}")
-            st.info("""
-            **Chemistry Insight:**
-            - **TPSA** (Topological Polar Surface Area) measures how much of the molecule is polar.
-               Higher TPSA usually means better water solubility.
-            - **H-Bond Donors/Acceptors** tell us how well the molecule can form hydrogen bonds with water.
-            - **LogP** measures lipophilicity. Lower LogP means the molecule prefers water over oil.
-            """)
-
-            if pka_val is not None:
-                st.markdown("<br>", unsafe_allow_html=True)
-                st.markdown("""<div class="card-title">&#129516; Structural Chemistry: pKa Deep Dive</div>""", unsafe_allow_html=True)
-                chem_factors = analyze_pka_chemistry(st.session_state.predicted_smiles, pka_val)
-                col_3d, col_chem = st.columns([1, 1])
-                with col_3d:
-                    st.markdown("<div style='font-weight: 600; color: var(--ob-text-secondary); margin-bottom: 0.5rem; font-family: \"Space Grotesk\", sans-serif;'>&#127919; 3D 球棍模型（可旋转缩放）</div>", unsafe_allow_html=True)
-                    html_3d = show_3d_molecule(st.session_state.predicted_smiles)
-                    if html_3d:
-                        components.html(html_3d, height=420, scrolling=False)
-                    else:
-                        st.info("3D 模型生成失败（需安装 py3Dmol）")
-                with col_chem:
-                    if chem_factors:
-                        import matplotlib.pyplot as plt
-                        import matplotlib.font_manager as fm
-                        for font in fm.fontManager.ttflist:
-                            if font.name in ('Noto Sans CJK SC', 'Noto Sans CJK'):
-                                plt.rcParams['font.family'] = font.name
-                                break
-                        plt.rcParams['axes.unicode_minus'] = False
-                        names = list(chem_factors.keys())
-                        vals = list(chem_factors.values())
-                        colors = ['#a78bfa' if v > 0 else '#22d3ee' for v in vals]
-                        plt.rcParams['figure.facecolor'] = '#0d0d14'
-                        plt.rcParams['axes.facecolor'] = '#1a1a2e'
-                        plt.rcParams['axes.edgecolor'] = '#33334d'
-                        plt.rcParams['axes.labelcolor'] = '#a0a0b0'
-                        plt.rcParams['xtick.color'] = '#a0a0b0'
-                        plt.rcParams['ytick.color'] = '#a0a0b0'
-                        plt.rcParams['text.color'] = '#f0f0f5'
-                        fig, ax = plt.subplots(figsize=(8, 4.5))
-                        bars = ax.barh(range(len(vals)), vals, color=colors, edgecolor=(1, 1, 1, 0.15), height=0.6, linewidth=0.5)
-                        ax.invert_yaxis()
-                        ax.axvline(x=0, color='#f0f0f5', linewidth=1.0, alpha=0.4)
-                        for bar, val in zip(bars, vals):
-                            width = bar.get_width()
-                            label_x = width * 0.5
-                            ax.text(label_x, bar.get_y() + bar.get_height()/2,
-                                    f'{val:+.2f}', va='center', ha='center', fontsize=10, fontweight='bold',
-                                    color='#ffffff',
-                                    bbox=dict(boxstyle='round,pad=0.25', facecolor=(0, 0, 0, 0.35),
-                                              edgecolor='none', alpha=0.9))
-                        ax.set_yticks(range(len(names)))
-                        ax.set_yticklabels(names, fontsize=10)
-                        unit = "增强酸性" if pka_val < 7 else "增强碱性"
-                        ax.set_xlabel(f"对 {unit} 的贡献", fontsize=11)
-                        ax.set_title(f"pKa = {pka_val:.2f} | 化学因素分解", fontsize=12, pad=12)
-                        ax.spines['top'].set_visible(False)
-                        ax.spines['right'].set_visible(False)
-                        ax.spines['left'].set_visible(False)
-                        ax.spines['bottom'].set_color('#33334d')
-                        from matplotlib.patches import Patch
-                        legend_elements = [
-                            Patch(facecolor='#a78bfa', label=f'增强{"酸性" if pka_val < 7 else "碱性"}'),
-                            Patch(facecolor='#22d3ee', label=f'减弱{"酸性" if pka_val < 7 else "碱性"}')
-                        ]
-                        ax.legend(handles=legend_elements, loc='upper right', fontsize=9,
-                                  framealpha=0.8, facecolor='#1a1a2e', edgecolor=(1, 1, 1, 0.1))
-                        plt.tight_layout()
-                        st.pyplot(fig, width="stretch")
-                        plt.close(fig)
-                        st.caption("""
-                        **如何读懂这张图**：
-                        紫色条越长 = 该因素越推动分子**释放/结合质子**；
-                        青色条越长 = 该因素越**抵抗**质子转移。
-                        和 SHAP 不同，这些不是机器学习权重，而是**真实的结构化学效应**。
-                        """)
-                    else:
-                        st.info("化学因素分析暂不可用")
-
-        # =========================================
-        # TAB 3: Pharmacology
-        # =========================================
-        with tab_pharma:
-            if pka_val is not None:
-                st.markdown("""<div class="card-title">&#9889; pKa & Ionization Profile</div>""", unsafe_allow_html=True)
-                col_pka1, col_pka2 = st.columns([1, 1.2])
-                with col_pka1:
-                    st.markdown("<br>", unsafe_allow_html=True)
-                    st.metric("Predicted pKa", f"{pka_val:.2f}")
-                    st.markdown(f"""
-                    <div class="{pka_css}" style="margin-top: 0.8rem;">
-                        <div style="font-size: 1.1rem; font-weight: 700; color: {pka_text_color};">-> {pka_label}</div>
-                        <div style="font-size: 0.85rem; color: var(--ob-text-tertiary); margin-top: 0.4rem;">{pka_desc}</div>
-                    </div>
-                    """, unsafe_allow_html=True)
-                with col_pka2:
+        if pka_val is not None:
+            st.markdown("<br>", unsafe_allow_html=True)
+            st.markdown("""<div class="card-title">&#129516; Structural Chemistry: pKa Deep Dive</div>""", unsafe_allow_html=True)
+            chem_factors = analyze_pka_chemistry(st.session_state.predicted_smiles, pka_val)
+            col_3d, col_chem = st.columns([1, 1])
+            with col_3d:
+                st.markdown("<div style='font-weight: 600; color: var(--ob-text-secondary); margin-bottom: 0.5rem; font-family: \"Space Grotesk\", sans-serif;'>&#127919; 3D 球棍模型（可旋转缩放）</div>", unsafe_allow_html=True)
+                html_3d = show_3d_molecule(st.session_state.predicted_smiles)
+                if html_3d:
+                    components.html(html_3d, height=420, scrolling=False)
+                else:
+                    st.info("3D 模型生成失败（需安装 py3Dmol）")
+            with col_chem:
+                if chem_factors:
                     import matplotlib.pyplot as plt
                     import matplotlib.font_manager as fm
-                    try:
-                        for font in fm.fontManager.ttflist:
-                            if font.name in ('Noto Sans CJK SC', 'Noto Sans CJK'):
-                                plt.rcParams['font.family'] = font.name
-                                break
-                    except Exception:
-                        pass
+                    for font in fm.fontManager.ttflist:
+                        if font.name in ('Noto Sans CJK SC', 'Noto Sans CJK'):
+                            plt.rcParams['font.family'] = font.name
+                            break
                     plt.rcParams['axes.unicode_minus'] = False
-                    env_ph = [1.5, 4.5, 6.8, 7.4]
-                    env_names = ['Stomach\n胃', 'Duodenum\n十二指肠', 'Small Intestine\n小肠', 'Blood/Brain\n血液/脑']
-                    if pka_type == "acid":
-                        fractions = [1 / (1 + 10**(ph - pka_val)) for ph in env_ph]
-                    else:
-                        fractions = [1 / (1 + 10**(pka_val - ph)) for ph in env_ph]
-                    plt.rcParams['figure.facecolor'] = '#0a0a0f'
-                    plt.rcParams['axes.facecolor'] = '#1e1e2e'
-                    plt.rcParams['axes.edgecolor'] = '#2a2a3a'
+                    names = list(chem_factors.keys())
+                    vals = list(chem_factors.values())
+                    colors = ['#a78bfa' if v > 0 else '#22d3ee' for v in vals]
+                    plt.rcParams['figure.facecolor'] = '#0d0d14'
+                    plt.rcParams['axes.facecolor'] = '#1a1a2e'
+                    plt.rcParams['axes.edgecolor'] = '#33334d'
                     plt.rcParams['axes.labelcolor'] = '#a0a0b0'
                     plt.rcParams['xtick.color'] = '#a0a0b0'
                     plt.rcParams['ytick.color'] = '#a0a0b0'
                     plt.rcParams['text.color'] = '#f0f0f5'
-                    fig, ax = plt.subplots(figsize=(7, 3.2))
-                    colors_bar = ['#f87171', '#fbbf24', '#34d399', '#60a5fa']
-                    bars = ax.bar(env_names, [f*100 for f in fractions], color=colors_bar, edgecolor='white', width=0.6)
-                    for bar, frac in zip(bars, fractions):
-                        height = bar.get_height()
-                        ax.text(bar.get_x() + bar.get_width()/2., height + 2,
-                                f'{frac*100:.1f}%', ha='center', va='bottom', fontsize=10, fontfamily='monospace')
-                    ax.set_ylabel('分子态比例 (Unionized %)', fontsize=11)
-                    ax.set_ylim(0, 105)
-                    ax.set_title(f'不同生理环境下的分子态比例 | pKa = {pka_val:.2f}', fontsize=12)
+                    fig, ax = plt.subplots(figsize=(8, 4.5))
+                    bars = ax.barh(range(len(vals)), vals, color=colors, edgecolor=(1, 1, 1, 0.15), height=0.6, linewidth=0.5)
+                    ax.invert_yaxis()
+                    ax.axvline(x=0, color='#f0f0f5', linewidth=1.0, alpha=0.4)
+                    for bar, val in zip(bars, vals):
+                        width = bar.get_width()
+                        label_x = width * 0.5
+                        ax.text(label_x, bar.get_y() + bar.get_height()/2,
+                                f'{val:+.2f}', va='center', ha='center', fontsize=10, fontweight='bold',
+                                color='#ffffff',
+                                bbox=dict(boxstyle='round,pad=0.25', facecolor=(0, 0, 0, 0.35),
+                                          edgecolor='none', alpha=0.9))
+                    ax.set_yticks(range(len(names)))
+                    ax.set_yticklabels(names, fontsize=10)
+                    unit = "增强酸性" if pka_val < 7 else "增强碱性"
+                    ax.set_xlabel(f"对 {unit} 的贡献", fontsize=11)
+                    ax.set_title(f"pKa = {pka_val:.2f} | 化学因素分解", fontsize=12, pad=12)
                     ax.spines['top'].set_visible(False)
                     ax.spines['right'].set_visible(False)
+                    ax.spines['left'].set_visible(False)
+                    ax.spines['bottom'].set_color('#33334d')
+                    from matplotlib.patches import Patch
+                    legend_elements = [
+                        Patch(facecolor='#a78bfa', label=f'增强{"酸性" if pka_val < 7 else "碱性"}'),
+                        Patch(facecolor='#22d3ee', label=f'减弱{"酸性" if pka_val < 7 else "碱性"}')
+                    ]
+                    ax.legend(handles=legend_elements, loc='upper right', fontsize=9,
+                              framealpha=0.8, facecolor='#1a1a2e', edgecolor=(1, 1, 1, 0.1))
                     plt.tight_layout()
                     st.pyplot(fig, width="stretch")
                     plt.close(fig)
-
-                st.markdown("<br>", unsafe_allow_html=True)
-                st.markdown("""<div class="card-title">&#128138; 药理学分析</div>""", unsafe_allow_html=True)
-                with st.container(border=True):
-                    if pka_type == "acid":
-                        if pka_val < 4:
-                            st.success("**胃吸收优势**：pKa < 4，在胃酸（pH 1.5）中大部分以分子态存在，脂溶性高，容易被胃黏膜吸收。代表药物：阿司匹林 (pKa 3.5)、布洛芬 (pKa 4.9)。")
-                        else:
-                            st.info("**全肠道吸收**：pKa 中等，在胃和小肠中都有一定比例的分子态，吸收较均匀。注意：分子态比例高时脂溶性强，可能刺激胃黏膜。")
-                    elif pka_type == "base":
-                        if pka_val > 9:
-                            st.warning("**肠道吸收为主**：强碱性分子在胃中几乎完全电离，难以吸收；进入小肠（pH 6.8）后分子态增加，主要在小肠吸收。代表药物：二甲双胍 (pKa ~12.4)。")
-                        else:
-                            st.info("**弱碱性分子**：在胃中少量电离，小肠中吸收良好。进入血液（pH 7.4）后可能部分电离，水溶性增加，有利于肾脏排泄。")
-                    else:
-                        st.info("**两性分子**：在不同 pH 环境下电离行为复杂，吸收部位取决于具体结构。可能需要特殊制剂（如肠溶片）来优化生物利用度。")
-
-                st.markdown("<br>", unsafe_allow_html=True)
-                st.markdown("""<div class="card-title">&#128279; 溶解度 x pKa 联动分析</div>""", unsafe_allow_html=True)
-                logS = prediction
-                parts = []
-                if logS > 0:
-                    parts.append("**溶解度**：易溶于水，有利于溶出。")
-                elif logS > -2:
-                    parts.append("**溶解度**：中等，可能需要辅料助溶。")
+                    st.caption("""
+                    **如何读懂这张图**：
+                    紫色条越长 = 该因素越推动分子**释放/结合质子**；
+                    青色条越长 = 该因素越**抵抗**质子转移。
+                    和 SHAP 不同，这些不是机器学习权重，而是**真实的结构化学效应**。
+                    """)
                 else:
-                    parts.append("**溶解度**：较低，生物利用度可能受限。")
-                if pka_type == "acid":
-                    if pka_val < 4:
-                        parts.append(f"**pKa**：弱酸性 (pKa={pka_val:.1f})，胃吸收好，**空腹服用**效果更佳。")
-                    else:
-                        parts.append(f"**pKa**：中等酸性 (pka={pka_val:.1f})，全肠道吸收，对服药时间要求不高。")
-                elif pka_type == "base":
-                    if pka_val > 9:
-                        parts.append(f"**pKa**：强碱性 (pKa={pka_val:.1f})，胃吸收差，**餐后服用**可减少胃刺激，主要在小肠吸收。")
-                    else:
-                        parts.append(f"**pKa**：弱碱性 (pKa={pka_val:.1f})，小肠吸收为主，血液中有利于排泄。")
-                else:
-                    parts.append(f"**pKa**：接近中性 (pKa={pka_val:.1f})，吸收行为较复杂。")
-                if logS > 0 and pka_type == "acid" and pka_val < 4:
-                    parts.append("**综合**：高溶解度 + 胃吸收优势 = **口服生物利用度极佳**，适合做成普通片剂。")
-                elif logS < -2 and pka_type == "base" and pka_val > 9:
-                    parts.append("**综合**：低溶解度 + 强碱性 = **口服吸收双重挑战**，可能需要肠溶片或注射剂型。")
-                elif logS > 0 and pka_type == "base" and pka_val > 9:
-                    parts.append("**综合**：高溶解度弥补了胃吸收劣势，进入小肠后吸收良好，总体生物利用度可接受。")
-                st.info(" | ".join(parts))
-            else:
-                st.info("pKa 模型未加载，药理学分析不可用。")
+                    st.info("化学因素分析暂不可用")
 
-        # =========================================
-        # TAB 4: Explainability
-        # =========================================
-        with tab_explain:
-            st.markdown("""<div class="card-title">&#128269; SHAP Explainability</div>""", unsafe_allow_html=True)
-            st.caption("基于 SHAP (SHapley Additive exPlanations) 分析每个特征对预测的贡献")
-            if "shap_values" in st.session_state:
+    # =========================================
+    # TAB 3: Pharmacology
+    # =========================================
+    with tab_pharma:
+        if pka_val is not None:
+            st.markdown("""<div class="card-title">&#9889; pKa & Ionization Profile</div>""", unsafe_allow_html=True)
+            col_pka1, col_pka2 = st.columns([1, 1.2])
+            with col_pka1:
+                st.markdown("<br>", unsafe_allow_html=True)
+                st.metric("Predicted pKa", f"{pka_val:.2f}")
+                st.markdown(f"""
+                <div class="{pka_css}" style="margin-top: 0.8rem;">
+                    <div style="font-size: 1.1rem; font-weight: 700; color: {pka_text_color};">-> {pka_label}</div>
+                    <div style="font-size: 0.85rem; color: var(--ob-text-tertiary); margin-top: 0.4rem;">{pka_desc}</div>
+                </div>
+                """, unsafe_allow_html=True)
+            with col_pka2:
                 import matplotlib.pyplot as plt
                 import matplotlib.font_manager as fm
-                import numpy as np
-                import glob
-                fm.fontManager = fm.FontManager()
-                font_paths = (
-                    glob.glob('/usr/share/fonts/opentype/noto/*.ttc') +
-                    glob.glob('/usr/share/fonts/truetype/noto/*.ttc') +
-                    glob.glob('/usr/share/fonts/noto-cjk/*.ttc') +
-                    glob.glob('/usr/share/fonts/truetype/wqy/*.ttf') +
-                    glob.glob('/usr/share/fonts/opentype/source-han-sans/*.otf')
-                )
-                for fp in font_paths:
-                    try:
-                        fm.fontManager.addfont(fp)
-                    except Exception:
-                        pass
-                chinese_font = None
-                for font in fm.fontManager.ttflist:
-                    if font.name in ('Noto Sans CJK SC', 'Noto Sans CJK'):
-                        chinese_font = font.name
-                        break
-                    if 'WenQuanYi' in font.name or 'Source Han Sans SC' in font.name:
-                        chinese_font = font.name
-                        break
-                if chinese_font:
-                    plt.rcParams['font.family'] = chinese_font
+                try:
+                    for font in fm.fontManager.ttflist:
+                        if font.name in ('Noto Sans CJK SC', 'Noto Sans CJK'):
+                            plt.rcParams['font.family'] = font.name
+                            break
+                except Exception:
+                    pass
                 plt.rcParams['axes.unicode_minus'] = False
-                shap_vals = np.array(st.session_state.shap_values)
-                names = st.session_state.shap_names
-                abs_vals = np.abs(shap_vals)
-                sorted_idx = np.argsort(abs_vals)[::-1][:8]
-                top_shap = shap_vals[sorted_idx]
-                top_names = [names[i] for i in sorted_idx]
-                colors = ['#a78bfa' if v > 0 else '#06b6d4' for v in top_shap]
+                env_ph = [1.5, 4.5, 6.8, 7.4]
+                env_names = ['Stomach\n胃', 'Duodenum\n十二指肠', 'Small Intestine\n小肠', 'Blood/Brain\n血液/脑']
+                if pka_type == "acid":
+                    fractions = [1 / (1 + 10**(ph - pka_val)) for ph in env_ph]
+                else:
+                    fractions = [1 / (1 + 10**(pka_val - ph)) for ph in env_ph]
                 plt.rcParams['figure.facecolor'] = '#0a0a0f'
                 plt.rcParams['axes.facecolor'] = '#1e1e2e'
                 plt.rcParams['axes.edgecolor'] = '#2a2a3a'
@@ -2684,108 +2520,221 @@ if st.session_state.predicted_smiles and st.session_state.predicted_logS is not 
                 plt.rcParams['xtick.color'] = '#a0a0b0'
                 plt.rcParams['ytick.color'] = '#a0a0b0'
                 plt.rcParams['text.color'] = '#f0f0f5'
-                fig, ax = plt.subplots(figsize=(8, 4.5))
-                bars = ax.barh(range(len(top_shap)), top_shap, color=colors, edgecolor="white", height=0.6)
-                ax.invert_yaxis()
-                for i, (bar, val) in enumerate(zip(bars, top_shap)):
-                    width = bar.get_width()
-                    label_x = width * 0.5
-                    ax.text(label_x, i, f"{val:+.3f}", va="center", ha="center", fontsize=10, fontweight="bold",
-                            color="#ffffff",
-                            bbox=dict(boxstyle="round,pad=0.3", facecolor=(0, 0, 0, 0.5),
-                                      edgecolor=(1, 1, 1, 0.15), linewidth=0.5))
-                ax.set_yticks(range(len(top_names)))
-                ax.set_yticklabels(top_names, fontsize=11)
-                ax.axvline(x=0, color="#f0f0f5", linewidth=1.0, alpha=0.4)
-                ax.set_xlabel("对溶解度的贡献值 (logS)", fontsize=11)
-                ev = explainer.expected_value
-                if isinstance(ev, (list, tuple, np.ndarray)):
-                    base_value = float(np.array(ev).flatten()[0])
-                else:
-                    base_value = float(ev)
-                ax.set_title(f"预测值: {prediction:.3f}  (基准值: {base_value:.3f})", fontsize=12, pad=10)
-                ax.spines["top"].set_visible(False)
-                ax.spines["right"].set_visible(False)
-                ax.spines["left"].set_visible(False)
-                from matplotlib.patches import Patch
-                legend_elements = [
-                    Patch(facecolor="#a78bfa", label="推动易溶 (正贡献)"),
-                    Patch(facecolor="#06b6d4", label="推动难溶 (负贡献)")
-                ]
-                ax.legend(handles=legend_elements, loc="lower right", fontsize=9)
+                fig, ax = plt.subplots(figsize=(7, 3.2))
+                colors_bar = ['#f87171', '#fbbf24', '#34d399', '#60a5fa']
+                bars = ax.bar(env_names, [f*100 for f in fractions], color=colors_bar, edgecolor='white', width=0.6)
+                for bar, frac in zip(bars, fractions):
+                    height = bar.get_height()
+                    ax.text(bar.get_x() + bar.get_width()/2., height + 2,
+                            f'{frac*100:.1f}%', ha='center', va='bottom', fontsize=10, fontfamily='monospace')
+                ax.set_ylabel('分子态比例 (Unionized %)', fontsize=11)
+                ax.set_ylim(0, 105)
+                ax.set_title(f'不同生理环境下的分子态比例 | pKa = {pka_val:.2f}', fontsize=12)
+                ax.spines['top'].set_visible(False)
+                ax.spines['right'].set_visible(False)
                 plt.tight_layout()
                 st.pyplot(fig, width="stretch")
                 plt.close(fig)
-                if prediction > 0:
-                    solubility_level = "易溶于水"
-                elif prediction > -2:
-                    solubility_level = "中等溶解"
-                else:
-                    solubility_level = "难溶于水"
-                supporting = []
-                resisting = []
-                for i in range(min(3, len(top_names))):
-                    name = top_names[i]
-                    val = top_shap[i]
-                    if prediction <= -2:
-                        if val < 0:
-                            supporting.append("**" + name + "**（" + f"{val:.3f}" + "）")
-                        else:
-                            resisting.append("**" + name + "**（+" + f"{val:.3f}" + "）")
-                    elif prediction >= 0:
-                        if val > 0:
-                            supporting.append("**" + name + "**（+" + f"{val:.3f}" + "）")
-                        else:
-                            resisting.append("**" + name + "**（" + f"{val:.3f}" + "）")
-                    else:
-                        direction = "推动易溶" if val > 0 else "推动难溶"
-                        supporting.append("**" + name + "**（" + f"{val:+.3f}" + "，" + direction + "）")
-                parts = ["**关键分析**：模型预测该分子 **" + solubility_level + "**（logS = " + f"{prediction:.3f}" + "）。"]
-                if supporting:
-                    parts.append("推动这一结果的主要因素：" + ", ".join(supporting) + "。")
-                if resisting:
-                    target = "更易溶" if prediction <= -2 else "更难溶"
-                    parts.append("但以下因素在抵抗这一趋势、试图让分子" + target + "：" + ", ".join(resisting) + "。")
-                shift = abs(prediction - base_value)
-                direction = "向上" if prediction > base_value else "向下"
-                parts.append("相比训练集平均分子（基准值 " + f"{base_value:.3f}" + "），该分子的结构特征将预测值" + direction + "拉动了 " + f"{shift:.3f}" + " 个单位。")
-                insight_text = " ".join(parts)
-                st.info(insight_text)
 
             st.markdown("<br>", unsafe_allow_html=True)
-            st.markdown("""<div class="card-title">&#129504; AI Chemistry Explanation</div>""", unsafe_allow_html=True)
+            st.markdown("""<div class="card-title">&#128138; 药理学分析</div>""", unsafe_allow_html=True)
             with st.container(border=True):
-                if st.session_state.ai_explanation:
-                    st.markdown(st.session_state.ai_explanation)
-                    if st.button("清除解释", key="clear_ai"):
-                        st.session_state.ai_explanation = None
-                        st.rerun()
+                if pka_type == "acid":
+                    if pka_val < 4:
+                        st.success("**胃吸收优势**：pKa < 4，在胃酸（pH 1.5）中大部分以分子态存在，脂溶性高，容易被胃黏膜吸收。代表药物：阿司匹林 (pKa 3.5)、布洛芬 (pKa 4.9)。")
+                    else:
+                        st.info("**全肠道吸收**：pKa 中等，在胃和小肠中都有一定比例的分子态，吸收较均匀。注意：分子态比例高时脂溶性强，可能刺激胃黏膜。")
+                elif pka_type == "base":
+                    if pka_val > 9:
+                        st.warning("**肠道吸收为主**：强碱性分子在胃中几乎完全电离，难以吸收；进入小肠（pH 6.8）后分子态增加，主要在小肠吸收。代表药物：二甲双胍 (pKa ~12.4)。")
+                    else:
+                        st.info("**弱碱性分子**：在胃中少量电离，小肠中吸收良好。进入血液（pH 7.4）后可能部分电离，水溶性增加，有利于肾脏排泄。")
                 else:
-                    st.caption("AI 解释需要手动调用（消耗 API 额度）")
-                    if st.button("生成 AI 解释", key="gen_ai", use_container_width=True):
-                        with st.spinner("正在分析分子结构..."):
-                            pka_val_gen = st.session_state.get("predicted_pka")
-                            if pka_val_gen is not None:
-                                if pka_val_gen < 5:
-                                    pka_type_gen = "acid"
-                                elif pka_val_gen > 9:
-                                    pka_type_gen = "base"
-                                else:
-                                    pka_type_gen = "amphoteric"
+                    st.info("**两性分子**：在不同 pH 环境下电离行为复杂，吸收部位取决于具体结构。可能需要特殊制剂（如肠溶片）来优化生物利用度。")
+
+            st.markdown("<br>", unsafe_allow_html=True)
+            st.markdown("""<div class="card-title">&#128279; 溶解度 x pKa 联动分析</div>""", unsafe_allow_html=True)
+            logS = prediction
+            parts = []
+            if logS > 0:
+                parts.append("**溶解度**：易溶于水，有利于溶出。")
+            elif logS > -2:
+                parts.append("**溶解度**：中等，可能需要辅料助溶。")
+            else:
+                parts.append("**溶解度**：较低，生物利用度可能受限。")
+            if pka_type == "acid":
+                if pka_val < 4:
+                    parts.append(f"**pKa**：弱酸性 (pKa={pka_val:.1f})，胃吸收好，**空腹服用**效果更佳。")
+                else:
+                    parts.append(f"**pKa**：中等酸性 (pka={pka_val:.1f})，全肠道吸收，对服药时间要求不高。")
+            elif pka_type == "base":
+                if pka_val > 9:
+                    parts.append(f"**pKa**：强碱性 (pKa={pka_val:.1f})，胃吸收差，**餐后服用**可减少胃刺激，主要在小肠吸收。")
+                else:
+                    parts.append(f"**pKa**：弱碱性 (pKa={pka_val:.1f})，小肠吸收为主，血液中有利于排泄。")
+            else:
+                parts.append(f"**pKa**：接近中性 (pKa={pka_val:.1f})，吸收行为较复杂。")
+            if logS > 0 and pka_type == "acid" and pka_val < 4:
+                parts.append("**综合**：高溶解度 + 胃吸收优势 = **口服生物利用度极佳**，适合做成普通片剂。")
+            elif logS < -2 and pka_type == "base" and pka_val > 9:
+                parts.append("**综合**：低溶解度 + 强碱性 = **口服吸收双重挑战**，可能需要肠溶片或注射剂型。")
+            elif logS > 0 and pka_type == "base" and pka_val > 9:
+                parts.append("**综合**：高溶解度弥补了胃吸收劣势，进入小肠后吸收良好，总体生物利用度可接受。")
+            st.info(" | ".join(parts))
+        else:
+            st.info("pKa 模型未加载，药理学分析不可用。")
+
+    # =========================================
+    # TAB 4: Explainability
+    # =========================================
+    with tab_explain:
+        st.markdown("""<div class="card-title">&#128269; SHAP Explainability</div>""", unsafe_allow_html=True)
+        st.caption("基于 SHAP (SHapley Additive exPlanations) 分析每个特征对预测的贡献")
+        if "shap_values" in st.session_state:
+            import matplotlib.pyplot as plt
+            import matplotlib.font_manager as fm
+            import numpy as np
+            import glob
+            fm.fontManager = fm.FontManager()
+            font_paths = (
+                glob.glob('/usr/share/fonts/opentype/noto/*.ttc') +
+                glob.glob('/usr/share/fonts/truetype/noto/*.ttc') +
+                glob.glob('/usr/share/fonts/noto-cjk/*.ttc') +
+                glob.glob('/usr/share/fonts/truetype/wqy/*.ttf') +
+                glob.glob('/usr/share/fonts/opentype/source-han-sans/*.otf')
+            )
+            for fp in font_paths:
+                try:
+                    fm.fontManager.addfont(fp)
+                except Exception:
+                    pass
+            chinese_font = None
+            for font in fm.fontManager.ttflist:
+                if font.name in ('Noto Sans CJK SC', 'Noto Sans CJK'):
+                    chinese_font = font.name
+                    break
+                if 'WenQuanYi' in font.name or 'Source Han Sans SC' in font.name:
+                    chinese_font = font.name
+                    break
+            if chinese_font:
+                plt.rcParams['font.family'] = chinese_font
+            plt.rcParams['axes.unicode_minus'] = False
+            shap_vals = np.array(st.session_state.shap_values)
+            names = st.session_state.shap_names
+            abs_vals = np.abs(shap_vals)
+            sorted_idx = np.argsort(abs_vals)[::-1][:8]
+            top_shap = shap_vals[sorted_idx]
+            top_names = [names[i] for i in sorted_idx]
+            colors = ['#a78bfa' if v > 0 else '#06b6d4' for v in top_shap]
+            plt.rcParams['figure.facecolor'] = '#0a0a0f'
+            plt.rcParams['axes.facecolor'] = '#1e1e2e'
+            plt.rcParams['axes.edgecolor'] = '#2a2a3a'
+            plt.rcParams['axes.labelcolor'] = '#a0a0b0'
+            plt.rcParams['xtick.color'] = '#a0a0b0'
+            plt.rcParams['ytick.color'] = '#a0a0b0'
+            plt.rcParams['text.color'] = '#f0f0f5'
+            fig, ax = plt.subplots(figsize=(8, 4.5))
+            bars = ax.barh(range(len(top_shap)), top_shap, color=colors, edgecolor="white", height=0.6)
+            ax.invert_yaxis()
+            for i, (bar, val) in enumerate(zip(bars, top_shap)):
+                width = bar.get_width()
+                label_x = width * 0.5
+                ax.text(label_x, i, f"{val:+.3f}", va="center", ha="center", fontsize=10, fontweight="bold",
+                        color="#ffffff",
+                        bbox=dict(boxstyle="round,pad=0.3", facecolor=(0, 0, 0, 0.5),
+                                  edgecolor=(1, 1, 1, 0.15), linewidth=0.5))
+            ax.set_yticks(range(len(top_names)))
+            ax.set_yticklabels(top_names, fontsize=11)
+            ax.axvline(x=0, color="#f0f0f5", linewidth=1.0, alpha=0.4)
+            ax.set_xlabel("对溶解度的贡献值 (logS)", fontsize=11)
+            ev = get_shap_explainer().expected_value
+            if isinstance(ev, (list, tuple, np.ndarray)):
+                base_value = float(np.array(ev).flatten()[0])
+            else:
+                base_value = float(ev)
+            ax.set_title(f"预测值: {prediction:.3f}  (基准值: {base_value:.3f})", fontsize=12, pad=10)
+            ax.spines["top"].set_visible(False)
+            ax.spines["right"].set_visible(False)
+            ax.spines["left"].set_visible(False)
+            from matplotlib.patches import Patch
+            legend_elements = [
+                Patch(facecolor="#a78bfa", label="推动易溶 (正贡献)"),
+                Patch(facecolor="#06b6d4", label="推动难溶 (负贡献)")
+            ]
+            ax.legend(handles=legend_elements, loc="lower right", fontsize=9)
+            plt.tight_layout()
+            st.pyplot(fig, width="stretch")
+            plt.close(fig)
+            if prediction > 0:
+                solubility_level = "易溶于水"
+            elif prediction > -2:
+                solubility_level = "中等溶解"
+            else:
+                solubility_level = "难溶于水"
+            supporting = []
+            resisting = []
+            for i in range(min(3, len(top_names))):
+                name = top_names[i]
+                val = top_shap[i]
+                if prediction <= -2:
+                    if val < 0:
+                        supporting.append("**" + name + "**（" + f"{val:.3f}" + "）")
+                    else:
+                        resisting.append("**" + name + "**（+" + f"{val:.3f}" + "）")
+                elif prediction >= 0:
+                    if val > 0:
+                        supporting.append("**" + name + "**（+" + f"{val:.3f}" + "）")
+                    else:
+                        resisting.append("**" + name + "**（" + f"{val:.3f}" + "）")
+                else:
+                    direction = "推动易溶" if val > 0 else "推动难溶"
+                    supporting.append("**" + name + "**（" + f"{val:+.3f}" + "，" + direction + "）")
+            parts = ["**关键分析**：模型预测该分子 **" + solubility_level + "**（logS = " + f"{prediction:.3f}" + "）。"]
+            if supporting:
+                parts.append("推动这一结果的主要因素：" + ", ".join(supporting) + "。")
+            if resisting:
+                target = "更易溶" if prediction <= -2 else "更难溶"
+                parts.append("但以下因素在抵抗这一趋势、试图让分子" + target + "：" + ", ".join(resisting) + "。")
+            shift = abs(prediction - base_value)
+            direction = "向上" if prediction > base_value else "向下"
+            parts.append("相比训练集平均分子（基准值 " + f"{base_value:.3f}" + "），该分子的结构特征将预测值" + direction + "拉动了 " + f"{shift:.3f}" + " 个单位。")
+            insight_text = " ".join(parts)
+            st.info(insight_text)
+
+        st.markdown("<br>", unsafe_allow_html=True)
+        st.markdown("""<div class="card-title">&#129504; AI Chemistry Explanation</div>""", unsafe_allow_html=True)
+        with st.container(border=True):
+            if st.session_state.ai_explanation:
+                st.markdown(st.session_state.ai_explanation)
+                if st.button("清除解释", key="clear_ai"):
+                    st.session_state.ai_explanation = None
+                    st.rerun()
+            else:
+                st.caption("AI 解释需要手动调用（消耗 API 额度）")
+                if st.button("生成 AI 解释", key="gen_ai", use_container_width=True):
+                    with st.spinner("正在分析分子结构..."):
+                        pka_val_gen = st.session_state.get("predicted_pka")
+                        if pka_val_gen is not None:
+                            if pka_val_gen < 5:
+                                pka_type_gen = "acid"
+                            elif pka_val_gen > 9:
+                                pka_type_gen = "base"
                             else:
-                                pka_val_gen = None
-                                pka_type_gen = None
-                            explanation = explain_with_kimi(
-                                st.session_state.predicted_smiles,
-                                prediction,
-                                features,
-                                shap_features=st.session_state.get("shap_names"),
-                                shap_values=st.session_state.get("shap_values"),
-                                pka_value=pka_val_gen,
-                                pka_type=pka_type_gen
-                            )
-                        st.session_state.ai_explanation = explanation
-                        st.rerun()
+                                pka_type_gen = "amphoteric"
+                        else:
+                            pka_val_gen = None
+                            pka_type_gen = None
+                        explanation = explain_with_kimi(
+                            st.session_state.predicted_smiles,
+                            prediction,
+                            features,
+                            shap_features=st.session_state.get("shap_names"),
+                            shap_values=st.session_state.get("shap_values"),
+                            pka_value=pka_val_gen,
+                            pka_type=pka_type_gen
+                        )
+                    st.session_state.ai_explanation = explanation
+                    st.rerun()
 
 # ========== 页脚 ==========
 st.markdown("""

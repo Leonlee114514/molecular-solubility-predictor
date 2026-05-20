@@ -13,7 +13,7 @@ def load_cache():
         try:
             with open(CACHE_FILE, "r", encoding="utf-8") as f:
                 pubchem_cache = json.load(f)
-        except:
+        except (json.JSONDecodeError, OSError, IOError):
             pubchem_cache = {}
 
 def save_cache():
