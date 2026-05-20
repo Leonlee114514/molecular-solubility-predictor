@@ -1606,6 +1606,11 @@ components.html("""
             s.x += s.vx;
             s.y += s.vy;
 
+            // 速度阻尼：让星星逐渐减速，避免屏幕过于混乱
+            var damping = 0.992;
+            s.vx *= damping;
+            s.vy *= damping;
+
             // 鼠标吸引效果（星座聚集）
             var mdx = mouseStarX - s.x, mdy = mouseStarY - s.y;
             var mDist = Math.sqrt(mdx*mdx + mdy*mdy);
