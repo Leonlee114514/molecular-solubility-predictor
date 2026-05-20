@@ -2536,13 +2536,13 @@ if st.session_state.predicted_smiles and st.session_state.predicted_logS is not 
                     和 SHAP 不同，这些不是机器学习权重，而是**真实的结构化学效应**。
                     """)
                     st.markdown("""
-                    <div style="margin-top: 0.3rem; padding: 0.55rem 0.85rem; background: rgba(124, 58, 237, 0.06); border-left: 2px solid rgba(124, 58, 237, 0.3); border-radius: 4px; font-size: 0.82rem; color: #a0a0b5; line-height: 1.8;">
+                    <div style="margin-top: 0.3rem; padding: 0.65rem 0.9rem; background: rgba(124, 58, 237, 0.06); border-left: 2px solid rgba(124, 58, 237, 0.3); border-radius: 4px; font-size: 0.82rem; color: #a0a0b5; line-height: 1.9;">
                     <b style="color: #c4b5fd;">图表术语速查</b> &nbsp;点击术语查看中英双语定义：<br>
-                    &bull; <b>诱导效应</b>（Inductive Effect）&mdash; 电负性原子通过 σ 键吸引或排斥电子 &nbsp;|&nbsp;
-                    &bull; <b>共轭效应</b>（Resonance）&mdash; π 电子离域稳定化 &nbsp;|&nbsp;
-                    &bull; <b>分子内氢键</b>（Intramolecular H-Bond）&mdash; 分子内基团间形成的氢键 &nbsp;|&nbsp;
-                    &bull; <b>空间位阻</b>（Steric Hindrance）&mdash; 大体积基团阻碍反应 &nbsp;|&nbsp;
-                    &bull; <b>杂化/芳香性</b>（Hybridization / Aromaticity）&mdash; sp² 碳比例与芳香环稳定化效应
+                    &bull; <b>诱导效应</b>（Inductive Effect）&mdash; 电负性原子通过 σ 键吸引或排斥电子，从而影响质子的结合与释放<br>
+                    &bull; <b>共轭效应</b>（Resonance / Conjugation）&mdash; π 电子在共轭体系中离域分布，稳定电离后的离子形式<br>
+                    &bull; <b>分子内氢键</b>（Intramolecular H-Bond）&mdash; 同一分子内不同基团间形成氢键，屏蔽极性、调节 pKa<br>
+                    &bull; <b>空间位阻</b>（Steric Hindrance）&mdash; 大体积原子或基团阻碍质子的接近与离去，改变反应活性<br>
+                    &bull; <b>杂化/芳香性</b>（Hybridization / Aromaticity）&mdash; sp² 碳比例与芳香环共轭体系带来的额外稳定性
                     </div>
                     """, unsafe_allow_html=True)
                 else:
