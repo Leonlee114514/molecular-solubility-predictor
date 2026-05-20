@@ -2796,92 +2796,89 @@ if st.session_state.predicted_smiles and st.session_state.predicted_logS is not 
 
 # ========== 化学术语双语词汇表（点击弹窗） ==========
 components.html("""
-<style>
-/* ─── 可点击术语 ─── */
-.gloss-term {
-    border-bottom: 1.5px dashed rgba(124, 58, 237, 0.55);
-    cursor: pointer;
-    color: #c4b5fd;
-    transition: color 0.15s, border-color 0.15s;
-    position: relative;
-}
-.gloss-term:hover {
-    color: #e0d4ff;
-    border-bottom-color: rgba(167, 139, 250, 0.8);
-}
-
-/* ─── 术语弹窗 ─── */
-#gloss-popup {
-    position: fixed;
-    z-index: 99999;
-    max-width: 420px;
-    background: linear-gradient(155deg, rgba(30, 30, 50, 0.96) 0%, rgba(18, 18, 35, 0.94) 100%);
-    backdrop-filter: blur(14px) saturate(130%);
-    -webkit-backdrop-filter: blur(14px) saturate(130%);
-    border: 1px solid rgba(124, 58, 237, 0.25);
-    border-radius: 16px;
-    padding: 1.25rem 1.5rem;
-    box-shadow:
-        0 20px 50px -12px rgba(0,0,0,0.55),
-        0 0 0 1px rgba(124, 58, 237, 0.08),
-        0 0 30px rgba(124, 58, 237, 0.1);
-    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-    pointer-events: auto;
-    opacity: 0;
-    transform: translateY(6px) scale(0.97);
-    transition: opacity 0.18s ease, transform 0.18s ease;
-    display: none;
-}
-#gloss-popup.show {
-    display: block;
-    opacity: 1;
-    transform: translateY(0) scale(1);
-}
-#gloss-popup .gloss-en {
-    font-size: 1.15rem;
-    font-weight: 700;
-    color: #f0f0f5;
-    margin-bottom: 0.2rem;
-    letter-spacing: -0.01em;
-}
-#gloss-popup .gloss-cn {
-    font-size: 0.9rem;
-    color: #a78bfa;
-    font-weight: 600;
-    margin-bottom: 0.6rem;
-}
-#gloss-popup .gloss-def {
-    font-size: 0.85rem;
-    color: #c0c0d0;
-    line-height: 1.65;
-}
-#gloss-popup .gloss-def-en {
-    font-size: 0.8rem;
-    color: #8b8b9b;
-    line-height: 1.55;
-    margin-top: 0.45rem;
-    padding-top: 0.45rem;
-    border-top: 1px solid rgba(255,255,255,0.06);
-}
-
-/* ─── 遮罩层 ─── */
-#gloss-overlay {
-    position: fixed;
-    inset: 0;
-    z-index: 99998;
-    pointer-events: auto;
-    display: none;
-}
-#gloss-overlay.show { display: block; }
-</style>
-""", height=0)
-
-components.html("""
 <script>
 (function() {
     'use strict';
     var win = window.parent || window;
     var doc = win.document;
+
+    // ═══════════════════════════════════════════
+    // 注入样式到父文档
+    // ═══════════════════════════════════════════
+    if (!doc.getElementById('gloss-style')) {
+        var style = doc.createElement('style');
+        style.id = 'gloss-style';
+        style.textContent = ''
+            + '.gloss-term {'
+            + '  border-bottom: 1.5px dashed rgba(124, 58, 237, 0.55);'
+            + '  cursor: pointer;'
+            + '  color: #c4b5fd;'
+            + '  transition: color 0.15s, border-color 0.15s;'
+            + '  position: relative;'
+            + '}'
+            + '.gloss-term:hover {'
+            + '  color: #e0d4ff;'
+            + '  border-bottom-color: rgba(167, 139, 250, 0.8);'
+            + '}'
+            + '#gloss-popup {'
+            + '  position: fixed;'
+            + '  z-index: 99999;'
+            + '  max-width: 420px;'
+            + '  background: linear-gradient(155deg, rgba(30, 30, 50, 0.96) 0%, rgba(18, 18, 35, 0.94) 100%);'
+            + '  backdrop-filter: blur(14px) saturate(130%);'
+            + '  -webkit-backdrop-filter: blur(14px) saturate(130%);'
+            + '  border: 1px solid rgba(124, 58, 237, 0.25);'
+            + '  border-radius: 16px;'
+            + '  padding: 1.25rem 1.5rem;'
+            + '  box-shadow: 0 20px 50px -12px rgba(0,0,0,0.55), 0 0 0 1px rgba(124, 58, 237, 0.08), 0 0 30px rgba(124, 58, 237, 0.1);'
+            + '  font-family: "Segoe UI", system-ui, -apple-system, sans-serif;'
+            + '  pointer-events: auto;'
+            + '  opacity: 0;'
+            + '  transform: translateY(6px) scale(0.97);'
+            + '  transition: opacity 0.18s ease, transform 0.18s ease;'
+            + '  display: none;'
+            + '}'
+            + '#gloss-popup.show {'
+            + '  display: block;'
+            + '  opacity: 1;'
+            + '  transform: translateY(0) scale(1);'
+            + '}'
+            + '#gloss-popup .gloss-en {'
+            + '  font-size: 1.15rem;'
+            + '  font-weight: 700;'
+            + '  color: #f0f0f5;'
+            + '  margin-bottom: 0.2rem;'
+            + '  letter-spacing: -0.01em;'
+            + '}'
+            + '#gloss-popup .gloss-cn {'
+            + '  font-size: 0.9rem;'
+            + '  color: #a78bfa;'
+            + '  font-weight: 600;'
+            + '  margin-bottom: 0.6rem;'
+            + '}'
+            + '#gloss-popup .gloss-def {'
+            + '  font-size: 0.85rem;'
+            + '  color: #c0c0d0;'
+            + '  line-height: 1.65;'
+            + '}'
+            + '#gloss-popup .gloss-def-en {'
+            + '  font-size: 0.8rem;'
+            + '  color: #8b8b9b;'
+            + '  line-height: 1.55;'
+            + '  margin-top: 0.45rem;'
+            + '  padding-top: 0.45rem;'
+            + '  border-top: 1px solid rgba(255,255,255,0.06);'
+            + '}'
+            + '#gloss-overlay {'
+            + '  position: fixed;'
+            + '  inset: 0;'
+            + '  z-index: 99998;'
+            + '  pointer-events: auto;'
+            + '  display: none;'
+            + '}'
+            + '#gloss-overlay.show { display: block; }';
+        doc.head.appendChild(style);
+    }
 
     // ═══════════════════════════════════════════
     // 化学术语词汇表（中英双语）
