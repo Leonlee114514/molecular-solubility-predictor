@@ -3,7 +3,8 @@
     "allow": [
       "Bash(python -m py_compile app.py)",
       "Bash(python -m py_compile pubchem_final.py)",
-      "Bash(python *)"
+      "Bash(python *)",
+      "WebFetch(domain:pubchem.ncbi.nlm.nih.gov)"
     ]
   }
 }

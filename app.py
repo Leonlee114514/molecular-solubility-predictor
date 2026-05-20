@@ -121,7 +121,7 @@ MOLECULE_DB = {
     # === 消化系统 ===
     "奥美拉唑 Omeprazole": "COc1ccc2nc(S(=O)Cc3ncc(C)c(OC)c3C)[nH]c2c1",
     "雷尼替丁 Ranitidine": "CN(C)CCNC(=O)CSc1ccc(CN/C=C/[N+](=O)[O-])cc1",
-    "西咪替丁 Cimetidine": "CN(C)CCNC(=O)CSc1ncnc1C#N",
+    "西咪替丁 Cimetidine": "CC1=C(NC=N1)CSCCN/C(=N/C#N)/NC",
     
     # === 抗过敏/呼吸 ===
     "氯雷他定 Loratadine": "CCOC(=O)N1CCC(=C2c3ccc(Cl)cc3CCc3cccnc32)CC1",
