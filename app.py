@@ -1856,43 +1856,48 @@ def show_3d_molecule(smiles):
         return None
 
 
-def mol_to_dark_image(mol, size=(400, 400)):
-    """生成适配深色主题的高清2D分子结构图（3x超采样抗锯齿，numpy矢量化）"""
-    import numpy as np
+def mol_to_dark_image(mol, size=(500, 400)):
+    """使用 MolDraw2DCairo 生成深色主题高清 2D 分子结构图"""
+    from io import BytesIO
     from PIL import Image, ImageFilter
+    import numpy as np
+    from rdkit.Chem.Draw import rdMolDraw2D
 
-    scale = 3
-    big_size = (size[0] * scale, size[1] * scale)
+    w, h = size
+    draw = rdMolDraw2D.MolDraw2DCairo(w, h)
+    opts = draw.drawOptions()
 
-    # 1. 以3倍分辨率生成原始图像
-    img_big = Draw.MolToImage(mol, size=big_size, kekulize=True)
-    img_big = img_big.convert("RGBA")
+    # 深色背景 + 定制原子色板
+    opts.backgroundColour = (0.102, 0.102, 0.180, 1.0)  # #1a1a2e
+    opts.bondLineWidth = 3
+    opts.multipleBondOffset = 0.18
+    opts.padding = 0.08
+    opts.legendFontSize = 22
 
-    # 2. numpy 矢量化颜色替换
-    arr = np.array(img_big, dtype=np.uint16)
-    r, g, b, a = arr[:, :, 0], arr[:, :, 1], arr[:, :, 2], arr[:, :, 3]
-    alpha_mask = a == 0
-    brightness = (r + g + b) / 3.0
+    opts.updateAtomPalette({
+        6:  (0.82, 0.82, 0.92),   # C: 亮银灰
+        7:  (0.35, 0.65, 1.00),   # N: 亮蓝
+        8:  (1.00, 0.40, 0.40),   # O: 亮红
+        9:  (0.35, 0.90, 0.55),   # F: 亮绿
+        16: (1.00, 0.85, 0.30),   # S: 亮金
+        17: (0.35, 0.90, 0.55),   # Cl: 亮绿
+        15: (1.00, 0.65, 0.20),   # P: 橙色
+    })
 
-    bg_mask = (brightness > 245) & ~alpha_mask
-    black_mask = (brightness < 60) & ~alpha_mask
-    grey_mask = (brightness < 140) & ~alpha_mask & (np.maximum(np.maximum(r, g), b) - np.minimum(np.minimum(r, g), b) < 50)
-    color_mask = ~bg_mask & ~black_mask & ~grey_mask & ~alpha_mask
+    draw.DrawMolecule(mol)
+    draw.FinishDrawing()
 
-    arr[bg_mask, 0], arr[bg_mask, 1], arr[bg_mask, 2], arr[bg_mask, 3] = 26, 26, 46, 255
-    arr[black_mask, 0], arr[black_mask, 1], arr[black_mask, 2] = 210, 210, 230
-    arr[grey_mask, 0], arr[grey_mask, 1], arr[grey_mask, 2] = 175, 175, 195
+    png_data = draw.GetDrawingText()
+    img = Image.open(BytesIO(png_data)).convert("RGBA")
 
-    if color_mask.any():
-        arr[color_mask, 0] = np.clip(arr[color_mask, 0] * 1.12 + 15, 0, 255)
-        arr[color_mask, 1] = np.clip(arr[color_mask, 1] * 1.12 + 15, 0, 255)
-        arr[color_mask, 2] = np.clip(arr[color_mask, 2] * 1.12 + 15, 0, 255)
-
-    img_big = Image.fromarray(arr.astype(np.uint8), "RGBA")
-
-    # 3. 高质量缩小到目标尺寸
-    img = img_big.resize(size, Image.LANCZOS)
-    img = img.filter(ImageFilter.SMOOTH_MORE)
+    # 给结构添加微弱外发光，提升深色背景上的可读性
+    glow = img.filter(ImageFilter.GaussianBlur(radius=2))
+    glow_arr = np.array(glow, dtype=np.float32)
+    alpha = (glow_arr[:, :, 3:4]) / 255.0
+    glow_arr = glow_arr * alpha * 0.2
+    img_arr = np.array(img, dtype=np.float32)
+    blended = np.clip(img_arr + glow_arr, 0, 255).astype(np.uint8)
+    img = Image.fromarray(blended, "RGBA")
 
     return img
 
