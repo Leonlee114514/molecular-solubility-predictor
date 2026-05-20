@@ -2971,69 +2971,99 @@ components.html("""
         popup.style.top = py + 'px';
     }
 
-    function wrapTerms(root) {
-        var walker = doc.createTreeWalker(root, NodeFilter.SHOW_TEXT, null, false);
-        var textNodes = [];
-        var node;
-        while ((node = walker.nextNode())) {
-            // 跳过已处理、脚本、样式、弹窗内的节点
+    // ═══════════════════════════════════════════
+    // 递归收集文本节点（避免 TreeWalker/NodeFilter 跨上下文问题）
+    // ═══════════════════════════════════════════
+    function collectTextNodes(node, out) {
+        if (node.nodeType === 3) { // TEXT_NODE
             var parent = node.parentNode;
-            if (!parent || parent.closest('#gloss-popup') || parent.closest('script') ||
-                parent.closest('style') || parent.closest('input') || parent.closest('textarea') ||
-                parent.closest('.gloss-term') || parent.closest('code') || parent.closest('pre') ||
-                parent.closest('[data-testid="stMetricValue"]'))
-                continue;
-            if (node.nodeValue && node.nodeValue.trim().length > 0) {
-                textNodes.push(node);
+            if (parent && !parent.closest('#gloss-popup') && !parent.closest('script') &&
+                !parent.closest('style') && !parent.closest('input') && !parent.closest('textarea') &&
+                !parent.closest('.gloss-term') && !parent.closest('code') && !parent.closest('pre') &&
+                !parent.closest('[data-testid="stMetricValue"]'))
+            {
+                if (node.nodeValue && node.nodeValue.trim().length > 0) {
+                    out.push(node);
+                }
+            }
+        } else if (node.nodeType === 1 && node.childNodes && node.childNodes.length > 0) {
+            // ELEMENT_NODE: 递归进入子节点（不进入 iframe）
+            if (node.tagName !== 'IFRAME') {
+                for (var c = 0; c < node.childNodes.length; c++) {
+                    collectTextNodes(node.childNodes[c], out);
+                }
             }
         }
+    }
 
+    function wrapTerms(root) {
+        var textNodes = [];
+        collectTextNodes(root, textNodes);
+        console.log('[Glossary] Found ' + textNodes.length + ' text nodes to scan');
+
+        var wrappedCount = 0;
         for (var i = 0; i < textNodes.length; i++) {
             var node = textNodes[i];
             var text = node.nodeValue;
-            var replaced = false;
-            var frag = doc.createDocumentFragment();
-            var lastIdx = 0;
+            if (!text || !node.parentNode) continue;
 
+            // 在文本中查找所有匹配的术语
+            var matches = [];
             for (var k = 0; k < GLOSS_KEYS.length; k++) {
                 var term = GLOSS_KEYS[k];
-                var idx = text.indexOf(term, lastIdx);
-                if (idx === -1) continue;
-
-                // 添加前面的普通文本
-                if (idx > lastIdx) {
-                    frag.appendChild(doc.createTextNode(text.substring(lastIdx, idx)));
+                var idx = -1;
+                while ((idx = text.indexOf(term, idx + 1)) !== -1) {
+                    matches.push({ idx: idx, term: term });
                 }
-                // 创建可点击术语元素
+            }
+            if (matches.length === 0) continue;
+
+            // 按位置升序，同位置优先长术语（避免"氢键"抢占"氢键供体"）
+            matches.sort(function(a, b) { return a.idx !== b.idx ? a.idx - b.idx : b.term.length - a.term.length; });
+
+            var frag = doc.createDocumentFragment();
+            var lastIdx = 0;
+            for (var m = 0; m < matches.length; m++) {
+                var match = matches[m];
+                if (match.idx < lastIdx) continue; // 重叠匹配跳过
+
+                if (match.idx > lastIdx) {
+                    frag.appendChild(doc.createTextNode(text.substring(lastIdx, match.idx)));
+                }
+                var entry = GLOSSARY[match.term];
                 var span = doc.createElement('span');
                 span.className = 'gloss-term';
-                span.textContent = term;
-                span.title = GLOSSARY[term].en + ' — ' + GLOSSARY[term].def.substring(0, 80) + '…';
+                span.textContent = match.term;
+                span.title = entry.en + ' — ' + entry.def.substring(0, 80) + '…';
                 (function(t) {
                     span.addEventListener('click', function(e) {
                         e.stopPropagation();
                         showPopup(t, e.clientX, e.clientY);
                     });
-                })(term);
+                })(match.term);
                 frag.appendChild(span);
-                lastIdx = idx + term.length;
-                replaced = true;
-                break; // 每个文本节点只替换第一个匹配术语
+                lastIdx = match.idx + match.term.length;
+                wrappedCount++;
             }
-
-            if (replaced) {
-                if (lastIdx < text.length) {
-                    frag.appendChild(doc.createTextNode(text.substring(lastIdx)));
-                }
-                node.parentNode.replaceChild(frag, node);
+            if (lastIdx < text.length) {
+                frag.appendChild(doc.createTextNode(text.substring(lastIdx)));
             }
+            node.parentNode.replaceChild(frag, node);
         }
+        if (wrappedCount > 0) console.log('[Glossary] Wrapped ' + wrappedCount + ' terms');
     }
 
     // ═══════════════════════════════════════════
     // 初始扫描 + 动态监听
     // ═══════════════════════════════════════════
-    function scan() { wrapTerms(doc.body); }
+    var scanTimer = null;
+    function scan() {
+        if (scanTimer) return; // 防止短时间内重复扫描
+        scanTimer = setTimeout(function() {
+            scanTimer = null;
+            try { wrapTerms(doc.body); } catch(e) { console.error('[Glossary] Error:', e); }
+        }, 100);
+    }
     scan();
     // Streamlit 动态渲染后重新扫描
     setTimeout(scan, 800);
@@ -3042,6 +3072,7 @@ components.html("""
 
     var obs = new MutationObserver(function() { scan(); });
     obs.observe(doc.body, { childList: true, subtree: true });
+    console.log('[Glossary] Initialized — watching for terms');
 })();
 </script>
 """, height=0)
