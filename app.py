@@ -1,5 +1,5 @@
 """
-【分子溶解度预测 - Orbita Theme v1】
+【DisSolve - AI-Powered Molecular Property Prediction】
 保留原有全部功能逻辑，仅改造视觉层为深空宇宙风格
 """
 
@@ -261,17 +261,17 @@ def search_pubchem_final(name, max_retries=3):
 
 # ========== 页面设置 ==========
 st.set_page_config(
-    page_title="SoluVis - Molecular Solubility Predictor",
+    page_title="DisSolve - Molecular Property Predictor",
     page_icon="🧬",
     layout="wide",
     initial_sidebar_state="collapsed"
 )
 
-# ========== ORBITA THEME: Deep Space Universe CSS ==========
+# ========== DisSolve DEEP SPACE THEME CSS ==========
 st.markdown("""
 <style>
 /* ═══════════════════════════════════════════════
-   ORBITA THEME: Deep Space Molecular Universe
+   DisSolve — Deep Space Molecular Universe Theme
    ═══════════════════════════════════════════════ */
 
 /* Google Fonts removed — system font stack for China accessibility */
@@ -1441,11 +1441,11 @@ components.html("""
 <script>
 (function() {
     'use strict';
-    console.log('[Orbita] Starfield script loaded');
+    console.log('[DisSolve] Starfield script loaded');
     
     // 检查是否偏好减弱动画
     if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-        console.log('[Orbita] prefers-reduced-motion is enabled, skipping starfield');
+        console.log('[DisSolve] prefers-reduced-motion is enabled, skipping starfield');
         return;
     }
     
@@ -1463,9 +1463,9 @@ components.html("""
         } else {
             doc.body.insertBefore(canvas, doc.body.firstChild);
         }
-        console.log('[Orbita] Starfield canvas created');
+        console.log('[DisSolve] Starfield canvas created');
     } else {
-        console.log('[Orbita] Starfield canvas already exists, reusing');
+        console.log('[DisSolve] Starfield canvas already exists, reusing');
     }
     
     var ctx = canvas.getContext('2d');
@@ -1476,7 +1476,7 @@ components.html("""
     }
     resize();
     win.addEventListener('resize', resize);
-    console.log('[Orbita] Canvas size: ' + W + 'x' + H);
+    console.log('[DisSolve] Canvas size: ' + W + 'x' + H);
     
     // 防止事件重复绑定
     if (!doc.__obStarMouseBound) {
@@ -1735,7 +1735,7 @@ components.html("""
     let currentX = mouseX, currentY = mouseY;
     let moveTimeout;
     
-    console.log('[Orbita] Cursor glow script loaded, win size: ' + win2.innerWidth + 'x' + win2.innerHeight);
+    console.log('[DisSolve] Cursor glow script loaded, win size: ' + win2.innerWidth + 'x' + win2.innerHeight);
     
     if (!doc2.__obGlowMouseBound) {
         doc2.__obGlowMouseBound = true;
@@ -1757,7 +1757,7 @@ components.html("""
         glow.style.transform = 'translate3d(' + (currentX - 150) + 'px, ' + (currentY - 150) + 'px, 0)';
         requestAnimationFrame(animate);
     })();
-    console.log('[Orbita] Cursor glow initialized at ' + currentX + ',' + currentY);
+    console.log('[DisSolve] Cursor glow initialized at ' + currentX + ',' + currentY);
     
     // 卡片 3D tilt 效果（更克制的角度，避免与CSS hover冲突）
     function bindTilt() {
@@ -2139,18 +2139,19 @@ if "ai_explanation" not in st.session_state:
 # ========== 网页界面 ==========
 st.markdown("""
 <div style="text-align:center; margin-top:1rem; margin-bottom:0.5rem;">
-    <div class="tagline">MOLECULAR SOLUBILITY PREDICTION</div>
-    <h1 class="gradient-title">SoluVis</h1>
-    <p class="subtitle">Predict Aqueous Solubility from Molecular Structure with AI-Powered Insights</p>
+    <div class="tagline">AI-POWERED MOLECULAR PROPERTY PREDICTION</div>
+    <h1 class="gradient-title">DisSolve</h1>
+    <p class="subtitle">Predict Aqueous Solubility, pKa & Pharmacological Profiles from Molecular Structure</p>
 </div>
 """, unsafe_allow_html=True)
 
 st.markdown("""
 <div class="card-container" style="padding: 1.2rem 1.5rem; margin-bottom: 2rem;">
     <p style="margin: 0; color: var(--ob-text-secondary); line-height: 1.7;">
-        <b style="color: var(--ob-text-primary);">Welcome!</b> This app predicts how well a molecule dissolves in water (logS)
-        using a <b>Machine Learning</b> model trained on <b>11,000+ organic compounds</b>.
-        Explore molecular properties, 3D structures, pKa profiles, and AI-generated explanations.
+        <b style="color: var(--ob-text-primary);">Welcome!</b> This app predicts aqueous solubility (logS), acid-base behavior (pKa),
+        and pharmacological profiles from molecular structure using a <b>Machine Learning</b> model
+        trained on <b>11,000+ organic compounds</b>.
+        Explore 2D & 3D molecular structures, pKa chemistry insights, and AI-generated explanations.
     </p>
     <div style="display: flex; gap: 1rem; margin-top: 1rem; flex-wrap: wrap;">
         <span class="badge badge-primary"><span style="margin-right:4px;">&#128071;</span> 快速选择</span>
@@ -3111,8 +3112,8 @@ components.html("""
 # ========== 页脚 ==========
 st.markdown("""
 <div class="footer">
-    <div style="font-weight: 600; color: var(--ob-text-secondary); margin-bottom: 0.3rem; font-family: 'Space Grotesk', sans-serif; font-size: 1rem;">SoluVis</div>
+    <div style="font-weight: 600; color: var(--ob-text-secondary); margin-bottom: 0.3rem; font-family: 'Space Grotesk', sans-serif; font-size: 1rem;">DisSolve</div>
     <div>Built with Streamlit | ML: Random Forest + RDKit (V2: 11,000+ molecules) | AI: Kimi (Moonshot AI) | DB: 100+ local + PubChem API</div>
-    <div style="margin-top: 0.5rem; font-size: 0.75rem; color: #6b6b7b;">科学计算 - 人工智能 - 药物化学 | Orbita Deep Space Theme</div>
+    <div style="margin-top: 0.5rem; font-size: 0.75rem; color: #6b6b7b;">溶解度预测 · pKa分析 · 药理学评估 | AI-Powered Chemistry Platform</div>
 </div>
 """, unsafe_allow_html=True)
