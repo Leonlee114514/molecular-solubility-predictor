@@ -3113,7 +3113,7 @@ components.html("""
 st.markdown("""
 <div class="footer">
     <div style="font-weight: 600; color: var(--ob-text-secondary); margin-bottom: 0.3rem; font-family: 'Space Grotesk', sans-serif; font-size: 1rem;">DisSolve</div>
-    <div>Built with Streamlit | ML: Random Forest + RDKit (V2: 11,000+ molecules) | AI: Kimi (Moonshot AI) | DB: 100+ local + PubChem API</div>
+    <div>Built with Streamlit | ML: Random Forest + RDKit | Solubility: 11,000+ molecules | pKa: 410,000+ molecules | AI: Kimi (Moonshot AI) | DB: 100+ local + PubChem API</div>
     <div style="margin-top: 0.5rem; font-size: 0.75rem; color: #6b6b7b;">溶解度预测 · pKa分析 · 药理学评估 | AI-Powered Chemistry Platform</div>
 </div>
 """, unsafe_allow_html=True)
