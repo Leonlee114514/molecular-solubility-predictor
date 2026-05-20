@@ -4,7 +4,11 @@
       "Bash(python -m py_compile app.py)",
       "Bash(python -m py_compile pubchem_final.py)",
       "Bash(python *)",
-      "WebFetch(domain:pubchem.ncbi.nlm.nih.gov)"
+      "WebFetch(domain:pubchem.ncbi.nlm.nih.gov)",
+      "Bash(cp \"C:/Users/Lyonl/Pictures/Screenshots/屏幕截图 2026-05-20 173057.png\" /tmp/screenshot1.png)",
+      "Bash(cp \"C:/Users/Lyonl/Pictures/Screenshots/屏幕截图 2026-05-20 173148.png\" /tmp/screenshot2.png)",
+      "Bash(cp 'C:/Users/Lyonl/Pictures/Screenshots/屏幕截图 2026-05-20 173057.png' __TRACKED_VAR__/screenshot1.png)",
+      "Bash(cp 'C:/Users/Lyonl/Pictures/Screenshots/屏幕截图 2026-05-20 173148.png' __TRACKED_VAR__/screenshot2.png)"
     ]
   }
 }
