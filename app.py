@@ -1892,6 +1892,17 @@ def show_3d_molecule(smiles):
         mol = Chem.AddHs(mol)
         AllChem.EmbedMolecule(mol, AllChem.ETKDGv3())
         AllChem.MMFFOptimizeMolecule(mol, maxIters=500)
+
+        # 居中分子坐标，避免 3D 视图中偏向一侧
+        from rdkit.Geometry import Point3D
+        conf = mol.GetConformer()
+        n_atoms = mol.GetNumAtoms()
+        cx = sum(conf.GetAtomPosition(i).x for i in range(n_atoms)) / n_atoms
+        cy = sum(conf.GetAtomPosition(i).y for i in range(n_atoms)) / n_atoms
+        cz = sum(conf.GetAtomPosition(i).z for i in range(n_atoms)) / n_atoms
+        for i in range(n_atoms):
+            pos = conf.GetAtomPosition(i)
+            conf.SetAtomPosition(i, Point3D(pos.x - cx, pos.y - cy, pos.z - cz))
         mb = Chem.MolToMolBlock(mol)
         view = py3Dmol.view(width=500, height=420)
         view.addModel(mb, 'mol')
