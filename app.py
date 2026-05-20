@@ -1486,6 +1486,9 @@ components.html("""
             mouseTrail.push({x: e.clientX, y: e.clientY, age: 0});
             if (mouseTrail.length > maxTrail) mouseTrail.shift();
         }, { passive: true });
+        doc.addEventListener('click', function(e) {
+            bursts.push({x: e.clientX, y: e.clientY, radius: 0, maxRadius: 200, life: 1.0});
+        }, { passive: true });
     }
     
     // 粒子配置 - 3层（优化数量：从380减至200）
@@ -1518,6 +1521,7 @@ components.html("""
     var mouseStarX = W / 2, mouseStarY = H / 2;
     var mouseTrail = [];
     var maxTrail = 20;
+    var bursts = [];
     
     var frame = 0;
     function animate() {
@@ -1576,9 +1580,29 @@ components.html("""
             }
         }
 
-        // 绘制粒子
+        // ── 处理点击爆发效果 ──
+        for (var b = bursts.length - 1; b >= 0; b--) {
+            var burst = bursts[b];
+            burst.radius += 5;
+            burst.life = Math.max(0, 1 - burst.radius / burst.maxRadius);
+            if (burst.life <= 0) {
+                bursts.splice(b, 1);
+            }
+        }
+
+        // ── 更新所有爆发对星星的脉冲速度 ──
         for (var i = 0; i < stars.length; i++) {
             var s = stars[i];
+            for (var b = 0; b < bursts.length; b++) {
+                var burst = bursts[b];
+                var bdx = s.x - burst.x, bdy = s.y - burst.y;
+                var bDist = Math.sqrt(bdx*bdx + bdy*bdy);
+                if (bDist < burst.radius && bDist < burst.maxRadius && bDist > 2) {
+                    var force = (1 - bDist / burst.maxRadius) * burst.life * 2.5 * (1 - s.layer * 0.3);
+                    s.vx += (bdx / bDist) * force;
+                    s.vy += (bdy / bDist) * force;
+                }
+            }
             s.x += s.vx;
             s.y += s.vy;
 
@@ -1649,7 +1673,28 @@ components.html("""
         ctx.arc(mouseStarX, mouseStarY, 60, 0, Math.PI*2);
         ctx.fillStyle = mGlow;
         ctx.fill();
-        
+
+        // ── 点击爆发涟漪渲染 ──
+        for (var b = 0; b < bursts.length; b++) {
+            var burst = bursts[b];
+            var alpha = burst.life * 0.4;
+            // 外圈冲击波
+            ctx.beginPath();
+            ctx.arc(burst.x, burst.y, burst.radius, 0, Math.PI*2);
+            ctx.strokeStyle = 'rgba(167,139,250,' + alpha + ')';
+            ctx.lineWidth = 2 * burst.life;
+            ctx.stroke();
+            // 内圈光晕
+            var bGlow = ctx.createRadialGradient(burst.x, burst.y, 0, burst.x, burst.y, burst.radius);
+            bGlow.addColorStop(0, 'rgba(196,181,253,' + (alpha * 0.6) + ')');
+            bGlow.addColorStop(0.4, 'rgba(124,58,237,' + (alpha * 0.2) + ')');
+            bGlow.addColorStop(1, 'rgba(124,58,237,0)');
+            ctx.beginPath();
+            ctx.arc(burst.x, burst.y, burst.radius, 0, Math.PI*2);
+            ctx.fillStyle = bGlow;
+            ctx.fill();
+        }
+
         animFrameId = requestAnimationFrame(animate);
     }
 
