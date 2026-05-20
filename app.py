@@ -1864,11 +1864,12 @@ def mol_to_dark_image(mol, size=(500, 400)):
     from rdkit.Chem.Draw import rdMolDraw2D
 
     w, h = size
+    BG = np.array([26, 26, 46], dtype=np.uint8)  # #1a1a2e
+
+    # 先渲染到透明背景，再手动合成深色背景（比 backgroundColour 更可靠）
     draw = rdMolDraw2D.MolDraw2DCairo(w, h)
     opts = draw.drawOptions()
-
-    # 深色背景 + 定制原子色板
-    opts.backgroundColour = (0.102, 0.102, 0.180, 1.0)  # #1a1a2e
+    opts.clearBackground = False  # 不绘制背景，得到透明底
     opts.bondLineWidth = 3
     opts.multipleBondOffset = 0.18
     opts.padding = 0.08
@@ -1889,17 +1890,19 @@ def mol_to_dark_image(mol, size=(500, 400)):
 
     png_data = draw.GetDrawingText()
     img = Image.open(BytesIO(png_data)).convert("RGBA")
+    arr = np.array(img, dtype=np.float32)
 
-    # 给结构添加微弱外发光，提升深色背景上的可读性
+    # 手动合成深色背景：透明区域 → BG，非透明区域保持原色
+    alpha = arr[:, :, 3:4] / 255.0
+    bg_layer = np.full((h, w, 4), np.append(BG, [255]), dtype=np.float32)
+    composed = arr * alpha + bg_layer * (1 - alpha)
+
+    # 微弱外发光（仅对分子结构像素，不影响背景）
     glow = img.filter(ImageFilter.GaussianBlur(radius=2))
-    glow_arr = np.array(glow, dtype=np.float32)
-    alpha = (glow_arr[:, :, 3:4]) / 255.0
-    glow_arr = glow_arr * alpha * 0.2
-    img_arr = np.array(img, dtype=np.float32)
-    blended = np.clip(img_arr + glow_arr, 0, 255).astype(np.uint8)
-    img = Image.fromarray(blended, "RGBA")
+    glow_arr = np.array(glow, dtype=np.float32) * alpha * 0.2
+    composed = np.clip(composed + glow_arr, 0, 255).astype(np.uint8)
 
-    return img
+    return Image.fromarray(composed, "RGBA")
 
 # ========== pKa 化学因素分析 ==========
 @st.cache_data(show_spinner=False)
