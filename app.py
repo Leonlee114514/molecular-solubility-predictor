@@ -330,6 +330,16 @@ st.markdown("""
     --ob-border-hover: rgba(124, 58, 237, 0.3);
     --ob-radius: 16px;
     --ob-radius-sm: 12px;
+
+    /* Base Web 暗色主题变量覆盖（下拉菜单、弹出框等） */
+    --colors-menu-background-color: #1a1a2e;
+    --colors-menu-color: #e0e0e0;
+    --colors-menu-item-hover-background-color: rgba(124, 58, 237, 0.25);
+    --colors-menu-item-selected-background-color: rgba(124, 58, 237, 0.35);
+    --colors-popover-background-color: #1a1a2e;
+    --colors-dropdown-menu-background-color: #1a1a2e;
+    --colors-dropdown-menu-hover-background-color: rgba(124, 58, 237, 0.25);
+    --colors-dropdown-menu-selected-background-color: rgba(124, 58, 237, 0.35);
 }
 
 /* ─── 2. 全局基础 ─── */
@@ -686,7 +696,9 @@ code, pre, .mono {
 /* Streamlit 的下拉菜单位于 body 层级的 portal/overlay 中 */
 html body [data-baseweb="menu"],
 html body [data-baseweb="popover"],
-html body [data-baseweb="select"] [data-baseweb="menu"] {
+html body [data-baseweb="select"] [data-baseweb="menu"],
+html body div[role="listbox"],
+html body ul[role="listbox"] {
     background: #1a1a2e !important;
     background-color: #1a1a2e !important;
     background-image: none !important;
@@ -700,7 +712,9 @@ html body [data-baseweb="select"] [data-baseweb="menu"] {
 html body [data-baseweb="menu"] > div,
 html body [data-baseweb="menu"] > div > div:first-child,
 html body [data-baseweb="menu"] [role="listbox"],
-html body [data-baseweb="menu"] ul {
+html body [data-baseweb="menu"] ul,
+html body div[role="listbox"] > div,
+html body ul[role="listbox"] > li {
     background: #1a1a2e !important;
     background-color: #1a1a2e !important;
     background-image: none !important;
@@ -711,7 +725,8 @@ html body [data-baseweb="menu"] ul {
 html body [role="option"],
 html body [data-baseweb="menu"] [role="option"],
 html body [data-baseweb="menu"] div[role="option"],
-html body ul li[role="option"] {
+html body ul li[role="option"],
+html body div[role="listbox"] div {
     color: #e0e0e0 !important;
     background: transparent !important;
     background-color: transparent !important;
@@ -719,17 +734,35 @@ html body ul li[role="option"] {
 }
 
 html body [role="option"]:hover,
-html body [data-baseweb="menu"] [role="option"]:hover {
+html body [data-baseweb="menu"] [role="option"]:hover,
+html body div[role="listbox"] div:hover {
     background: rgba(124, 58, 237, 0.25) !important;
     background-color: rgba(124, 58, 237, 0.25) !important;
     color: #ffffff !important;
 }
 
 html body [aria-selected="true"],
-html body [data-baseweb="menu"] [aria-selected="true"] {
+html body [data-baseweb="menu"] [aria-selected="true"],
+html body div[role="listbox"] [aria-selected="true"] {
     background: rgba(124, 58, 237, 0.35) !important;
     background-color: rgba(124, 58, 237, 0.35) !important;
     color: #ffffff !important;
+    font-weight: 600 !important;
+}
+
+/* ─── 备用：若 Base Web 下拉菜单仍显示白底，强制选项文字为深色以确保可读 ─── */
+body [data-baseweb="menu"] [role="option"],
+body div[role="listbox"] [role="option"],
+body ul[role="listbox"] li {
+    color: #1a1a2e !important;
+}
+body [data-baseweb="menu"] [role="option"]:hover,
+body div[role="listbox"] [role="option"]:hover {
+    color: #7c3aed !important;
+}
+body [data-baseweb="menu"] [aria-selected="true"],
+body div[role="listbox"] [aria-selected="true"] {
+    color: #7c3aed !important;
     font-weight: 600 !important;
 }
 
@@ -995,6 +1028,58 @@ html body [data-baseweb="menu"] [aria-selected="true"] {
     background: linear-gradient(180deg, rgba(124, 58, 237, 0.1), transparent) !important;
     text-shadow: 0 0 16px rgba(124, 58, 237, 0.25);
     font-weight: 600 !important;
+}
+
+/* ─── 10.5 Radio（方式1 替代 selectbox）─── */
+.stRadio > div {
+    display: flex;
+    flex-direction: column;
+    gap: 0 !important;
+}
+
+.stRadio > div > div {
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+.stRadio label {
+    display: flex;
+    align-items: center;
+    padding: 0.5rem 0.875rem !important;
+    margin: 0 !important;
+    border-radius: 8px !important;
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease !important;
+    font-size: 0.9rem !important;
+    color: var(--ob-text-secondary) !important;
+    background: transparent !important;
+    border: none !important;
+}
+
+.stRadio label:hover {
+    background: rgba(124, 58, 237, 0.12) !important;
+    color: var(--ob-text-primary) !important;
+}
+
+/* 隐藏原生的 radio 圆圈 */
+.stRadio label > span:first-child {
+    display: none !important;
+}
+
+/* 选中的 radio 项 */
+.stRadio [aria-checked="true"] + label,
+.stRadio input:checked + div label,
+.stRadio label[data-baseweb="radio"] [aria-checked="true"] {
+    background: rgba(124, 58, 237, 0.18) !important;
+    color: var(--ob-nebula-light) !important;
+    font-weight: 600 !important;
+}
+
+/* radio 容器滚动 */
+.stRadio > div {
+    max-height: 320px;
+    overflow-y: auto;
+    padding-right: 4px;
 }
 
 /* ─── 11. 媒体与图表 ─── */
@@ -1265,7 +1350,61 @@ footer {visibility: hidden;}
     will-change: transform;
 }
 </style>
+
+
 """, unsafe_allow_html=True)
+
+# ========== JS 强制覆盖下拉菜单样式（components.html iframe → parent）==========
+components.html("""
+<script>
+(function() {
+    'use strict';
+    var win = window.parent || window;
+    var doc = win.document;
+    if (!doc || !doc.body) return;
+
+    var DARK = '#1a1a2e';
+    var TEXT = '#e0e0e0';
+    var SELECTED = 'rgba(124,58,237,0.35)';
+
+    function fix() {
+        // 尝试多种可能的选择器
+        var selectors = ['[data-baseweb="menu"]', '[data-baseweb="popover"]', 'div[role="listbox"]', 'ul[role="listbox"]'];
+        selectors.forEach(function(sel) {
+            var menus = doc.querySelectorAll(sel);
+            menus.forEach(function(menu) {
+                menu.style.backgroundColor = DARK;
+                var opts = menu.querySelectorAll('[role="option"]');
+                opts.forEach(function(o) {
+                    o.style.backgroundColor = 'transparent';
+                    o.style.color = TEXT;
+                    if (o.getAttribute('aria-selected') === 'true') {
+                        o.style.backgroundColor = SELECTED;
+                        o.style.color = '#ffffff';
+                    }
+                });
+                var lbs = menu.querySelectorAll('[role="listbox"]');
+                lbs.forEach(function(lb) {
+                    lb.style.backgroundColor = DARK;
+                });
+            });
+        });
+    }
+
+    var obs = new MutationObserver(function() {
+        [50, 100, 200, 400, 800].forEach(function(t){ setTimeout(fix, t); });
+    });
+    obs.observe(doc.documentElement || doc.body, { childList: true, subtree: true });
+
+    doc.body.addEventListener('click', function() {
+        [50, 150, 300, 600, 1000, 1500].forEach(function(t){ setTimeout(fix, t); });
+    });
+
+    setInterval(fix, 200);
+    fix();
+})();
+</script>
+""", height=0)
 
 # ========== Canvas 动态粒子星空背景 ==========
 components.html("""
@@ -2007,18 +2146,44 @@ st.markdown("""
 
 # ========== 输入区域 ==========
 
-# --- 方式1：下拉菜单 ---
+# --- 方式1：可搜索单选列表（替换原生 selectbox 以规避 Base Web 白底样式问题）---
 with st.container(border=True):
     st.markdown("""<div class="card-title">&#128071; 方式 1：快速选择常见分子</div>""", unsafe_allow_html=True)
-    selected_molecule = st.selectbox(
+
+    # 搜索过滤
+    mol_search = st.text_input(
+        "搜索分子",
+        placeholder="输入中文或英文名称过滤...",
+        key="mol_search_filter",
+        label_visibility="collapsed"
+    ).strip().lower()
+
+    all_mols = list(MOLECULE_DB.keys())
+    if mol_search:
+        filtered_mols = [m for m in all_mols if mol_search in m.lower()]
+        if not filtered_mols:
+            filtered_mols = ["(自定义输入)"]
+            st.caption("未找到匹配分子，显示全部选项")
+            filtered_mols = all_mols
+    else:
+        filtered_mols = all_mols
+
+    # 使用 radio 替代 selectbox，选项直接渲染在 DOM 中，CSS 可完全控制样式
+    current_idx = 0
+    if "molecule_select_radio" in st.session_state and st.session_state.molecule_select_radio in filtered_mols:
+        current_idx = filtered_mols.index(st.session_state.molecule_select_radio)
+    elif st.session_state.get("molecule_select_radio") is None:
+        current_idx = 0
+
+    selected_molecule = st.radio(
         "选择分子",
-        list(MOLECULE_DB.keys()),
-        index=0,
-        key="molecule_select",
+        filtered_mols,
+        index=current_idx,
+        key="molecule_select_radio",
         label_visibility="collapsed"
     )
 
-    if selected_molecule != list(MOLECULE_DB.keys())[0]:
+    if selected_molecule != "(自定义输入)":
         new_smiles = MOLECULE_DB[selected_molecule]
         if new_smiles != st.session_state.smiles_input_box:
             st.session_state.smiles_input_box = new_smiles
