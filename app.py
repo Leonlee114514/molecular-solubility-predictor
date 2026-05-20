@@ -1903,15 +1903,15 @@ def show_3d_molecule(smiles):
         for i in range(n_atoms):
             pos = conf.GetAtomPosition(i)
             conf.SetAtomPosition(i, Point3D(pos.x - cx, pos.y - cy, pos.z - cz))
+        mol = Chem.RemoveHs(mol)  # 移除 H，让 zoomTo 以重原子为中心
         mb = Chem.MolToMolBlock(mol)
-        view = py3Dmol.view(width=500, height=420)
+        view = py3Dmol.view(width=480, height=420)
         view.addModel(mb, 'mol')
-        view.setStyle({'stick': {'radius': 0.15}, 'sphere': {'scale': 0.25}})
-        view.zoomTo()
+        view.setStyle({'stick': {'radius': 0.18}, 'sphere': {'scale': 0.3}})
         view.setBackgroundColor('#1a1a2e')
+        view.zoomTo()
         html = view._make_html()
-        # 包裹自适应容器，防止溢出截断
-        html = f'<div style="width:100%;max-width:100%;overflow:hidden;border-radius:12px;">{html}</div>'
+        html = f'<div style="width:100%;max-width:100%;display:flex;justify-content:center;border-radius:12px;">{html}</div>'
         return html
     except Exception:
         return None
