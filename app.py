@@ -2794,6 +2794,259 @@ if st.session_state.predicted_smiles and st.session_state.predicted_logS is not 
                     st.session_state.ai_explanation = explanation
                     st.rerun()
 
+# ========== 化学术语双语词汇表（点击弹窗） ==========
+components.html("""
+<style>
+/* ─── 可点击术语 ─── */
+.gloss-term {
+    border-bottom: 1.5px dashed rgba(124, 58, 237, 0.55);
+    cursor: pointer;
+    color: #c4b5fd;
+    transition: color 0.15s, border-color 0.15s;
+    position: relative;
+}
+.gloss-term:hover {
+    color: #e0d4ff;
+    border-bottom-color: rgba(167, 139, 250, 0.8);
+}
+
+/* ─── 术语弹窗 ─── */
+#gloss-popup {
+    position: fixed;
+    z-index: 99999;
+    max-width: 420px;
+    background: linear-gradient(155deg, rgba(30, 30, 50, 0.96) 0%, rgba(18, 18, 35, 0.94) 100%);
+    backdrop-filter: blur(14px) saturate(130%);
+    -webkit-backdrop-filter: blur(14px) saturate(130%);
+    border: 1px solid rgba(124, 58, 237, 0.25);
+    border-radius: 16px;
+    padding: 1.25rem 1.5rem;
+    box-shadow:
+        0 20px 50px -12px rgba(0,0,0,0.55),
+        0 0 0 1px rgba(124, 58, 237, 0.08),
+        0 0 30px rgba(124, 58, 237, 0.1);
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    pointer-events: auto;
+    opacity: 0;
+    transform: translateY(6px) scale(0.97);
+    transition: opacity 0.18s ease, transform 0.18s ease;
+    display: none;
+}
+#gloss-popup.show {
+    display: block;
+    opacity: 1;
+    transform: translateY(0) scale(1);
+}
+#gloss-popup .gloss-en {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: #f0f0f5;
+    margin-bottom: 0.2rem;
+    letter-spacing: -0.01em;
+}
+#gloss-popup .gloss-cn {
+    font-size: 0.9rem;
+    color: #a78bfa;
+    font-weight: 600;
+    margin-bottom: 0.6rem;
+}
+#gloss-popup .gloss-def {
+    font-size: 0.85rem;
+    color: #c0c0d0;
+    line-height: 1.65;
+}
+#gloss-popup .gloss-def-en {
+    font-size: 0.8rem;
+    color: #8b8b9b;
+    line-height: 1.55;
+    margin-top: 0.45rem;
+    padding-top: 0.45rem;
+    border-top: 1px solid rgba(255,255,255,0.06);
+}
+
+/* ─── 遮罩层 ─── */
+#gloss-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 99998;
+    pointer-events: auto;
+    display: none;
+}
+#gloss-overlay.show { display: block; }
+</style>
+""", height=0)
+
+components.html("""
+<script>
+(function() {
+    'use strict';
+    var win = window.parent || window;
+    var doc = win.document;
+
+    // ═══════════════════════════════════════════
+    // 化学术语词汇表（中英双语）
+    // ═══════════════════════════════════════════
+    var GLOSSARY = {
+        "溶解度":  { en: "Solubility",  cn: "溶解度",  def: "物质在特定温度下溶解于溶剂中形成均匀溶液的最大量。", defEn: "The maximum amount of a substance that can dissolve in a solvent at a given temperature to form a homogeneous solution." },
+        "水溶性":  { en: "Aqueous Solubility", cn: "水溶性", def: "物质在水中溶解的能力，通常用 logS 表示。水溶性由分子的极性、氢键能力和疏水性共同决定。", defEn: "The ability of a substance to dissolve in water, typically expressed as logS. Determined by polarity, hydrogen-bonding capacity, and hydrophobicity." },
+        "logS":    { en: "logS", cn: "溶解度对数", def: "水溶解度的常用对数值。logS > 0 表示易溶，-2 < logS < 0 表示中等溶解，logS < -2 表示难溶。", defEn: "The base-10 logarithm of aqueous solubility. logS > 0 = highly soluble; -2 < logS < 0 = moderately soluble; logS < -2 = poorly soluble." },
+        "pKa":     { en: "pKa", cn: "酸解离常数", def: "酸解离常数的负对数，衡量分子给出质子的倾向。pKa 越低酸性越强，pKa 越高碱性越强。pKa < 5 为酸性，5-9 为两性/中性，> 9 为碱性。", defEn: "The negative logarithm of the acid dissociation constant. Lower pKa = stronger acid; higher pKa = stronger base. pKa < 5 = acidic, 5-9 = amphoteric/neutral, > 9 = basic." },
+        "SMILES":  { en: "SMILES", cn: "简化分子线性输入规范", def: "Simplified Molecular Input Line Entry System — 用 ASCII 字符串描述分子结构的标准表示法。原子由元素符号表示，键通过隐含规则推导。", defEn: "Simplified Molecular Input Line Entry System — a notation that encodes molecular structures as ASCII strings. Atoms are represented by element symbols; bonds are inferred through implicit rules." },
+        "分子量":  { en: "Molecular Weight (MolWt)", cn: "分子量", def: "分子中所有原子质量的总和，单位为 g/mol。影响分子的扩散速率、膜渗透性和溶解行为。", defEn: "The sum of atomic masses in a molecule (g/mol). Influences diffusion rate, membrane permeability, and dissolution behavior." },
+        "LogP":    { en: "LogP (Partition Coefficient)", cn: "脂水分配系数", def: "分子在正辛醇（油相）和水相之间分配比的对数值。LogP 越高脂溶性越强，LogP 越低水溶性越好。用于评估药物的吸收、分布和毒性。", defEn: "The logarithm of a molecule's partition ratio between n-octanol (oil) and water. Higher LogP = more lipophilic; lower LogP = more hydrophilic. Used to predict drug absorption, distribution, and toxicity." },
+        "TPSA":    { en: "Topological Polar Surface Area (TPSA)", cn: "拓扑极性表面积", def: "分子中极性原子（氧、氮及与其相连的氢）所占据的表面积总和（单位 Å²）。TPSA 越高通常意味着水溶性越好，也是预测药物口服吸收的重要指标。", defEn: "The sum of surface areas of polar atoms (oxygen, nitrogen, and attached hydrogens) in a molecule (Å²). Higher TPSA generally means better water solubility. A key predictor of oral drug absorption." },
+        "氢键供体": { en: "Hydrogen Bond Donor (HBD)", cn: "氢键供体", def: "分子中能提供氢原子形成氢键的基团，如 -OH（羟基）和 -NH（氨基）。氢键供体数量越多，分子与水形成氢键的能力越强，水溶性通常越好。", defEn: "Groups that can donate a hydrogen atom to form a hydrogen bond, e.g. -OH (hydroxyl) and -NH (amino). More HBDs generally mean stronger hydrogen bonding with water and better solubility." },
+        "氢键受体": { en: "Hydrogen Bond Acceptor (HBA)", cn: "氢键受体", def: "分子中含有孤对电子、能接受氢原子的原子，如 O、N、F。氢键受体越多，分子越容易与水分子形成氢键网络。", defEn: "Atoms with lone-pair electrons that can accept hydrogen atoms, e.g. O, N, F. More HBAs allow the molecule to form more hydrogen bonds with water." },
+        "可旋转键": { en: "Rotatable Bonds", cn: "可旋转键", def: "分子中能够自由旋转的单键数量。可旋转键越多，分子柔性越大，可能影响其与靶点结合的能力和结晶性。", defEn: "The number of single bonds that can freely rotate. More rotatable bonds = greater molecular flexibility, which can affect target binding and crystallinity." },
+        "芳香环": { en: "Aromatic Rings", cn: "芳香环", def: "具有共轭 π 电子体系的平面环状结构。芳香环增强分子刚性，提供 π-π 堆积作用，常见于药物分子中用于与靶点结合。", defEn: "Planar ring structures with conjugated π-electron systems. Aromatic rings increase molecular rigidity and provide π-π stacking interactions, commonly found in drug molecules for target binding." },
+        "脂肪环":  { en: "Aliphatic Rings", cn: "脂肪环", def: "不含芳香性的碳环结构，如环己烷。脂肪环比芳香环更柔性，影响分子的三维构象和溶解性。", defEn: "Non-aromatic carbon ring structures, e.g. cyclohexane. More flexible than aromatic rings, influencing 3D conformation and solubility." },
+        "摩根指纹": { en: "Morgan Fingerprint (ECFP)", cn: "摩根分子指纹", def: "一种将分子结构编码为固定长度二进制向量的方法。每个比特位表示分子中是否存在特定的子结构片段。radius=2 表示考虑每个原子周围 2 个键范围内的环境。", defEn: "A method that encodes molecular structure as a fixed-length binary vector. Each bit indicates the presence of a specific substructure fragment. radius=2 considers the environment within 2 bonds of each atom." },
+        "随机森林": { en: "Random Forest", cn: "随机森林", def: "一种集成学习算法，通过构建多棵决策树并取平均来进行回归预测。每棵树在随机数据子集和随机特征子集上训练，抗过拟合能力强。本应用使用 200 棵树。", defEn: "An ensemble learning algorithm that builds multiple decision trees and averages their predictions. Each tree is trained on a random subset of data and features. Robust against overfitting. This app uses 200 trees." },
+        "SHAP":    { en: "SHAP (SHapley Additive exPlanations)", cn: "SHAP 可解释性分析", def: "基于博弈论中 Shapley 值的模型解释方法。SHAP 值量化每个特征对预测结果的贡献大小和方向。正值推动预测值升高（更易溶），负值推动预测值降低（更难溶）。", defEn: "A model explanation method based on Shapley values from game theory. SHAP values quantify each feature's contribution magnitude and direction to the prediction. Positive values push the prediction higher (more soluble), negative values push it lower (less soluble)." },
+        "疏水性":  { en: "Hydrophobicity", cn: "疏水性", def: "分子排斥水的倾向。疏水基团（如长烷基链、芳香环）倾向于聚集在一起以减少与水接触，这是药物设计中需要考虑的重要因素。", defEn: "The tendency of a molecule to repel water. Hydrophobic groups (e.g. long alkyl chains, aromatic rings) tend to cluster together to minimize water contact — a key consideration in drug design." },
+        "亲水性":  { en: "Hydrophilicity", cn: "亲水性", def: "分子吸引水或与水相互作用的倾向。亲水基团（如 -OH、-COOH、-NH2）能通过氢键或离子-偶极作用与水分子结合，促进溶解。", defEn: "The tendency of a molecule to attract or interact with water. Hydrophilic groups (e.g. -OH, -COOH, -NH2) bind water via hydrogen bonds or ion-dipole interactions, promoting dissolution." },
+        "电离":    { en: "Ionization", cn: "电离", def: "分子在溶液中失去或获得质子 (H+) 形成带电离子的过程。电离状态随环境 pH 变化，直接影响药物的吸收、分布和排泄。分子态脂溶性高易吸收，离子态水溶性好易排泄。", defEn: "The process by which a molecule loses or gains a proton (H+) in solution, forming charged ions. The ionization state depends on pH and directly affects drug absorption, distribution, and excretion. Unionized forms are lipid-soluble and easily absorbed; ionized forms are water-soluble and readily excreted." },
+        "分子态":  { en: "Unionized Form", cn: "分子态（非电离形式）", def: "分子在中性状态下未发生电离的形式。分子态通常脂溶性较高，更容易穿透细胞膜被吸收。", defEn: "The neutral, non-ionized form of a molecule. Unionized forms are typically more lipid-soluble and can more easily cross cell membranes for absorption." },
+        "生物利用度": { en: "Bioavailability", cn: "生物利用度", def: "药物进入体循环后到达作用部位的百分率。受溶解度、pKa、分子大小和代谢稳定性等多种因素共同影响。", defEn: "The percentage of a drug that reaches systemic circulation and the site of action. Influenced by solubility, pKa, molecular size, and metabolic stability." },
+        "官能团":  { en: "Functional Group", cn: "官能团", def: "分子中决定其化学性质的特定原子或原子团，如羟基 (-OH)、羧基 (-COOH)、氨基 (-NH2)、酯基 (-COOR) 等。官能团的种类和数量直接影响分子的溶解度、pKa 和反应活性。", defEn: "A specific atom or group of atoms that determines a molecule's chemical properties, e.g. hydroxyl (-OH), carboxyl (-COOH), amino (-NH2), ester (-COOR). The type and number of functional groups directly affect solubility, pKa, and reactivity." },
+        "氢键":    { en: "Hydrogen Bond", cn: "氢键", def: "氢原子与电负性强的原子（O、N、F）之间的非共价相互作用。氢键是决定分子水溶性的最重要因素之一，也是维持蛋白质和 DNA 结构的关键力。", defEn: "A non-covalent interaction between a hydrogen atom and a strongly electronegative atom (O, N, F). Hydrogen bonds are among the most important factors governing water solubility and are critical for maintaining protein and DNA structure." },
+        "诱导效应": { en: "Inductive Effect", cn: "诱导效应", def: "电负性原子通过 σ 键对分子中其他原子产生电子吸引或排斥的现象。吸电子诱导效应 (-I) 可降低 pKa（增强酸性），推电子诱导效应 (+I) 可升高 pKa（减弱酸性）。", defEn: "The electron-attracting or -donating effect transmitted through σ bonds by electronegative atoms. Electron-withdrawing inductive effects (-I) lower pKa (increase acidity); electron-donating effects (+I) raise pKa (decrease acidity)." },
+        "共轭效应": { en: "Resonance / Conjugation Effect", cn: "共轭效应", def: "π 电子在共轭体系中离域分布的现象。共轭效应可稳定电离后的离子形式（如羧酸根负离子），从而增强酸性。对含有芳香环的分子尤为重要。", defEn: "The delocalization of π electrons across a conjugated system. Resonance can stabilize ionized forms (e.g. carboxylate anion), thereby increasing acidity. Particularly important for molecules containing aromatic rings." },
+        "空间位阻": { en: "Steric Hindrance", cn: "空间位阻", def: "分子中体积较大的原子或基团阻碍化学反应的效应。空间位阻可影响质子的接近和离去，从而调节 pKa 值。", defEn: "The effect of bulky atoms or groups physically obstructing a chemical reaction. Steric hindrance can affect proton access and departure, thereby modulating pKa values." },
+        "杂化":    { en: "Hybridization", cn: "杂化轨道", def: "原子轨道线性组合形成新轨道的概念（sp、sp²、sp³）。杂化方式决定分子的几何构型和键角，影响电子分布。sp² 杂化的碳（如芳香环）比 sp³ 杂化的碳具有更强的吸电子能力。", defEn: "The concept of atomic orbitals combining linearly to form new orbitals (sp, sp², sp³). Hybridization determines molecular geometry and bond angles. sp²-hybridized carbon (e.g. in aromatic rings) is more electron-withdrawing than sp³-hybridized carbon." },
+        "肠溶片":  { en: "Enteric-Coated Tablet", cn: "肠溶片", def: "一种特殊包衣的药物剂型，在胃酸中不溶解，到达小肠后才释放药物。用于保护胃黏膜或防止药物在酸性环境中降解。", defEn: "A drug dosage form with a special coating that resists stomach acid and releases the drug only upon reaching the small intestine. Used to protect the stomach lining or prevent drug degradation in acidic environments." },
+        "RDKit":   { en: "RDKit", cn: "RDKit 化学信息学工具包", def: "开源的化学信息学软件库，用于分子结构的解析、化学描述符计算、分子指纹生成和结构绘制。本应用的核心化学计算均由 RDKit 驱动。", defEn: "An open-source cheminformatics toolkit for molecular structure parsing, descriptor calculation, fingerprint generation, and structure depiction. All core chemistry computations in this app are powered by RDKit." }
+    };
+
+    var GLOSS_KEYS = Object.keys(GLOSSARY);
+
+    // ═══════════════════════════════════════════
+    // 创建弹窗元素
+    // ═══════════════════════════════════════════
+    var popup = doc.getElementById('gloss-popup');
+    if (!popup) {
+        popup = doc.createElement('div');
+        popup.id = 'gloss-popup';
+        doc.body.appendChild(popup);
+    }
+    var overlay = doc.getElementById('gloss-overlay');
+    if (!overlay) {
+        overlay = doc.createElement('div');
+        overlay.id = 'gloss-overlay';
+        doc.body.appendChild(overlay);
+    }
+
+    function closePopup() {
+        popup.classList.remove('show');
+        overlay.classList.remove('show');
+    }
+    overlay.addEventListener('click', closePopup);
+    doc.addEventListener('keydown', function(e) { if (e.key === 'Escape') closePopup(); });
+
+    // ═══════════════════════════════════════════
+    // 扫描页面，为术语添加点击事件
+    // ═══════════════════════════════════════════
+    function showPopup(term, x, y) {
+        var entry = GLOSSARY[term];
+        if (!entry) return;
+        popup.innerHTML =
+            '<div class="gloss-en">' + entry.en + '</div>' +
+            '<div class="gloss-cn">' + entry.cn + '</div>' +
+            '<div class="gloss-def">' + entry.def + '</div>' +
+            '<div class="gloss-def-en">' + entry.defEn + '</div>';
+        popup.classList.add('show');
+        overlay.classList.add('show');
+
+        // 定位：优先在点击位置右侧，空间不够则左侧
+        var pw = popup.offsetWidth;
+        var ph = popup.offsetHeight;
+        var ww = win.innerWidth;
+        var wh = win.innerHeight;
+        var px = x + 18;
+        var py = y - 20;
+        if (px + pw > ww - 20) px = x - pw - 18;
+        if (py + ph > wh - 20) py = wh - ph - 20;
+        if (px < 10) px = 10;
+        if (py < 10) py = 10;
+        popup.style.left = px + 'px';
+        popup.style.top = py + 'px';
+    }
+
+    function wrapTerms(root) {
+        var walker = doc.createTreeWalker(root, NodeFilter.SHOW_TEXT, null, false);
+        var textNodes = [];
+        var node;
+        while ((node = walker.nextNode())) {
+            // 跳过已处理、脚本、样式、弹窗内的节点
+            var parent = node.parentNode;
+            if (!parent || parent.closest('#gloss-popup') || parent.closest('script') ||
+                parent.closest('style') || parent.closest('input') || parent.closest('textarea') ||
+                parent.closest('.gloss-term') || parent.closest('code') || parent.closest('pre') ||
+                parent.closest('[data-testid="stMetricValue"]'))
+                continue;
+            if (node.nodeValue && node.nodeValue.trim().length > 0) {
+                textNodes.push(node);
+            }
+        }
+
+        for (var i = 0; i < textNodes.length; i++) {
+            var node = textNodes[i];
+            var text = node.nodeValue;
+            var replaced = false;
+            var frag = doc.createDocumentFragment();
+            var lastIdx = 0;
+
+            for (var k = 0; k < GLOSS_KEYS.length; k++) {
+                var term = GLOSS_KEYS[k];
+                var idx = text.indexOf(term, lastIdx);
+                if (idx === -1) continue;
+
+                // 添加前面的普通文本
+                if (idx > lastIdx) {
+                    frag.appendChild(doc.createTextNode(text.substring(lastIdx, idx)));
+                }
+                // 创建可点击术语元素
+                var span = doc.createElement('span');
+                span.className = 'gloss-term';
+                span.textContent = term;
+                span.title = GLOSSARY[term].en + ' — ' + GLOSSARY[term].def.substring(0, 80) + '…';
+                (function(t) {
+                    span.addEventListener('click', function(e) {
+                        e.stopPropagation();
+                        showPopup(t, e.clientX, e.clientY);
+                    });
+                })(term);
+                frag.appendChild(span);
+                lastIdx = idx + term.length;
+                replaced = true;
+                break; // 每个文本节点只替换第一个匹配术语
+            }
+
+            if (replaced) {
+                if (lastIdx < text.length) {
+                    frag.appendChild(doc.createTextNode(text.substring(lastIdx)));
+                }
+                node.parentNode.replaceChild(frag, node);
+            }
+        }
+    }
+
+    // ═══════════════════════════════════════════
+    // 初始扫描 + 动态监听
+    // ═══════════════════════════════════════════
+    function scan() { wrapTerms(doc.body); }
+    scan();
+    // Streamlit 动态渲染后重新扫描
+    setTimeout(scan, 800);
+    setTimeout(scan, 2000);
+    setTimeout(scan, 4000);
+
+    var obs = new MutationObserver(function() { scan(); });
+    obs.observe(doc.body, { childList: true, subtree: true });
+})();
+</script>
+""", height=0)
+
 # ========== 页脚 ==========
 st.markdown("""
 <div class="footer">
