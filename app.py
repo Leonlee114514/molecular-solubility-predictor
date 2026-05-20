@@ -686,29 +686,25 @@ code, pre, .mono {
 /* Streamlit 的下拉菜单位于 body 层级的 portal/overlay 中 */
 html body [data-baseweb="menu"],
 html body [data-baseweb="popover"],
-html body [data-baseweb="select"] [data-baseweb="menu"],
-html body div[data-baseweb="menu"] > div,
-html body div[data-baseweb="menu"] > div > div,
-html body [data-baseweb="menu"] div[role="listbox"],
-html body [role="listbox"] {
-    background: linear-gradient(135deg, #1e1e2e 0%, #0f0f17 100%) !important;
-    background-color: #1e1e2e !important;
+html body [data-baseweb="select"] [data-baseweb="menu"] {
+    background: #1a1a2e !important;
+    background-color: #1a1a2e !important;
+    background-image: none !important;
     border: 1px solid rgba(255, 255, 255, 0.08) !important;
     border-radius: var(--ob-radius-sm) !important;
     box-shadow: 0 10px 30px -5px rgba(0,0,0,0.4) !important;
-    color: var(--ob-text-secondary) !important;
+    color: #e0e0e0 !important;
 }
 
-/* 清除菜单内所有 div 的默认白色背景（最高特异性） */
-html body [data-baseweb="menu"] div,
-html body [role="listbox"] div,
-html body [data-baseweb="menu"] > div > div,
-html body [data-baseweb="menu"] > div > div > div,
-html body [data-baseweb="menu"] [role="listbox"] div,
-html body [data-baseweb="menu"] [role="listbox"] > div {
-    background: transparent !important;
-    background-color: transparent !important;
+/* 菜单内直接子容器 —— 必须显式设回深色，覆盖浏览器/组件默认白底 */
+html body [data-baseweb="menu"] > div,
+html body [data-baseweb="menu"] > div > div:first-child,
+html body [data-baseweb="menu"] [role="listbox"],
+html body [data-baseweb="menu"] ul {
+    background: #1a1a2e !important;
+    background-color: #1a1a2e !important;
     background-image: none !important;
+    color: #e0e0e0 !important;
 }
 
 /* 下拉选项行 */
@@ -716,7 +712,7 @@ html body [role="option"],
 html body [data-baseweb="menu"] [role="option"],
 html body [data-baseweb="menu"] div[role="option"],
 html body ul li[role="option"] {
-    color: var(--ob-text-secondary) !important;
+    color: #e0e0e0 !important;
     background: transparent !important;
     background-color: transparent !important;
     transition: background 0.15s ease, color 0.15s ease !important;
@@ -724,16 +720,16 @@ html body ul li[role="option"] {
 
 html body [role="option"]:hover,
 html body [data-baseweb="menu"] [role="option"]:hover {
-    background: rgba(124, 58, 237, 0.12) !important;
-    background-color: rgba(124, 58, 237, 0.12) !important;
-    color: var(--ob-text-primary) !important;
+    background: rgba(124, 58, 237, 0.25) !important;
+    background-color: rgba(124, 58, 237, 0.25) !important;
+    color: #ffffff !important;
 }
 
 html body [aria-selected="true"],
 html body [data-baseweb="menu"] [aria-selected="true"] {
-    background: rgba(124, 58, 237, 0.18) !important;
-    background-color: rgba(124, 58, 237, 0.18) !important;
-    color: var(--ob-nebula-light) !important;
+    background: rgba(124, 58, 237, 0.35) !important;
+    background-color: rgba(124, 58, 237, 0.35) !important;
+    color: #ffffff !important;
     font-weight: 600 !important;
 }
 
