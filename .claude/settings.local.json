@@ -14,7 +14,13 @@
       "Bash(pip show *)",
       "Bash(python3 -m pip show streamlit)",
       "Bash(python3 -m streamlit run app.py --server.port 8501 --server.headless true)",
-      "Bash(python3 -c \"import ast; ast.parse\\(open\\('app.py', encoding='utf-8'\\).read\\(\\)\\); print\\('app.py: syntax OK'\\)\")"
+      "Bash(python3 -c \"import ast; ast.parse\\(open\\('app.py', encoding='utf-8'\\).read\\(\\)\\); print\\('app.py: syntax OK'\\)\")",
+      "Bash(python3 -c ' *)",
+      "Bash(timeout 15 python3 -m streamlit run app.py --server.port 8502 --server.headless true)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git push *)",
+      "Bash(GIT_SSL_NO_VERIFY=1 git push origin main)"
     ]
   }
 }
