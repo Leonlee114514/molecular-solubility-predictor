@@ -167,6 +167,26 @@ SEARCH_INDEX = build_search_index()
 CACHE_FILE = "pubchem_cache.json"
 pubchem_cache = {}
 
+_session = None
+
+
+def _get_session():
+    """Lazy-init a requests Session with connection pooling."""
+    global _session
+    if _session is None:
+        _session = requests.Session()
+        _session.headers.update({"User-Agent": "DisSolve/1.0"})
+    return _session
+
+
+def _pubchem_request(url, timeout=20):
+    """Try SSL-verified request first, fall back to verify=False on SSLError."""
+    session = _get_session()
+    try:
+        return session.get(url, timeout=timeout, verify=True)
+    except requests.exceptions.SSLError:
+        return session.get(url, timeout=timeout, verify=False)
+
 
 def load_cache():
     global pubchem_cache
@@ -206,7 +226,7 @@ def search_pubchem(name, max_retries=3):
 
     for attempt in range(max_retries):
         try:
-            r = requests.get(url, timeout=20, verify=False)
+            r = _pubchem_request(url, timeout=20)
             if r.status_code == 200:
                 data = r.json()
                 if 'Fault' in data:

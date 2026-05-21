@@ -13,7 +13,7 @@ from features import compute_features, analyze_pka_chemistry, show_3d_molecule, 
 from molecules import MOLECULE_DB, SEARCH_INDEX, search_pubchem as search_pubchem_final
 from model import (
     load_solubility_model, load_pka_model, get_shap_explainer,
-    get_pka_type, get_solubility_level,
+    get_pka_type, get_solubility_level, get_shap_contributions,
 )
 
 import openai
@@ -1622,6 +1622,39 @@ def cached_pka_analysis(smiles, pka_val):
     """Cached wrapper around features.analyze_pka_chemistry."""
     return analyze_pka_chemistry(smiles, pka_val)
 
+@st.cache_data(show_spinner=False)
+def cached_shap_contributions(smiles):
+    """Cached SHAP computation keyed by SMILES."""
+    result = compute_features(smiles)
+    if result is None:
+        return None, None
+    features, fp_array = result
+    return get_shap_contributions(model, features, fp_array)
+
+@st.cache_resource
+def get_cjk_font():
+    """Detect and cache a CJK-capable matplotlib font. Returns font name or None."""
+    import glob
+    import matplotlib.font_manager as fm
+    font_paths = (
+        glob.glob('/usr/share/fonts/opentype/noto/*.ttc') +
+        glob.glob('/usr/share/fonts/truetype/noto/*.ttc') +
+        glob.glob('/usr/share/fonts/noto-cjk/*.ttc') +
+        glob.glob('/usr/share/fonts/truetype/wqy/*.ttf') +
+        glob.glob('/usr/share/fonts/opentype/source-han-sans/*.otf')
+    )
+    for fp in font_paths:
+        try:
+            fm.fontManager.addfont(fp)
+        except Exception:
+            pass
+    for font in fm.fontManager.ttflist:
+        if font.name in ('Noto Sans CJK SC', 'Noto Sans CJK'):
+            return font.name
+        if 'WenQuanYi' in font.name or 'Source Han Sans SC' in font.name:
+            return font.name
+    return None
+
 # ========== Kimi AI 解释 ==========
 def explain_with_kimi(smiles, prediction, features, shap_features=None, shap_values=None, pka_value=None, pka_type=None):
     if not KIMI_API_KEY:
@@ -1973,15 +2006,7 @@ if predict_button and model_ready:
                 
                 status.update(label="Step 4/4: SHAP 可解释性分析...")
                 try:
-                    shap_values = get_shap_explainer(model).shap_values(X_input)[0]
-                    desc_shap = shap_values[:8]
-                    fp_shap_sum = shap_values[8:].sum()
-                    combined_shap = list(desc_shap) + [fp_shap_sum]
-                    combined_names = [
-                        "分子量 (MolWt)", "脂水分配系数 (LogP)", "氢键供体 (H-Donors)",
-                        "氢键受体 (H-Acceptors)", "极性表面积 (TPSA)", "可旋转键 (Rotatable Bonds)",
-                        "芳香环 (Aromatic Rings)", "脂肪环 (Aliphatic Rings)", "摩根指纹 (Morgan FP)"
-                    ]
+                    combined_shap, combined_names = cached_shap_contributions(current)
                     st.session_state.shap_values = combined_shap
                     st.session_state.shap_names = combined_names
                 except Exception:
@@ -2131,11 +2156,9 @@ if st.session_state.predicted_smiles and st.session_state.predicted_logS is not 
             with col_chem:
                 if chem_factors:
                     import matplotlib.pyplot as plt
-                    import matplotlib.font_manager as fm
-                    for font in fm.fontManager.ttflist:
-                        if font.name in ('Noto Sans CJK SC', 'Noto Sans CJK'):
-                            plt.rcParams['font.family'] = font.name
-                            break
+                    cjk_font = get_cjk_font()
+                    if cjk_font:
+                        plt.rcParams['font.family'] = cjk_font
                     plt.rcParams['axes.unicode_minus'] = False
                     names = list(chem_factors.keys())
                     vals = list(chem_factors.values())
@@ -2215,14 +2238,9 @@ if st.session_state.predicted_smiles and st.session_state.predicted_logS is not 
                 """, unsafe_allow_html=True)
             with col_pka2:
                 import matplotlib.pyplot as plt
-                import matplotlib.font_manager as fm
-                try:
-                    for font in fm.fontManager.ttflist:
-                        if font.name in ('Noto Sans CJK SC', 'Noto Sans CJK'):
-                            plt.rcParams['font.family'] = font.name
-                            break
-                except Exception:
-                    pass
+                cjk_font = get_cjk_font()
+                if cjk_font:
+                    plt.rcParams['font.family'] = cjk_font
                 plt.rcParams['axes.unicode_minus'] = False
                 env_ph = [1.5, 4.5, 6.8, 7.4]
                 env_names = ['Stomach\n胃', 'Duodenum\n十二指肠', 'Small Intestine\n小肠', 'Blood/Brain\n血液/脑']
@@ -2309,32 +2327,10 @@ if st.session_state.predicted_smiles and st.session_state.predicted_logS is not 
         st.caption("基于 SHAP (SHapley Additive exPlanations) 分析每个特征对预测的贡献")
         if st.session_state.get("shap_values"):
             import matplotlib.pyplot as plt
-            import matplotlib.font_manager as fm
             import numpy as np
-            import glob
-            fm.fontManager = fm.FontManager()
-            font_paths = (
-                glob.glob('/usr/share/fonts/opentype/noto/*.ttc') +
-                glob.glob('/usr/share/fonts/truetype/noto/*.ttc') +
-                glob.glob('/usr/share/fonts/noto-cjk/*.ttc') +
-                glob.glob('/usr/share/fonts/truetype/wqy/*.ttf') +
-                glob.glob('/usr/share/fonts/opentype/source-han-sans/*.otf')
-            )
-            for fp in font_paths:
-                try:
-                    fm.fontManager.addfont(fp)
-                except Exception:
-                    pass
-            chinese_font = None
-            for font in fm.fontManager.ttflist:
-                if font.name in ('Noto Sans CJK SC', 'Noto Sans CJK'):
-                    chinese_font = font.name
-                    break
-                if 'WenQuanYi' in font.name or 'Source Han Sans SC' in font.name:
-                    chinese_font = font.name
-                    break
-            if chinese_font:
-                plt.rcParams['font.family'] = chinese_font
+            cjk_font = get_cjk_font()
+            if cjk_font:
+                plt.rcParams['font.family'] = cjk_font
             plt.rcParams['axes.unicode_minus'] = False
             shap_vals = np.array(st.session_state.shap_values)
             names = st.session_state.shap_names
