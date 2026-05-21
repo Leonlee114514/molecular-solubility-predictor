@@ -9,7 +9,7 @@ from rdkit import Chem
 from dotenv import load_dotenv
 import os
 
-from features import compute_features, analyze_pka_chemistry, show_3d_molecule, mol_to_dark_image
+from features import compute_features, analyze_pka_chemistry, show_3d_molecule, mol_to_dark_image, analyze_lipinski, analyze_admet
 from molecules import MOLECULE_DB, SEARCH_INDEX, search_pubchem as search_pubchem_final
 from model import (
     load_solubility_model, load_pka_model, get_shap_explainer,
@@ -1631,6 +1631,18 @@ def cached_shap_contributions(smiles):
     features, fp_array = result
     return get_shap_contributions(model, features, fp_array)
 
+@st.cache_data(show_spinner=False)
+def cached_lipinski(features_tuple):
+    """Cached Lipinski Rule of Five evaluation."""
+    features = dict(features_tuple)
+    return analyze_lipinski(features)
+
+@st.cache_data(show_spinner=False)
+def cached_admet(smiles, features_tuple, pka_val):
+    """Cached ADME/Tox analysis."""
+    features = dict(features_tuple)
+    return analyze_admet(smiles, features, pka_val)
+
 @st.cache_resource
 def get_cjk_font():
     """Detect and cache a CJK-capable matplotlib font. Returns font name or None."""
@@ -2114,6 +2126,53 @@ if st.session_state.predicted_smiles and st.session_state.predicted_logS is not 
                 </div>
                 """, unsafe_allow_html=True)
 
+        # ── Lipinski's Rule of Five ──
+        st.markdown("<br>", unsafe_allow_html=True)
+        st.markdown("""<div class="card-title">&#128300; Drug-likeness: Lipinski's Rule of Five</div>""", unsafe_allow_html=True)
+        lipinski_result = cached_lipinski(tuple(features.items()))
+        rules = lipinski_result["rules"]
+        import matplotlib.pyplot as plt
+        cjk_font = get_cjk_font()
+        if cjk_font:
+            plt.rcParams['font.family'] = cjk_font
+        plt.rcParams['axes.unicode_minus'] = False
+        plt.rcParams['figure.facecolor'] = '#0d0d14'
+        plt.rcParams['axes.facecolor'] = '#1a1a2e'
+        plt.rcParams['axes.edgecolor'] = '#33334d'
+        plt.rcParams['axes.labelcolor'] = '#a0a0b0'
+        plt.rcParams['xtick.color'] = '#a0a0b0'
+        plt.rcParams['ytick.color'] = '#f0f0f5'
+        plt.rcParams['text.color'] = '#f0f0f5'
+        fig, ax = plt.subplots(figsize=(8, 3.0))
+        rule_names = [r[0] for r in rules]
+        vals = [r[2] for r in rules]
+        rule_actuals = [r[3] for r in rules]
+        colors_bar = ['#34d399' if v else '#f87171' for v in vals]
+        bars = ax.barh(rule_names, [1]*5, color='#1e1e30', edgecolor=(1,1,1,0.08), height=0.5)
+        for i, (name, passed, actual, color) in enumerate(zip(rule_names, vals, rule_actuals, colors_bar)):
+            ax.barh(i, 1, color=color, edgecolor=(1,1,1,0.15), height=0.5, alpha=0.85)
+            icon = "PASS" if passed else "FAIL"
+            ax.text(0.5, i, f"{icon}  ({actual})", va='center', ha='center',
+                    fontsize=10, fontweight='bold', color='#ffffff',
+                    bbox=dict(boxstyle='round,pad=0.3', facecolor=(0,0,0,0.5), edgecolor=(1,1,1,0.12)))
+        ax.set_xlim(0, 1)
+        ax.axis('off')
+        ax.set_title(f'Drug-likeness Score: {lipinski_result["passed"]}/5  ({lipinski_result["interpretation"]})',
+                     fontsize=11, pad=10, color='#f0f0f5')
+        plt.tight_layout()
+        st.pyplot(fig, width="stretch")
+        plt.close(fig)
+
+        st.markdown(f"""
+        <div style="margin-top: 0.3rem; padding: 0.65rem 0.9rem; background: rgba(124, 58, 237, 0.06); border-left: 2px solid rgba(124, 58, 237, 0.3); border-radius: 4px; font-size: 0.82rem; color: #a0a0b5; line-height: 1.9;">
+        <b style="color: #c4b5fd;">About Lipinski's Rule of Five</b><br>
+        &bull; <b>Christopher Lipinski (Pfizer, 1997)</b> 分析了 2,245 个进入 II 期临床的药物分子，总结出 5 条口服药物的经验规则<br>
+        &bull; 规则认为分子违反 ≤1 条时，其<b>口服吸收和生物利用度</b>更可能达标<br>
+        &bull; 但这只是筛选规则，<b>不是绝对标准</b>——许多成功药物也违反五规则（如天然产物、抗生素、抗癌药）<br>
+        &bull; 超出规则范围 (bRo5) 的分子仍是现代药物化学的重要方向（如 PROTAC、大环分子）
+        </div>
+        """, unsafe_allow_html=True)
+
     # =========================================
     # TAB 2: Molecular Profile
     # =========================================
@@ -2318,6 +2377,139 @@ if st.session_state.predicted_smiles and st.session_state.predicted_logS is not 
             st.info(" | ".join(parts))
         else:
             st.info("pKa 模型未加载，药理学分析不可用。")
+
+        # ── ADME/Tox 完整视图 ──
+        st.markdown("<br>", unsafe_allow_html=True)
+        st.markdown("""<div class="card-title">&#129514; ADME/Tox 药代动力学概览</div>""", unsafe_allow_html=True)
+
+        admet = cached_admet(
+            st.session_state.predicted_smiles,
+            tuple(features.items()),
+            pka_val
+        )
+
+        # 使用 5 个可展开的 section
+        adme_tabs = st.tabs([
+            "Absorption 吸收",
+            "Distribution 分布",
+            "Metabolism 代谢",
+            "Excretion 排泄",
+            "Toxicity 毒性",
+        ])
+
+        # ── A: Absorption ──
+        with adme_tabs[0]:
+            st.markdown(f"""
+            <div style="padding: 1rem; background: rgba(52, 211, 153, 0.06); border-radius: 12px; border: 1px solid rgba(52, 211, 153, 0.15);">
+            <b style="color: #34d399;">&#128270; 吸收分析</b><br><br>
+            <span style="color: #c0c0d0; font-size: 0.9rem; line-height: 1.7;">{admet['absorption']}</span>
+            </div>
+            """, unsafe_allow_html=True)
+            st.caption("""
+            **吸收 (Absorption)** 决定了药物从给药部位进入血液循环的效率和程度。
+            主要影响因素包括：分子极性 (TPSA)、脂溶性 (LogP)、电离状态 (pKa vs pH)、氢键能力、分子大小。
+            口服药物的吸收主要发生在小肠（表面积大、血流丰富），部分酸性药物可在胃中开始吸收。
+            """)
+
+        # ── D: Distribution ──
+        with adme_tabs[1]:
+            d = admet["distribution"]
+            col_d1, col_d2 = st.columns(2)
+            with col_d1:
+                st.markdown(f"""
+                <div style="padding: 0.8rem 1rem; background: rgba(96, 165, 250, 0.08); border-radius: 10px; border: 1px solid rgba(96, 165, 250, 0.15);">
+                <b style="color: #60a5fa;">表观分布容积 (Vd)</b><br>
+                <span style="color: #c0c0d0; font-size: 0.85rem;">{d['vd_estimate']}</span>
+                </div>
+                """, unsafe_allow_html=True)
+            with col_d2:
+                st.markdown(f"""
+                <div style="padding: 0.8rem 1rem; background: rgba(96, 165, 250, 0.08); border-radius: 10px; border: 1px solid rgba(96, 165, 250, 0.15);">
+                <b style="color: #60a5fa;">血浆蛋白结合率</b><br>
+                <span style="color: #c0c0d0; font-size: 0.85rem;">{d['ppb']}</span>
+                </div>
+                """, unsafe_allow_html=True)
+            st.markdown(f"""
+            <div style="margin-top: 0.6rem; padding: 1rem; background: rgba(96, 165, 250, 0.06); border-radius: 12px; border: 1px solid rgba(96, 165, 250, 0.15);">
+            <span style="color: #c0c0d0; font-size: 0.9rem; line-height: 1.7;">{d['summary']}</span>
+            </div>
+            """, unsafe_allow_html=True)
+            st.caption("""
+            **分布 (Distribution)** 描述药物从血液进入组织和器官的过程。
+            - **表观分布容积 (Vd)**：Vd 越大，药物越倾向于分布到组织；Vd 小则主要留在血浆中
+            - **血浆蛋白结合率**：高结合率 = 药物储备在血液中缓慢释放；低结合率 = 游离药物多、作用快但排泄也快
+            - **血脑屏障 (BBB)**：低 TPSA + 适中 LogP 的分子更容易进入中枢神经系统
+            """)
+
+        # ── M: Metabolism ──
+        with adme_tabs[2]:
+            m = admet["metabolism"]
+            col_m1, col_m2 = st.columns([1.5, 1])
+            with col_m1:
+                st.markdown(f"""
+                <div style="padding: 1rem; background: rgba(251, 191, 36, 0.06); border-radius: 12px; border: 1px solid rgba(251, 191, 36, 0.15);">
+                <b style="color: #fbbf24;">&#128300; 代谢热点</b><br><br>
+                <span style="color: #c0c0d0; font-size: 0.9rem; line-height: 1.7;">{m['summary']}</span>
+                </div>
+                """, unsafe_allow_html=True)
+            with col_m2:
+                st.markdown(f"""
+                <div style="padding: 1rem; background: rgba(251, 191, 36, 0.06); border-radius: 12px; border: 1px solid rgba(251, 191, 36, 0.15);">
+                <b style="color: #fbbf24;">&#127976; 相关代谢酶</b><br><br>
+                <span style="color: #c0c0d0; font-size: 0.9rem;">{m['cyp_enzymes']}</span>
+                </div>
+                """, unsafe_allow_html=True)
+            st.caption("""
+            **代谢 (Metabolism)** 主要在肝脏进行，分为两相：
+            - **I 相代谢**（氧化/还原/水解）：主要由 CYP450 酶系催化，引入或暴露极性基团
+            - **II 相代谢**（结合反应）：将葡萄糖醛酸、硫酸、氨基酸等连接到分子上，增加水溶性便于排泄
+            - CYP3A4 代谢约 50% 的临床药物；CYP2D6 有显著的基因多态性（人群差异大）
+            """)
+
+        # ── E: Excretion ──
+        with adme_tabs[3]:
+            e = admet["excretion"]
+            st.markdown(f"""
+            <div style="padding: 1rem; background: rgba(167, 139, 250, 0.06); border-radius: 12px; border: 1px solid rgba(167, 139, 250, 0.15);">
+            <b style="color: #a78bfa;">&#128167; 排泄途径：{e['route']}</b><br><br>
+            <span style="color: #c0c0d0; font-size: 0.9rem; line-height: 1.7;">{e['summary']}</span>
+            </div>
+            """, unsafe_allow_html=True)
+            st.caption("""
+            **排泄 (Excretion)** 是药物及其代谢物从体内清除的过程：
+            - **肾脏排泄**：分子量 < 350 Da 且极性适中的分子主要通过肾小球滤过进入尿液
+            - **肝胆排泄**：分子量 > 500 Da 或高度亲脂的分子倾向于通过胆汁排入肠道
+            - 肾小管重吸收会使亲脂性分子重新进入血液，延长药物半衰期
+            """)
+
+        # ── T: Toxicity ──
+        with adme_tabs[4]:
+            alerts = admet["toxicity"]
+            for risk_level, desc in alerts:
+                if risk_level == "高":
+                    bg = "rgba(248, 113, 113, 0.08)"
+                    border = "rgba(248, 113, 113, 0.2)"
+                    color = "#f87171"
+                elif risk_level == "中":
+                    bg = "rgba(251, 191, 36, 0.08)"
+                    border = "rgba(251, 191, 36, 0.2)"
+                    color = "#fbbf24"
+                else:
+                    bg = "rgba(52, 211, 153, 0.08)"
+                    border = "rgba(52, 211, 153, 0.2)"
+                    color = "#34d399"
+                st.markdown(f"""
+                <div style="padding: 0.7rem 1rem; margin-bottom: 0.5rem; background: {bg}; border-radius: 10px; border: 1px solid {border};">
+                <b style="color: {color};">[风险：{risk_level}]</b>
+                <span style="color: #c0c0d0; font-size: 0.85rem; margin-left: 0.5rem;">{desc}</span>
+                </div>
+                """, unsafe_allow_html=True)
+            st.caption("""
+            **毒性 (Toxicity)** 评估基于结构警报 (Structural Alerts) —— 某些官能团或子结构在历史上与毒性事件相关：
+            - 以上分析仅基于<b>结构特征</b>，不代表实际毒性——毒性受剂量、代谢、个体差异等多因素影响
+            - 结构警报是药物设计初筛的重要工具，但存在许多假阳性——含警报结构的药物仍可能安全上市
+            - 实际毒性需要通过 Ames 试验、hERG 测试、动物实验和临床试验逐级验证
+            """)
 
     # =========================================
     # TAB 4: Explainability
@@ -2566,7 +2758,16 @@ components.html("""
         { keys: ["空间位阻", "Steric Hindrance", "Steric Effect", "Steric"], en: "Steric Hindrance", cn: "空间位阻", def: "分子中体积较大的原子或基团阻碍化学反应的效应。空间位阻可影响质子的接近和离去，从而调节 pKa 值。", defEn: "The effect of bulky atoms or groups physically obstructing a chemical reaction. Steric hindrance can affect proton access and departure, thereby modulating pKa values." },
         { keys: ["杂化", "Hybridization", "杂化轨道", "杂化/芳香性"], en: "Hybridization", cn: "杂化轨道", def: "原子轨道线性组合形成新轨道的概念（sp、sp²、sp³）。杂化方式决定分子的几何构型和键角，影响电子分布。sp² 杂化的碳（如芳香环）比 sp³ 杂化的碳具有更强的吸电子能力。", defEn: "The concept of atomic orbitals combining linearly to form new orbitals (sp, sp², sp³). Hybridization determines molecular geometry and bond angles. sp²-hybridized carbon (e.g. in aromatic rings) is more electron-withdrawing than sp³-hybridized carbon." },
         { keys: ["肠溶片", "Enteric-Coated Tablet"], en: "Enteric-Coated Tablet", cn: "肠溶片", def: "一种特殊包衣的药物剂型，在胃酸中不溶解，到达小肠后才释放药物。用于保护胃黏膜或防止药物在酸性环境中降解。", defEn: "A drug dosage form with a special coating that resists stomach acid and releases the drug only upon reaching the small intestine. Used to protect the stomach lining or prevent drug degradation in acidic environments." },
-        { keys: ["RDKit"], en: "RDKit", cn: "RDKit 化学信息学工具包", def: "开源的化学信息学软件库，用于分子结构的解析、化学描述符计算、分子指纹生成和结构绘制。本应用的核心化学计算均由 RDKit 驱动。", defEn: "An open-source cheminformatics toolkit for molecular structure parsing, descriptor calculation, fingerprint generation, and structure depiction. All core chemistry computations in this app are powered by RDKit." }
+        { keys: ["RDKit"], en: "RDKit", cn: "RDKit 化学信息学工具包", def: "开源的化学信息学软件库，用于分子结构的解析、化学描述符计算、分子指纹生成和结构绘制。本应用的核心化学计算均由 RDKit 驱动。", defEn: "An open-source cheminformatics toolkit for molecular structure parsing, descriptor calculation, fingerprint generation, and structure depiction. All core chemistry computations in this app are powered by RDKit." },
+        { keys: ["Lipinski", "Lipinski's Rule of Five", "五规则", "Rule of Five", "Ro5"], en: "Lipinski's Rule of Five", cn: "Lipinski 五规则", def: "由 Pfizer 的 Christopher Lipinski 在 1997 年提出的口服药物筛选经验规则：分子量 ≤ 500、LogP ≤ 5、氢键供体 ≤ 5、氢键受体 ≤ 10。违反不超过 1 条的分子更可能具有良好的口服吸收。这是一条经验性初筛标准，不是绝对规则。", defEn: "Empirical oral drug-likeness rules proposed by Christopher Lipinski (Pfizer, 1997): MW ≤ 500, LogP ≤ 5, HBD ≤ 5, HBA ≤ 10. Molecules violating ≤1 rule are more likely to have good oral absorption. This is an empirical screening guideline, not an absolute rule." },
+        { keys: ["ADME", "ADME/Tox", "ADMET", "药代动力学"], en: "ADME/Tox", cn: "ADME/Tox 药代动力学", def: "药物在体内的吸收 (Absorption)、分布 (Distribution)、代谢 (Metabolism)、排泄 (Excretion) 和毒性 (Toxicity) 五个关键过程。合称 ADME/Tox，是药物发现和开发中必须评估的核心性质。", defEn: "The five key processes governing a drug's fate in the body: Absorption, Distribution, Metabolism, Excretion, and Toxicity. ADME/Tox properties must be evaluated for any drug candidate during discovery and development." },
+        { keys: ["CYP450", "CYP3A4", "CYP2D6", "CYP2C9", "细胞色素P450", "P450"], en: "Cytochrome P450 (CYP450)", cn: "细胞色素 P450 酶系", def: "肝脏中最重要的 I 相药物代谢酶超家族。CYP3A4 代谢约 50% 的临床药物；CYP2D6 存在显著的基因多态性；CYP2C9 参与多种 NSAID 药物代谢。药物间相互作用常与 CYP450 酶的诱导或抑制相关。", defEn: "The most important Phase I drug-metabolizing enzyme superfamily in the liver. CYP3A4 metabolizes ~50% of clinical drugs; CYP2D6 shows significant genetic polymorphism; CYP2C9 metabolizes many NSAIDs. Drug-drug interactions often involve CYP450 enzyme induction or inhibition." },
+        { keys: ["血脑屏障", "Blood-Brain Barrier", "BBB"], en: "Blood-Brain Barrier (BBB)", cn: "血脑屏障", def: "由脑毛细血管内皮细胞紧密连接构成的选择性屏障，阻止大多数分子从血液进入大脑。低 TPSA (< 70 Å²)、适中 LogP、分子量较小的分子更容易通过血脑屏障。", defEn: "A selective barrier formed by tight junctions between brain capillary endothelial cells, blocking most molecules from entering the brain from blood. Molecules with low TPSA (< 70 Å²), moderate LogP, and smaller size are more likely to cross the BBB." },
+        { keys: ["表观分布容积", "Volume of Distribution", "Vd", "分布容积"], en: "Volume of Distribution (Vd)", cn: "表观分布容积", def: "药物在体内的分布范围指标。Vd 越大，药物越倾向于分布到组织中；Vd 小则主要留在血浆中。亲脂性分子通常 Vd 较大。", defEn: "An indicator of a drug's distribution extent in the body. Large Vd means the drug prefers to distribute into tissues; small Vd means it mainly stays in plasma. Lipophilic molecules typically have larger Vd values." },
+        { keys: ["血浆蛋白结合率", "Protein Binding", "Plasma Protein Binding", "PPB"], en: "Plasma Protein Binding", cn: "血浆蛋白结合率", def: "药物与血浆蛋白（主要是白蛋白和 α1-酸性糖蛋白）结合的比例。高结合率意味着药物缓慢释放、作用持久；只有游离药物能发挥药理作用。", defEn: "The fraction of drug bound to plasma proteins (mainly albumin and α1-acid glycoprotein). High binding means slow release and prolonged action; only free (unbound) drug exerts pharmacological effects." },
+        { keys: ["结构警报", "Structural Alert", "毒性结构"], en: "Structural Alert", cn: "结构警报（毒性）", def: "历史上与毒性或不良反应相关的特定分子子结构（如硝基芳香族、芳香胺、环氧化物）。结构警报是药物设计初筛阶段的重要风险评估工具，但单一警报不等于分子一定有毒。", defEn: "Specific molecular substructures historically associated with toxicity or adverse effects (e.g. nitro-aromatics, aromatic amines, epoxides). Structural alerts are important risk assessment tools during early drug screening, but a single alert does not guarantee toxicity." },
+        { keys: ["首过效应", "First-Pass Effect", "首过代谢"], en: "First-Pass Effect", cn: "首过效应", def: "口服药物经肠道吸收后首先通过肝脏，在进入体循环之前被肝脏代谢酶降解一部分。首过效应大的药物口服生物利用度低，可能需要更高剂量或改用其他给药途径。", defEn: "The metabolism of orally administered drugs by the liver before reaching systemic circulation. Drugs with high first-pass effects have low oral bioavailability and may require higher doses or alternative administration routes." },
+        { keys: ["Michael 受体", "Michael Acceptor", "α,β-不饱和羰基"], en: "Michael Acceptor", cn: "Michael 受体", def: "含有 α,β-不饱和羰基结构的分子（C=C-C=O）。该结构可与生物亲核试剂（如谷胱甘肽、蛋白质半胱氨酸残基）发生 Michael 加成反应，可能引起非特异性毒性或过敏反应。", defEn: "A molecule containing an α,β-unsaturated carbonyl group (C=C-C=O). This structure can undergo Michael addition with biological nucleophiles (e.g. glutathione, protein cysteine residues), potentially causing non-specific toxicity or allergic reactions." }
     ];
 
     var GLOSSARY = {};

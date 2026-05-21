@@ -115,6 +115,245 @@ def show_3d_molecule(smiles):
         return None
 
 
+def analyze_lipinski(features):
+    """Evaluate Lipinski's Rule of Five for oral drug-likeness.
+
+    Returns dict with per-rule pass/fail and overall score (0-5).
+    Lipinski rules:
+      1. Molecular Weight ≤ 500 Da
+      2. LogP ≤ 5
+      3. H-Bond Donors ≤ 5
+      4. H-Bond Acceptors ≤ 10
+      5. Rotatable Bonds ≤ 10 (extended rule)
+    """
+    rules = [
+        ("Molecular Weight ≤ 500", "MolWt", features["MolWt"] <= 500, f'{features["MolWt"]:.0f} Da'),
+        ("LogP ≤ 5", "LogP", features["LogP"] <= 5, f'{features["LogP"]:.2f}'),
+        ("H-Bond Donors ≤ 5", "NumHDonors", features["NumHDonors"] <= 5, str(features["NumHDonors"])),
+        ("H-Bond Acceptors ≤ 10", "NumHAcceptors", features["NumHAcceptors"] <= 10, str(features["NumHAcceptors"])),
+        ("Rotatable Bonds ≤ 10", "NumRotatableBonds", features["NumRotatableBonds"] <= 10, str(features["NumRotatableBonds"])),
+    ]
+    violations = sum(1 for _, _, passed, _ in rules if not passed)
+    passed_count = 5 - violations
+    return {
+        "rules": rules,
+        "passed": passed_count,
+        "violations": violations,
+        "is_druglike": passed_count >= 4,  # standard threshold: ≤1 violation
+        "interpretation": (
+            "符合 Lipinski 五规则，具有良好口服生物利用度潜力"
+            if passed_count >= 4 else
+            f"违反 {violations} 条规则，口服吸收可能受限，但仍有成为药物的可能（许多成功药物也违反五规则）"
+        ),
+    }
+
+
+def detect_functional_groups(smiles):
+    """Detect common functional groups and structural motifs relevant to ADME/Tox.
+
+    Returns a dict of group_name -> bool.
+    """
+    from rdkit import Chem
+    mol = Chem.MolFromSmiles(smiles)
+    if mol is None:
+        return {}
+
+    patterns = {
+        # Metabolism-relevant groups
+        "aromatic_ring": "c1ccccc1",
+        "phenol": "c1ccccc1O",
+        "aniline": "c1ccccc1N",
+        "ester": "[CX3](=O)[OX2H0]",
+        "amide": "[CX3](=O)[NX3]",
+        "carboxylic_acid": "[CX3](=O)[OX2H1]",
+        "primary_amine": "[NX3H2]",
+        "secondary_amine": "[NX3H1][CX4]",
+        "tertiary_amine": "[NX3]([CX4])([CX4])[CX4]",
+        "methyl": "[CX4H3]",
+        "ether": "[OX2H0]([CX4])[CX4]",
+        "ketone": "[CX3](=O)[CX4]",
+        "aldehyde": "[CX3H1](=O)",
+        "nitro": "[NX3](=O)=O",
+        "sulfonamide": "[SX4](=O)(=O)[NX3]",
+        "thiol": "[SX2H]",
+        "halogen": "[F,Cl,Br,I]",
+        "nitrile": "[CX2]#[NX1]",
+        # Toxicity structural alerts
+        "nitro_aromatic": "c1ccccc1[NX3](=O)=O",
+        "aniline_alert": "[cR][NH2]",
+        "epoxide": "C1OC1",
+        "hydrazine": "[NX3][NX3]",
+        "alkyl_halide": "[CX4][F,Cl,Br,I]",
+        "michael_acceptor": "[CX3]=[CX3][CX3]=O",
+    }
+
+    detected = {}
+    for name, smarts in patterns.items():
+        try:
+            pat = Chem.MolFromSmarts(smarts)
+            detected[name] = mol.HasSubstructMatch(pat) if pat else False
+        except Exception:
+            detected[name] = False
+
+    return detected
+
+
+def analyze_admet(smiles, features, pka_val=None):
+    """Analyze ADME/Tox properties based on molecular descriptors and functional groups.
+
+    Returns a dict with A, D, M, E, T analysis sections.
+    """
+    fg = detect_functional_groups(smiles)
+    mw = features["MolWt"]
+    logp = features["LogP"]
+    tpsa = features["TPSA"]
+    hbd = features["NumHDonors"]
+    hba = features["NumHAcceptors"]
+    rot_bonds = features["NumRotatableBonds"]
+
+    # ── Absorption ──
+    absorption_factors = []
+    if tpsa < 60:
+        absorption_factors.append("TPSA < 60 Å²，易于穿过肠道细胞膜")
+    elif tpsa < 140:
+        absorption_factors.append("TPSA 中等 (60-140 Å²)，吸收尚可")
+    else:
+        absorption_factors.append("TPSA > 140 Å²，极性表面积较大，可能限制被动跨膜吸收")
+
+    if pka_val is not None:
+        if pka_val < 4:
+            absorption_factors.append(f"pKa = {pka_val:.1f}（酸性），胃中(pH 1.5)以分子态为主，胃吸收良好")
+        elif pka_val > 9:
+            absorption_factors.append(f"pKa = {pka_val:.1f}（碱性），胃中离子化，主要在小肠(pH 6.8)吸收")
+        else:
+            absorption_factors.append(f"pKa = {pka_val:.1f}（近中性），全肠道均有吸收")
+
+    if hbd > 5:
+        absorption_factors.append("H-Bond Donors > 5，跨膜需要脱溶剂化，可能降低吸收")
+    if hba > 10:
+        absorption_factors.append("H-Bond Acceptors > 10，过多的氢键受体降低膜通透性")
+
+    absorption_summary = "；".join(absorption_factors) if absorption_factors else "吸收特性待评估"
+
+    # ── Distribution ──
+    distribution_factors = []
+    vd_estimate = "中等"
+    if logp > 3 and mw < 500:
+        vd_estimate = "较高（亲脂性强，易分布至组织）"
+        distribution_factors.append("分子亲脂性强 (LogP > 3)，倾向于分布到脂肪组织和通过血脑屏障")
+    elif logp < 0:
+        vd_estimate = "较低（亲水性强，主要留在血浆中）"
+        distribution_factors.append("分子亲水性强 (LogP < 0)，主要分布在血浆和细胞外液")
+    else:
+        distribution_factors.append("LogP 适中，组织分布较均衡")
+
+    if tpsa < 70 and logp > 1:
+        distribution_factors.append("低 TPSA + 中等 LogP = 可能通过血脑屏障 (BBB)")
+    if mw > 500:
+        distribution_factors.append("分子量 > 500，组织渗透能力下降")
+
+    ppb = "中等"
+    if logp > 4:
+        ppb = "较高（亲脂性强，与血浆蛋白结合率高）"
+    elif logp < 0:
+        ppb = "较低（亲水性强，游离药物比例高）"
+
+    distribution_summary = "；".join(distribution_factors) if distribution_factors else "分布特性待评估"
+
+    # ── Metabolism ──
+    metabolism_sites = []
+    cyp_notes = []
+    if fg.get("aromatic_ring"):
+        metabolism_sites.append("芳香环（可能被 CYP450 氧化为环氧化物/酚类）")
+        cyp_notes.append("CYP2C9, CYP2E1")
+    if fg.get("phenol"):
+        metabolism_sites.append("酚羟基（易被 II 相代谢：葡萄糖醛酸化/硫酸化）")
+    if fg.get("carboxylic_acid"):
+        metabolism_sites.append("羧基（可能与氨基酸结合或形成酰基葡萄糖醛酸）")
+    if fg.get("ester"):
+        metabolism_sites.append("酯键（被酯酶水解，可能首过效应显著）")
+        cyp_notes.append("酯酶（非 CYP）")
+    if fg.get("amide"):
+        metabolism_sites.append("酰胺键（代谢较稳定，但可被酰胺酶水解）")
+    if fg.get("methyl"):
+        metabolism_sites.append("甲基（可被 CYP450 氧化为羟甲基 -> 醛 -> 羧酸）")
+        cyp_notes.append("CYP3A4")
+    if fg.get("primary_amine") or fg.get("secondary_amine"):
+        metabolism_sites.append("伯/仲胺基（可能发生 N-脱烷基或 N-氧化）")
+        cyp_notes.append("CYP2D6, CYP3A4")
+    if fg.get("tertiary_amine"):
+        metabolism_sites.append("叔胺基（易发生 N-脱甲基化）")
+        cyp_notes.append("CYP3A4, CYP2D6")
+
+    unique_cyps = list(set(cyp_notes))
+    metabolism_summary = (
+        "；".join(metabolism_sites) if metabolism_sites else "结构较简单，主要代谢途径待实验验证"
+    )
+    cyp_summary = ", ".join(unique_cyps) if unique_cyps else "待实验确定"
+
+    # ── Excretion ──
+    excretion_factors = []
+    if mw < 350 and logp < 2:
+        excretion_factors.append("分子量小 + 亲水性适中 → 倾向于肾脏排泄（肾小球滤过）")
+        excretion_route = "主要经肾脏排泄"
+    elif mw > 500:
+        excretion_factors.append("分子量 > 500 → 倾向于肝胆排泄（胆汁）")
+        excretion_route = "倾向于肝胆排泄"
+    elif logp > 3:
+        excretion_factors.append("LogP > 3 → 在肾小管中易被重吸收，肝胆排泄比例增加")
+        excretion_route = "肝肾双途径排泄"
+    else:
+        excretion_route = "肝肾双途径排泄"
+
+    if tpsa > 100:
+        excretion_factors.append("高 TPSA 有利于肾脏排泄（水溶性代谢物）")
+    if fg.get("carboxylic_acid") or fg.get("phenol"):
+        excretion_factors.append("含羧基/酚羟基 → 易形成 II 相代谢物经肾脏排出")
+
+    excretion_summary = "；".join(excretion_factors) if excretion_factors else "排泄途径待评估"
+
+    # ── Toxicity ──
+    toxicity_alerts = []
+    if fg.get("nitro_aromatic"):
+        toxicity_alerts.append(("高", "硝基芳香族 → 可能经 CYP450 还原为有毒的亚硝基/羟胺中间体，有致突变风险"))
+    if fg.get("aniline_alert"):
+        toxicity_alerts.append(("中", "芳香胺 → 可能经 N-氧化生成致癌性 N-羟基代谢物"))
+    if fg.get("epoxide"):
+        toxicity_alerts.append(("高", "环氧化物 → 高反应活性，可与 DNA/蛋白质共价结合，可能致癌"))
+    if fg.get("hydrazine"):
+        toxicity_alerts.append(("高", "肼类结构 → 已知的肝毒性警报结构"))
+    if fg.get("alkyl_halide"):
+        toxicity_alerts.append(("中", "卤代烷基 → 可能是烷化剂，与谷胱甘肽结合消耗肝脏保护物质"))
+    if fg.get("michael_acceptor"):
+        toxicity_alerts.append(("中", "Michael 受体 (α,β-不饱和羰基) → 可与亲核基团非特异性结合，可能引起肝毒性/皮肤致敏"))
+
+    if fg.get("halogen") and not fg.get("alkyl_halide"):
+        toxicity_alerts.append(("低", "含卤素取代基 → 代谢较稳定，但可能生物积累"))
+
+    if not toxicity_alerts:
+        toxicity_alerts.append(("低", "未检出常见结构警报，常规毒性风险较低"))
+
+    toxicity_summary = toxicity_alerts
+
+    return {
+        "absorption": absorption_summary,
+        "distribution": {
+            "summary": distribution_summary,
+            "vd_estimate": vd_estimate,
+            "ppb": ppb,
+        },
+        "metabolism": {
+            "summary": metabolism_summary,
+            "cyp_enzymes": cyp_summary,
+        },
+        "excretion": {
+            "summary": excretion_summary,
+            "route": excretion_route,
+        },
+        "toxicity": toxicity_summary,
+    }
+
+
 def mol_to_dark_image(mol, size=(500, 400)):
     """Render a 2D molecular structure image with dark theme."""
     from io import BytesIO

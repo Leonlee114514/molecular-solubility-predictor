@@ -8,7 +8,13 @@
       "Bash(cp \"C:/Users/Lyonl/Pictures/Screenshots/屏幕截图 2026-05-20 173057.png\" /tmp/screenshot1.png)",
       "Bash(cp \"C:/Users/Lyonl/Pictures/Screenshots/屏幕截图 2026-05-20 173148.png\" /tmp/screenshot2.png)",
       "Bash(cp 'C:/Users/Lyonl/Pictures/Screenshots/屏幕截图 2026-05-20 173057.png' __TRACKED_VAR__/screenshot1.png)",
-      "Bash(cp 'C:/Users/Lyonl/Pictures/Screenshots/屏幕截图 2026-05-20 173148.png' __TRACKED_VAR__/screenshot2.png)"
+      "Bash(cp 'C:/Users/Lyonl/Pictures/Screenshots/屏幕截图 2026-05-20 173148.png' __TRACKED_VAR__/screenshot2.png)",
+      "Bash(streamlit run *)",
+      "Bash(where python *)",
+      "Bash(pip show *)",
+      "Bash(python3 -m pip show streamlit)",
+      "Bash(python3 -m streamlit run app.py --server.port 8501 --server.headless true)",
+      "Bash(python3 -c \"import ast; ast.parse\\(open\\('app.py', encoding='utf-8'\\).read\\(\\)\\); print\\('app.py: syntax OK'\\)\")"
     ]
   }
 }
