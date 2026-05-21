@@ -153,7 +153,6 @@ def detect_functional_groups(smiles):
 
     Returns a dict of group_name -> bool.
     """
-    from rdkit import Chem
     mol = Chem.MolFromSmiles(smiles)
     if mol is None:
         return {}
