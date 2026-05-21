@@ -2014,12 +2014,28 @@ if st.session_state.predicted_smiles and st.session_state.predicted_logS is not 
     # ═════════════════════════════════════════
     # TAB 分组
     # ═════════════════════════════════════════
-    tab_overview, tab_profile, tab_pharma, tab_explain = st.tabs([
+    tab_labels = [
         "Prediction Overview",
         "Molecular Profile",
         "Pharmacology",
         "Explainability"
-    ])
+    ]
+    tab_overview, tab_profile, tab_pharma, tab_explain = st.tabs(tab_labels)
+
+    # 记住 rerun 后的目标 Tab（解决 st.rerun() 导致 Tab 重置的问题）
+    target_tab = st.session_state.pop("_target_tab", None)
+    if target_tab is not None:
+        target_idx = tab_labels.index(target_tab) if target_tab in tab_labels else 0
+        components.html(f"""
+        <script>
+        (function() {{
+            var tabs = window.parent.document.querySelectorAll('[data-baseweb="tab"]');
+            if (tabs.length > {target_idx}) {{
+                setTimeout(function() {{ tabs[{target_idx}].click(); }}, 80);
+            }}
+        }})();
+        </script>
+        """, height=0)
 
     # =========================================
     # TAB 1: Prediction Overview
@@ -2411,6 +2427,7 @@ if st.session_state.predicted_smiles and st.session_state.predicted_logS is not 
                 st.markdown(st.session_state.ai_explanation)
                 if st.button("清除解释", key="clear_ai"):
                     st.session_state.ai_explanation = None
+                    st.session_state._target_tab = "Explainability"
                     st.rerun()
             else:
                 st.caption("AI 解释需要手动调用（消耗 API 额度）")
@@ -2430,6 +2447,7 @@ if st.session_state.predicted_smiles and st.session_state.predicted_logS is not 
                             pka_type=pka_type_gen
                         )
                     st.session_state.ai_explanation = explanation
+                    st.session_state._target_tab = "Explainability"
                     st.rerun()
 
 # ========== 化学术语双语词汇表（点击弹窗） ==========
