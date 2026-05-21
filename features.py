@@ -122,7 +122,7 @@ def mol_to_dark_image(mol, size=(500, 400)):
     from rdkit.Chem.Draw import rdMolDraw2D
 
     w, h = size
-    BG = np.array([26, 26, 46], dtype=np.uint8)
+    BG = np.array([42, 42, 60], dtype=np.uint8)  # 稍亮于页面背景，保证C-C键可见
 
     draw = rdMolDraw2D.MolDraw2DCairo(w, h)
     opts = draw.drawOptions()
@@ -152,6 +152,13 @@ def mol_to_dark_image(mol, size=(500, 400)):
     alpha = arr[:, :, 3:4] / 255.0
     bg_layer = np.full((h, w, 4), np.append(BG, [255]), dtype=np.float32)
     composed = arr * alpha + bg_layer * (1 - alpha)
+
+    # 提亮深色键线（RDKit默认黑键在深色背景上不可见）
+    fg_mask = alpha[:, :, 0] > 0.3
+    dark_bond = fg_mask & (composed[:, :, :3].max(axis=2) < 70)
+    composed[dark_bond, 0] = np.clip(composed[dark_bond, 0] + 110, 0, 255)
+    composed[dark_bond, 1] = np.clip(composed[dark_bond, 1] + 95, 0, 255)
+    composed[dark_bond, 2] = np.clip(composed[dark_bond, 2] + 120, 0, 255)
 
     glow = img.filter(ImageFilter.GaussianBlur(radius=2))
     glow_arr = np.array(glow, dtype=np.float32) * alpha * 0.2
