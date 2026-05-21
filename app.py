@@ -1972,17 +1972,21 @@ if predict_button and model_ready:
                     st.session_state.predicted_pka = float(pka_pred)
                 
                 status.update(label="Step 4/4: SHAP 可解释性分析...")
-                shap_values = get_shap_explainer(model).shap_values(X_input)[0]
-                desc_shap = shap_values[:8]
-                fp_shap_sum = shap_values[8:].sum()
-                combined_shap = list(desc_shap) + [fp_shap_sum]
-                combined_names = [
-                    "分子量 (MolWt)", "脂水分配系数 (LogP)", "氢键供体 (H-Donors)",
-                    "氢键受体 (H-Acceptors)", "极性表面积 (TPSA)", "可旋转键 (Rotatable Bonds)",
-                    "芳香环 (Aromatic Rings)", "脂肪环 (Aliphatic Rings)", "摩根指纹 (Morgan FP)"
-                ]
-                st.session_state.shap_values = combined_shap
-                st.session_state.shap_names = combined_names
+                try:
+                    shap_values = get_shap_explainer(model).shap_values(X_input)[0]
+                    desc_shap = shap_values[:8]
+                    fp_shap_sum = shap_values[8:].sum()
+                    combined_shap = list(desc_shap) + [fp_shap_sum]
+                    combined_names = [
+                        "分子量 (MolWt)", "脂水分配系数 (LogP)", "氢键供体 (H-Donors)",
+                        "氢键受体 (H-Acceptors)", "极性表面积 (TPSA)", "可旋转键 (Rotatable Bonds)",
+                        "芳香环 (Aromatic Rings)", "脂肪环 (Aliphatic Rings)", "摩根指纹 (Morgan FP)"
+                    ]
+                    st.session_state.shap_values = combined_shap
+                    st.session_state.shap_names = combined_names
+                except Exception:
+                    st.session_state.shap_values = None
+                    st.session_state.shap_names = None
                 st.session_state.ai_explanation = None
                 status.update(label=f"分析完成！预测 logS = {float(prediction):.3f}", state="complete")
 
@@ -2287,7 +2291,7 @@ if st.session_state.predicted_smiles and st.session_state.predicted_logS is not 
     with tab_explain:
         st.markdown("""<div class="card-title">&#128269; SHAP Explainability</div>""", unsafe_allow_html=True)
         st.caption("基于 SHAP (SHapley Additive exPlanations) 分析每个特征对预测的贡献")
-        if "shap_values" in st.session_state:
+        if st.session_state.get("shap_values"):
             import matplotlib.pyplot as plt
             import matplotlib.font_manager as fm
             import numpy as np
@@ -2397,6 +2401,8 @@ if st.session_state.predicted_smiles and st.session_state.predicted_logS is not 
             parts.append("相比训练集平均分子（基准值 " + f"{base_value:.3f}" + "），该分子的结构特征将预测值" + direction + "拉动了 " + f"{shift:.3f}" + " 个单位。")
             insight_text = " ".join(parts)
             st.info(insight_text)
+        else:
+            st.info("SHAP 可解释性分析暂不可用，但预测结果仍然有效。")
 
         st.markdown("<br>", unsafe_allow_html=True)
         st.markdown("""<div class="card-title">&#129504; AI Chemistry Explanation</div>""", unsafe_allow_html=True)
