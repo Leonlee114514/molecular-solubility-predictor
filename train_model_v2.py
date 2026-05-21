@@ -7,8 +7,6 @@
 import pandas as pd
 import numpy as np
 import os
-from rdkit import Chem
-from rdkit.Chem import Descriptors, AllChem
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_squared_error, r2_score
@@ -83,29 +81,10 @@ print(f"📊 去重后: {len(df)} 个唯一分子")
 print("\n📋 数据来源分布:")
 print(df['source'].value_counts())
 
-# ========== 第2步：特征计算（和 V1 完全一致）==========
+# ========== 第2步：特征计算（从共享模块导入）==========
+from features import compute_features
+
 print("\n🔬 正在提取分子特征...")
-
-def compute_features(smiles_string):
-    mol = Chem.MolFromSmiles(smiles_string)
-    if mol is None:
-        return None
-
-    features = {}
-    features['MolWt'] = Descriptors.MolWt(mol)
-    features['LogP'] = Descriptors.MolLogP(mol)
-    features['NumHDonors'] = Descriptors.NumHDonors(mol)
-    features['NumHAcceptors'] = Descriptors.NumHAcceptors(mol)
-    features['TPSA'] = Descriptors.TPSA(mol)
-    features['NumRotatableBonds'] = Descriptors.NumRotatableBonds(mol)
-    features['NumAromaticRings'] = Descriptors.NumAromaticRings(mol)
-    features['NumAliphaticRings'] = Descriptors.NumAliphaticRings(mol)
-
-    fp = AllChem.GetMorganFingerprintAsBitVect(mol, radius=2, nBits=1024)
-    fp_array = np.zeros((1,), dtype=int)
-    AllChem.DataStructs.ConvertToNumpyArray(fp, fp_array)
-
-    return features, fp_array
 
 feature_list = []
 fingerprint_list = []

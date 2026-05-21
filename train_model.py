@@ -15,10 +15,6 @@ import requests
 # os: 用于文件路径操作
 import os
 
-# RDKit: 化学信息学核心库，用于将SMILES字符串转换为分子并计算性质
-from rdkit import Chem
-from rdkit.Chem import Descriptors, AllChem
-
 # scikit-learn: 机器学习库，提供随机森林等算法
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import train_test_split
@@ -71,51 +67,11 @@ df = df.rename(columns={
 })
 
 # ========== 第3步：定义特征计算函数 ==========
-# 这是本项目的核心：如何把"化学结构"变成"数字"让计算机理解
+# 从共享模块 features.py 导入
+from features import compute_features
 
 print("\n🔬 正在从分子结构中提取特征...")
 print("（这可能需要几十秒，请耐心等待）")
-
-def compute_features(smiles_string):
-    """
-    输入：一个SMILES字符串（如 "CCO" 代表乙醇）
-    输出：该分子的数值特征（分子量、极性、氢键数量等）
-
-    如果SMILES无效（比如写错了），返回 None
-    """
-    # 用 RDKit 把 SMILES 字符串解析成分子对象
-    mol = Chem.MolFromSmiles(smiles_string)
-
-    # 如果解析失败（SMILES不合法），返回None，后面会跳过这个分子
-    if mol is None:
-        return None
-
-    # 创建一个字典，存放所有特征
-    features = {}
-
-    # --- 第一类特征：基础物理化学描述符 ---
-    # 这些特征都有明确的化学意义，你可以在文书中解释它们
-
-    features['MolWt'] = Descriptors.MolWt(mol)                  # 分子量 (g/mol)
-    features['LogP'] = Descriptors.MolLogP(mol)                 # 脂水分配系数（疏水性指标）
-    features['NumHDonors'] = Descriptors.NumHDonors(mol)        # 氢键供体数量（如 -OH, -NH）
-    features['NumHAcceptors'] = Descriptors.NumHAcceptors(mol)  # 氢键受体数量（如 O, N）
-    features['TPSA'] = Descriptors.TPSA(mol)                   # 拓扑极性表面积 (Å²)
-    features['NumRotatableBonds'] = Descriptors.NumRotatableBonds(mol)  # 可旋转键数（柔性指标）
-    features['NumAromaticRings'] = Descriptors.NumAromaticRings(mol)  # 芳香环数量
-    features['NumAliphaticRings'] = Descriptors.NumAliphaticRings(mol) # 脂肪环数量
-
-    # --- 第二类特征：Morgan 分子指纹 ---
-    # 指纹是一个长度为1024的二进制向量（0和1的数组）
-    # 它记录分子中有哪些"子结构片段"（如苯环、羟基、羧基等）
-    # radius=2 表示考虑每个原子周围2层化学键范围内的环境
-    fp = AllChem.GetMorganFingerprintAsBitVect(mol, radius=2, nBits=1024)
-
-    # 把指纹转换成 numpy 数组（方便机器学习处理）
-    fp_array = np.zeros((1,), dtype=int)
-    AllChem.DataStructs.ConvertToNumpyArray(fp, fp_array)
-
-    return features, fp_array
 
 # ========== 第4步：批量处理所有分子 ==========
 # 创建空列表，用于存放所有分子的特征和标签
