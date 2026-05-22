@@ -2503,7 +2503,6 @@ if st.session_state.predicted_smiles and st.session_state.predicted_logS is not 
                     <div style="font-size:0.85rem;font-weight:600;color:{dl['qed_color']};margin-bottom:0.5rem;">{dl['qed_level']}</div>
                 </div>
                 """, unsafe_allow_html=True)
-                st.markdown("QED / 药物相似性定量评估 — **点击查看中英双语解释**")
 
             with col_sa:
                 sa_val = dl["sascore"]
@@ -2522,7 +2521,6 @@ if st.session_state.predicted_smiles and st.session_state.predicted_logS is not 
                     <div style="font-size:0.85rem;font-weight:600;color:{dl['sa_color']};margin-bottom:0.5rem;">{dl['sa_level']}</div>
                 </div>
                 """, unsafe_allow_html=True)
-                st.markdown("SAscore / 合成可及性评分 — **点击查看中英双语解释**")
 
             with col_fsp3:
                 fsp3_val = dl["fsp3"]
@@ -2540,7 +2538,6 @@ if st.session_state.predicted_smiles and st.session_state.predicted_logS is not 
                     <div style="font-size:0.85rem;font-weight:600;color:{dl['fsp3_color']};margin-bottom:0.5rem;">{dl['fsp3_level']}</div>
                 </div>
                 """, unsafe_allow_html=True)
-                st.markdown("Fsp³ / 三维复杂度指标 — **点击查看中英双语解释**")
 
             # Carbon count summary line
             st.markdown(f"""
