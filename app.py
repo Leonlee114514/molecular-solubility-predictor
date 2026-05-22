@@ -21,7 +21,7 @@ from model import (
 )
 
 import openai
-import streamlit.components.v1 as components
+import base64
 
 # 优先读取 Streamlit Secrets（Cloud 部署），其次读取 .env（本地开发）
 KIMI_API_KEY = st.secrets.get("KIMI_API_KEY") or os.getenv("KIMI_API_KEY")
@@ -34,6 +34,12 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="collapsed"
 )
+
+
+def _render_html(html_content, height=0, scrolling=True):
+    """Render HTML/JS via st.iframe using a data URL (replaces deprecated components.html)."""
+    encoded = base64.b64encode(html_content.encode("utf-8")).decode("utf-8")
+    st.iframe(f"data:text/html;charset=utf-8;base64,{encoded}", height=height, scrolling=scrolling)
 
 # ========== DisSolve DEEP SPACE THEME CSS ==========
 st.markdown("""
@@ -1106,7 +1112,7 @@ footer {visibility: hidden;}
 """, unsafe_allow_html=True)
 
 # ========== JS 强制覆盖下拉菜单样式（合并优化版，无轮询）==========
-components.html("""
+_render_html("""
 <script>
 (function() {
     'use strict';
@@ -1205,7 +1211,7 @@ components.html("""
 """, height=0)
 
 # ========== Canvas 动态粒子星空背景 ==========
-components.html("""
+_render_html("""
 <script>
 (function() {
     'use strict';
@@ -1486,7 +1492,7 @@ components.html("""
 """, height=0)
 
 # ========== 交互增强：鼠标跟随光晕 + 卡片 tilt 效果 ==========
-components.html("""
+_render_html("""
 <script>
 (function() {
     'use strict';
@@ -2210,7 +2216,7 @@ if st.session_state.predicted_smiles and st.session_state.predicted_logS is not 
     target_tab = st.session_state.pop("_target_tab", None)
     if target_tab is not None:
         target_idx = tab_labels.index(target_tab) if target_tab in tab_labels else 0
-        components.html(f"""
+        _render_html(f"""
         <script>
         (function() {{
             var tabs = window.parent.document.querySelectorAll('[data-baseweb="tab"]');
@@ -2260,7 +2266,7 @@ if st.session_state.predicted_smiles and st.session_state.predicted_logS is not 
         st.markdown("""<div class="card-title">&#127919; 3D Ball-and-Stick Model</div>""", unsafe_allow_html=True)
         html_3d = cached_show_3d(st.session_state.predicted_smiles)
         if html_3d:
-            components.html(html_3d, height=420, scrolling=False)
+            _render_html(html_3d, height=420, scrolling=False)
         else:
             st.info("3D 模型生成失败（需安装 py3Dmol）")
 
@@ -2893,7 +2899,7 @@ if st.session_state.predicted_smiles and st.session_state.predicted_logS is not 
                     st.rerun()
 
 # ========== 化学术语双语词汇表（点击弹窗） ==========
-components.html("""
+_render_html("""
 <script>
 (function() {
     'use strict';
