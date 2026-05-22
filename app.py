@@ -1922,6 +1922,13 @@ with st.container(border=True):
         st.session_state.fuzzy_matches = []
         st.rerun()
 
+    # Clear search results when user empties the input
+    if not search_name and st.session_state.search_query:
+        st.session_state.search_query = ""
+        st.session_state.search_state = None
+        st.session_state.fuzzy_matches = []
+        st.rerun()
+
     query = st.session_state.search_query
     if query:
         if query in SEARCH_INDEX:
