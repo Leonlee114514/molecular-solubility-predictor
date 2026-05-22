@@ -2143,22 +2143,57 @@ if st.session_state.predicted_smiles and st.session_state.predicted_logS is not 
         plt.rcParams['xtick.color'] = '#a0a0b0'
         plt.rcParams['ytick.color'] = '#f0f0f5'
         plt.rcParams['text.color'] = '#f0f0f5'
-        fig, ax = plt.subplots(figsize=(8, 3.0))
-        rule_names = [r[0] for r in rules]
-        vals = [r[2] for r in rules]
-        rule_actuals = [r[3] for r in rules]
-        colors_bar = ['#34d399' if v else '#f87171' for v in vals]
-        bars = ax.barh(rule_names, [1]*5, color='#1e1e30', edgecolor=(1,1,1,0.08), height=0.5)
-        for i, (name, passed, actual, color) in enumerate(zip(rule_names, vals, rule_actuals, colors_bar)):
-            ax.barh(i, 1, color=color, edgecolor=(1,1,1,0.15), height=0.5, alpha=0.85)
+
+        fig, ax = plt.subplots(figsize=(10, 3.6))
+
+        property_labels = [
+            ("分子量\nMol. Weight", "≤ 500 Da"),
+            ("脂水分配系数\nLogP", "≤ 5"),
+            ("氢键供体数\nH-Bond Donors", "≤ 5"),
+            ("氢键受体数\nH-Bond Acceptors", "≤ 10"),
+            ("可旋转键数\nRotatable Bonds", "≤ 10"),
+        ]
+
+        y_positions = list(range(5))
+        for i, ((prop_name, threshold), rule) in enumerate(zip(property_labels, rules)):
+            _, _, passed, actual = rule
+            color = '#34d399' if passed else '#f87171'
+            # background bar
+            ax.barh(i, 1, color='#1e1e30', edgecolor=(1, 1, 1, 0.06), height=0.65, zorder=1)
+            # colored progress bar
+            ax.barh(i, 1, color=color, edgecolor=(1, 1, 1, 0.12), height=0.65, alpha=0.82, zorder=2)
+            # property name on the left
+            ax.text(-0.02, i, prop_name, va='center', ha='right', fontsize=10,
+                    fontweight='600', color='#d0d0e0', zorder=5)
+            # threshold on the left side
+            ax.text(0.03, i, threshold, va='center', ha='left', fontsize=9,
+                    color='#7b7b8b', zorder=5)
+            # actual value + PASS/FAIL in center
             icon = "PASS" if passed else "FAIL"
-            ax.text(0.5, i, f"{icon}  ({actual})", va='center', ha='center',
-                    fontsize=10, fontweight='bold', color='#ffffff',
-                    bbox=dict(boxstyle='round,pad=0.3', facecolor=(0,0,0,0.5), edgecolor=(1,1,1,0.12)))
-        ax.set_xlim(0, 1)
+            ax.text(0.53, i, f"{actual}  [{icon}]", va='center', ha='center',
+                    fontsize=11, fontweight='bold', color='#ffffff',
+                    bbox=dict(boxstyle='round,pad=0.35', facecolor=(0, 0, 0, 0.55),
+                              edgecolor=(1, 1, 1, 0.10)), zorder=6)
+
+        # Legend bar at bottom
+        from matplotlib.patches import Patch
+        legend_elements = [
+            Patch(facecolor='#34d399', alpha=0.82, label='PASS — 符合规则'),
+            Patch(facecolor='#f87171', alpha=0.82, label='FAIL — 超出阈值'),
+        ]
+        ax.legend(handles=legend_elements, loc='lower center', fontsize=9,
+                  ncol=2, framealpha=0.7, facecolor='#1a1a2e', edgecolor=(1, 1, 1, 0.08),
+                  bbox_to_anchor=(0.5, -0.35))
+
+        ax.set_xlim(-0.42, 1.05)
+        ax.set_ylim(-0.6, 4.6)
         ax.axis('off')
-        ax.set_title(f'Drug-likeness Score: {lipinski_result["passed"]}/5  ({lipinski_result["interpretation"]})',
-                     fontsize=11, pad=10, color='#f0f0f5')
+
+        title_color = '#34d399' if lipinski_result['passed'] >= 4 else '#fbbf24'
+        ax.set_title(
+            f'Lipinski 五规则评分：{lipinski_result["passed"]} / 5   —   {lipinski_result["interpretation"]}',
+            fontsize=12, pad=16, color=title_color, fontweight='600')
+
         plt.tight_layout()
         st.pyplot(fig, width="stretch")
         plt.close(fig)
