@@ -148,6 +148,78 @@ def analyze_lipinski(features):
     }
 
 
+# ── Inline SAscore (replaces rdkit.Contrib.SA_Score for Streamlit Cloud compatibility) ──
+import gzip
+import pickle
+import math
+from rdkit.Chem import rdFingerprintGenerator, rdMolDescriptors
+
+_fscores = None
+_mfpgen = rdFingerprintGenerator.GetMorganGenerator(radius=2)
+
+def _sa_load_fragment_scores():
+    global _fscores
+    data = pickle.load(gzip.open("data/sa_fpscores.pkl.gz"))
+    outDict = {}
+    for i in data:
+        for j in range(1, len(i)):
+            outDict[i[j]] = float(i[0])
+    _fscores = outDict
+
+def _sa_calculate_score(mol):
+    if not mol.GetNumAtoms():
+        return None
+    if _fscores is None:
+        _sa_load_fragment_scores()
+
+    sfp = _mfpgen.GetSparseCountFingerprint(mol)
+    score1 = 0.
+    nf = 0
+    nze = sfp.GetNonzeroElements()
+    for fid, count in nze.items():
+        nf += count
+        score1 += _fscores.get(fid, -4) * count
+    score1 /= nf
+
+    nAtoms = mol.GetNumAtoms()
+    nChiralCenters = len(Chem.FindMolChiralCenters(mol, includeUnassigned=True))
+    ri = mol.GetRingInfo()
+    nBridgeheads = rdMolDescriptors.CalcNumBridgeheadAtoms(mol)
+    nSpiro = rdMolDescriptors.CalcNumSpiroAtoms(mol)
+    nMacrocycles = 0
+    for x in ri.AtomRings():
+        if len(x) > 8:
+            nMacrocycles += 1
+
+    sizePenalty = nAtoms**1.005 - nAtoms
+    stereoPenalty = math.log10(nChiralCenters + 1)
+    spiroPenalty = math.log10(nSpiro + 1)
+    bridgePenalty = math.log10(nBridgeheads + 1)
+    macrocyclePenalty = 0.
+    if nMacrocycles > 0:
+        macrocyclePenalty = math.log10(2)
+
+    score2 = 0. - sizePenalty - stereoPenalty - spiroPenalty - bridgePenalty - macrocyclePenalty
+
+    score3 = 0.
+    numBits = len(nze)
+    if nAtoms > numBits:
+        score3 = math.log(float(nAtoms) / numBits) * .5
+
+    sascore = score1 + score2 + score3
+
+    min_ = -4.0
+    max_ = 2.5
+    sascore = 11. - (sascore - min_ + 1) / (max_ - min_) * 9.
+    if sascore > 8.:
+        sascore = 8. + math.log(sascore + 1. - 9.)
+    if sascore > 10.:
+        sascore = 10.0
+    elif sascore < 1.:
+        sascore = 1.0
+    return sascore
+
+
 def analyze_druglikeness(smiles):
     """Compute QED, SAscore, and Fsp³ drug-likeness metrics.
 
@@ -160,15 +232,14 @@ def analyze_druglikeness(smiles):
     Fsp³ (Fraction of sp3 carbons): 0-1, higher = more 3D character.
       Fsp³ ≥ 0.45 correlates with higher clinical success rates (Lovering et al., 2009).
     """
-    from rdkit.Chem import QED, rdMolDescriptors
-    from rdkit.Contrib.SA_Score import sascorer
+    from rdkit.Chem import QED
 
     mol = Chem.MolFromSmiles(smiles)
     if mol is None:
         return None
 
     qed = QED.default(mol)
-    sa = sascorer.calculateScore(mol)
+    sa = _sa_calculate_score(mol)
     fsp3 = rdMolDescriptors.CalcFractionCSP3(mol)
     n_carbons = sum(1 for a in mol.GetAtoms() if a.GetAtomicNum() == 6)
     n_sp3 = int(round(fsp3 * n_carbons)) if n_carbons > 0 else 0
