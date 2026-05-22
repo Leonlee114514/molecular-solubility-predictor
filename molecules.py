@@ -577,7 +577,7 @@ def search_pubchem(name, max_retries=3):
                     continue
                 props = data.get('PropertyTable', {}).get('Properties', [])
                 if props:
-                    smiles = props[0].get('CanonicalSMILES') or props[0].get('IsomericSMILES')
+                    smiles = props[0].get('CanonicalSMILES') or props[0].get('IsomericSMILES') or props[0].get('ConnectivitySMILES')
                     if smiles and smiles.strip():
                         result = smiles.strip()
                         pubchem_cache[name_lower] = result
