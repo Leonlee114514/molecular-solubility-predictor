@@ -6,6 +6,7 @@ Uses Streamlit caching for efficient model serving.
 import streamlit as st
 import joblib
 import shap
+from ood_detector import OODDetector, load_ood_detector as _load_ood_from_disk
 
 
 @st.cache_resource
@@ -75,3 +76,21 @@ def get_solubility_level(prediction):
         return "Moderately soluble (中等溶解)", "#fbbf24", "result-moderate"
     else:
         return "Poorly soluble (难溶于水)", "#f87171", "result-low"
+
+
+@st.cache_resource
+def load_ood_detector():
+    """Load the OOD detector (training-data statistics + fingerprint references)."""
+    try:
+        return _load_ood_from_disk("output_v2/ood_detector.pkl")
+    except FileNotFoundError:
+        return None
+
+
+def run_ood_check(features_dict, fp_array):
+    """Run OOD detection and return (risk_level, result_or_None)."""
+    detector = load_ood_detector()
+    if detector is None:
+        return "UNKNOWN", None
+    result = detector.check(features_dict, fp_array)
+    return result.risk_level, result

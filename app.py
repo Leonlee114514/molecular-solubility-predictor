@@ -14,6 +14,7 @@ from molecules import MOLECULE_DB, SEARCH_INDEX, search_pubchem as search_pubche
 from model import (
     load_solubility_model, load_pka_model, get_shap_explainer,
     get_pka_type, get_solubility_level, get_shap_contributions,
+    load_ood_detector, run_ood_check,
 )
 
 import openai
@@ -1606,6 +1607,12 @@ try:
 except Exception:
     pka_ready = False
 
+try:
+    ood_detector = load_ood_detector()
+    ood_ready = ood_detector is not None
+except Exception:
+    ood_ready = False
+
 # ========== Streamlit 缓存包装 ==========
 @st.cache_data(show_spinner=False)
 def cached_compute_features(smiles_string):
@@ -2025,6 +2032,16 @@ if predict_button and model_ready:
                     st.session_state.shap_values = None
                     st.session_state.shap_names = None
                 st.session_state.ai_explanation = None
+
+                if ood_ready:
+                    status.update(label="Step 4+/4: OOD 分布检测...")
+                    ood_risk, ood_result = run_ood_check(features, fp_array)
+                    st.session_state.ood_risk = ood_risk
+                    st.session_state.ood_result = ood_result
+                else:
+                    st.session_state.ood_risk = "UNKNOWN"
+                    st.session_state.ood_result = None
+
                 status.update(label=f"分析完成！预测 logS = {float(prediction):.3f}", state="complete")
 
 # ========== 显示预测结果（Tab分组版）==========
@@ -2047,6 +2064,36 @@ if st.session_state.predicted_smiles and st.session_state.predicted_logS is not 
 
     # ── 溶解度判定（供多Tab使用）──
     interp, color, css_class = get_solubility_level(prediction)
+
+    # ── OOD 分布检测结果显示 ──
+    ood_risk = st.session_state.get("ood_risk", "UNKNOWN")
+    ood_result = st.session_state.get("ood_result")
+
+    if ood_risk == "HIGH":
+        st.error(f"**Out-of-Distribution 警告 — 预测可能不可靠**")
+        with st.container(border=True):
+            st.markdown("""
+            <div style="font-size:0.9rem;line-height:1.7;color:#fca5a5;">
+            <strong>该分子严重偏离训练数据分布</strong>，预测值仅供参考，不应作为实验依据。
+            </div>
+            """, unsafe_allow_html=True)
+            if ood_result and ood_result.warnings:
+                for w in ood_result.warnings:
+                    st.markdown(f"- {w}")
+    elif ood_risk == "MEDIUM":
+        st.warning(f"**Out-of-Distribution 注意 — 预测可能有一定误差**")
+        with st.container(border=True):
+            st.markdown("""
+            <div style="font-size:0.9rem;line-height:1.7;color:#fcd34d;">
+            <strong>该分子部分偏离训练数据分布</strong>，建议谨慎解读预测结果。
+            </div>
+            """, unsafe_allow_html=True)
+            if ood_result and ood_result.warnings:
+                for w in ood_result.warnings:
+                    st.markdown(f"- {w}")
+    elif ood_risk == "LOW":
+        # Show a subtle green badge for in-distribution molecules
+        st.success(f"In-Distribution — 该分子在训练数据化学空间内，预测较为可靠")
 
     # ═════════════════════════════════════════
     # TAB 分组
