@@ -2052,12 +2052,13 @@ if st.session_state.predicted_smiles and st.session_state.predicted_logS is not 
     # TAB 分组
     # ═════════════════════════════════════════
     tab_labels = [
-        "Prediction Overview",
-        "Molecular Profile",
+        "Preview",
+        "Solubility",
+        "pKa",
         "Pharmacology",
-        "Explainability"
+        "AI Explanation"
     ]
-    tab_overview, tab_profile, tab_pharma, tab_explain = st.tabs(tab_labels)
+    tab_preview, tab_sol, tab_pka, tab_pharm, tab_ai = st.tabs(tab_labels)
 
     # 记住 rerun 后的目标 Tab（解决 st.rerun() 导致 Tab 重置的问题）
     target_tab = st.session_state.pop("_target_tab", None)
@@ -2075,34 +2076,63 @@ if st.session_state.predicted_smiles and st.session_state.predicted_logS is not 
         """, height=0)
 
     # =========================================
-    # TAB 1: Prediction Overview
+    # TAB 0: Preview (分子预览)
     # =========================================
-    with tab_overview:
-        st.markdown("""<div class="card-title">&#128202; Prediction Overview</div>""", unsafe_allow_html=True)
+    with tab_preview:
+        st.markdown("""<div class="card-title">&#128065; Molecule Preview</div>""", unsafe_allow_html=True)
 
-        try:
-            mol = Chem.MolFromSmiles(st.session_state.predicted_smiles)
-            img = mol_to_dark_image(mol, size=(400, 400))
-        except Exception as e:
-            img = None
-            st.warning(f"结构图生成失败: {e}")
+        mol = Chem.MolFromSmiles(st.session_state.predicted_smiles)
+        from rdkit.Chem import rdMolDescriptors
 
-        col_left, col_right = st.columns([1, 1.2])
+        col_pv_left, col_pv_right = st.columns([1, 1])
 
-        with col_left:
-            if img is not None:
-                st.image(img, caption="Molecular Structure", use_container_width=True)
+        with col_pv_left:
+            # 2D molecular structure
+            try:
+                img = mol_to_dark_image(mol, size=(460, 380))
+                if img is not None:
+                    st.image(img, caption="2D Molecular Structure", use_container_width=True)
+                else:
+                    st.info("无法显示2D结构图")
+            except Exception as e:
+                st.warning(f"结构图生成失败: {e}")
+
+        with col_pv_right:
+            # Basic molecular info cards
+            if mol is not None:
+                formula = rdMolDescriptors.CalcMolFormula(mol)
+                mw = features["MolWt"]
+                st.metric("Molecular Formula", formula)
+                st.metric("Molecular Weight", f"{mw:.1f} Da")
+                st.markdown("""<div style="font-size:0.82rem;color:var(--ob-text-tertiary);margin-top:0.5rem;margin-bottom:0.2rem;">SMILES</div>""", unsafe_allow_html=True)
+                st.code(st.session_state.predicted_smiles, language=None)
             else:
-                st.info("无法显示结构图")
+                st.warning("无法解析分子结构")
 
-        with col_right:
-            st.markdown("<br>", unsafe_allow_html=True)
+        # 3D ball-and-stick model
+        st.markdown("<br>", unsafe_allow_html=True)
+        st.markdown("""<div class="card-title">&#127919; 3D Ball-and-Stick Model</div>""", unsafe_allow_html=True)
+        html_3d = cached_show_3d(st.session_state.predicted_smiles)
+        if html_3d:
+            components.html(html_3d, height=420, scrolling=False)
+        else:
+            st.info("3D 模型生成失败（需安装 py3Dmol）")
+
+    # =========================================
+    # TAB 1: Solubility (溶解度)
+    # =========================================
+    with tab_sol:
+        st.markdown("""<div class="card-title">&#128202; Solubility Prediction</div>""", unsafe_allow_html=True)
+
+        col_sol1, col_sol2 = st.columns([1, 1.2])
+        with col_sol1:
             st.metric(label="Predicted Solubility (logS)", value=f"{prediction:.3f}")
             st.markdown(f"""
             <div class="{css_class}">
                 <div style="font-size: 1.1rem; font-weight: 700; color: {color};">-> {interp}</div>
             </div>
             """, unsafe_allow_html=True)
+        with col_sol2:
             st.markdown("""
             <div style="background: rgba(255, 255, 255, 0.03); border-radius: 14px; padding: 1rem; font-size: 0.85rem; color: var(--ob-text-tertiary); border: 1px solid var(--ob-border); font-family: 'Cascadia Code', 'Consolas', monospace;">
             <b style="color: var(--ob-text-secondary);">Interpretation guide:</b><br>
@@ -2112,13 +2142,136 @@ if st.session_state.predicted_smiles and st.session_state.predicted_logS is not 
             </div>
             """, unsafe_allow_html=True)
 
+        # ── 8 Molecular Descriptors ──
+        st.markdown("<br>", unsafe_allow_html=True)
+        st.markdown("""<div class="card-title">&#128300; Molecular Descriptors</div>""", unsafe_allow_html=True)
+        with st.container(border=True):
+            desc_col1, desc_col2, desc_col3, desc_col4 = st.columns(4)
+            with desc_col1:
+                st.metric("Molecular Weight", f"{features['MolWt']:.1f}")
+                st.metric("LogP (Hydrophobicity)", f"{features['LogP']:.2f}")
+            with desc_col2:
+                st.metric("H-Bond Donors", f"{features['NumHDonors']}")
+                st.metric("H-Bond Acceptors", f"{features['NumHAcceptors']}")
+            with desc_col3:
+                st.metric("TPSA (Å²)", f"{features['TPSA']:.1f}")
+                st.metric("Rotatable Bonds", f"{features['NumRotatableBonds']}")
+            with desc_col4:
+                st.metric("Aromatic Rings", f"{features['NumAromaticRings']}")
+                st.metric("Aliphatic Rings", f"{features['NumAliphaticRings']}")
+        st.info("""
+        **Chemistry Insight:**
+        - **TPSA** (Topological Polar Surface Area) measures how much of the molecule is polar.
+           Higher TPSA usually means better water solubility.
+        - **H-Bond Donors/Acceptors** tell us how well the molecule can form hydrogen bonds with water.
+        - **LogP** measures lipophilicity. Lower LogP means the molecule prefers water over oil.
+        """)
+
+        # ── SHAP Explainability ──
+        st.markdown("<br>", unsafe_allow_html=True)
+        st.markdown("""<div class="card-title">&#128269; SHAP Explainability</div>""", unsafe_allow_html=True)
+        st.caption("基于 SHAP (SHapley Additive exPlanations) 分析每个特征对预测的贡献")
+        if st.session_state.get("shap_values"):
+            import matplotlib.pyplot as plt
+            import numpy as np
+            cjk_font = get_cjk_font()
+            if cjk_font:
+                plt.rcParams['font.family'] = cjk_font
+            plt.rcParams['axes.unicode_minus'] = False
+            shap_vals = np.array(st.session_state.shap_values)
+            names = st.session_state.shap_names
+            abs_vals = np.abs(shap_vals)
+            sorted_idx = np.argsort(abs_vals)[::-1][:8]
+            top_shap = shap_vals[sorted_idx]
+            top_names = [names[i] for i in sorted_idx]
+            colors = ['#a78bfa' if v > 0 else '#06b6d4' for v in top_shap]
+            plt.rcParams['figure.facecolor'] = '#0a0a0f'
+            plt.rcParams['axes.facecolor'] = '#1e1e2e'
+            plt.rcParams['axes.edgecolor'] = '#2a2a3a'
+            plt.rcParams['axes.labelcolor'] = '#a0a0b0'
+            plt.rcParams['xtick.color'] = '#a0a0b0'
+            plt.rcParams['ytick.color'] = '#a0a0b0'
+            plt.rcParams['text.color'] = '#f0f0f5'
+            fig, ax = plt.subplots(figsize=(8, 4.5))
+            bars = ax.barh(range(len(top_shap)), top_shap, color=colors, edgecolor="white", height=0.6)
+            ax.invert_yaxis()
+            for i, (bar, val) in enumerate(zip(bars, top_shap)):
+                width = bar.get_width()
+                label_x = width * 0.5
+                ax.text(label_x, i, f"{val:+.3f}", va="center", ha="center", fontsize=10, fontweight="bold",
+                        color="#ffffff",
+                        bbox=dict(boxstyle="round,pad=0.3", facecolor=(0, 0, 0, 0.5),
+                                  edgecolor=(1, 1, 1, 0.15), linewidth=0.5))
+            ax.set_yticks(range(len(top_names)))
+            ax.set_yticklabels(top_names, fontsize=11)
+            ax.axvline(x=0, color="#f0f0f5", linewidth=1.0, alpha=0.4)
+            ax.set_xlabel("对溶解度的贡献值 (logS)", fontsize=11)
+            ev = get_shap_explainer(model).expected_value
+            if isinstance(ev, (list, tuple, np.ndarray)):
+                base_value = float(np.array(ev).flatten()[0])
+            else:
+                base_value = float(ev)
+            ax.set_title(f"预测值: {prediction:.3f}  (基准值: {base_value:.3f})", fontsize=12, pad=10)
+            ax.spines["top"].set_visible(False)
+            ax.spines["right"].set_visible(False)
+            ax.spines["left"].set_visible(False)
+            from matplotlib.patches import Patch
+            legend_elements = [
+                Patch(facecolor="#a78bfa", label="推动易溶 (正贡献)"),
+                Patch(facecolor="#06b6d4", label="推动难溶 (负贡献)")
+            ]
+            ax.legend(handles=legend_elements, loc="lower right", fontsize=9)
+            plt.tight_layout()
+            st.pyplot(fig, width="stretch")
+            plt.close(fig)
+            if prediction > 0:
+                solubility_level = "易溶于水"
+            elif prediction > -2:
+                solubility_level = "中等溶解"
+            else:
+                solubility_level = "难溶于水"
+            supporting = []
+            resisting = []
+            for i in range(min(3, len(top_names))):
+                name = top_names[i]
+                val = top_shap[i]
+                if prediction <= -2:
+                    if val < 0:
+                        supporting.append("**" + name + "**（" + f"{val:.3f}" + "）")
+                    else:
+                        resisting.append("**" + name + "**（+" + f"{val:.3f}" + "）")
+                elif prediction >= 0:
+                    if val > 0:
+                        supporting.append("**" + name + "**（+" + f"{val:.3f}" + "）")
+                    else:
+                        resisting.append("**" + name + "**（" + f"{val:.3f}" + "）")
+                else:
+                    direction = "推动易溶" if val > 0 else "推动难溶"
+                    supporting.append("**" + name + "**（" + f"{val:+.3f}" + "，" + direction + "）")
+            parts = ["**关键分析**：模型预测该分子 **" + solubility_level + "**（logS = " + f"{prediction:.3f}" + "）。"]
+            if supporting:
+                parts.append("推动这一结果的主要因素：" + ", ".join(supporting) + "。")
+            if resisting:
+                target = "更易溶" if prediction <= -2 else "更难溶"
+                parts.append("但以下因素在抵抗这一趋势、试图让分子" + target + "：" + ", ".join(resisting) + "。")
+            shift = abs(prediction - base_value)
+            direction = "向上" if prediction > base_value else "向下"
+            parts.append("相比训练集平均分子（基准值 " + f"{base_value:.3f}" + "），该分子的结构特征将预测值" + direction + "拉动了 " + f"{shift:.3f}" + " 个单位。")
+            insight_text = " ".join(parts)
+            st.info(insight_text)
+        else:
+            st.info("SHAP 可解释性分析暂不可用，但预测结果仍然有效。")
+
+    # =========================================
+    # TAB 2: pKa (酸碱性)
+    # =========================================
+    with tab_pka:
         if pka_val is not None:
-            st.markdown("<br>", unsafe_allow_html=True)
-            st.markdown("""<div class="card-title">&#9889; pKa Snapshot</div>""", unsafe_allow_html=True)
-            c1, c2 = st.columns(2)
-            with c1:
+            st.markdown("""<div class="card-title">&#9889; pKa Prediction</div>""", unsafe_allow_html=True)
+            col_pka1, col_pka2 = st.columns(2)
+            with col_pka1:
                 st.metric("Predicted pKa", f"{pka_val:.2f}")
-            with c2:
+            with col_pka2:
                 st.markdown(f"""
                 <div class="{pka_css}" style="margin-top: 0.2rem;">
                     <div style="font-size: 1rem; font-weight: 700; color: {pka_text_color};">-> {pka_label}</div>
@@ -2126,8 +2279,82 @@ if st.session_state.predicted_smiles and st.session_state.predicted_logS is not 
                 </div>
                 """, unsafe_allow_html=True)
 
+            st.markdown("<br>", unsafe_allow_html=True)
+            st.markdown("""<div class="card-title">&#129516; Chemical Factor Decomposition</div>""", unsafe_allow_html=True)
+            chem_factors = cached_pka_analysis(st.session_state.predicted_smiles, pka_val)
+            if chem_factors:
+                import matplotlib.pyplot as plt
+                cjk_font = get_cjk_font()
+                if cjk_font:
+                    plt.rcParams['font.family'] = cjk_font
+                plt.rcParams['axes.unicode_minus'] = False
+                names = list(chem_factors.keys())
+                vals = list(chem_factors.values())
+                colors = ['#a78bfa' if v > 0 else '#22d3ee' for v in vals]
+                plt.rcParams['figure.facecolor'] = '#0d0d14'
+                plt.rcParams['axes.facecolor'] = '#1a1a2e'
+                plt.rcParams['axes.edgecolor'] = '#33334d'
+                plt.rcParams['axes.labelcolor'] = '#a0a0b0'
+                plt.rcParams['xtick.color'] = '#a0a0b0'
+                plt.rcParams['ytick.color'] = '#a0a0b0'
+                plt.rcParams['text.color'] = '#f0f0f5'
+                fig, ax = plt.subplots(figsize=(8, 4.5))
+                bars = ax.barh(range(len(vals)), vals, color=colors, edgecolor=(1, 1, 1, 0.15), height=0.6, linewidth=0.5)
+                ax.invert_yaxis()
+                ax.axvline(x=0, color='#f0f0f5', linewidth=1.0, alpha=0.4)
+                for bar, val in zip(bars, vals):
+                    width = bar.get_width()
+                    label_x = width * 0.5
+                    ax.text(label_x, bar.get_y() + bar.get_height()/2,
+                            f'{val:+.2f}', va='center', ha='center', fontsize=10, fontweight='bold',
+                            color='#ffffff',
+                            bbox=dict(boxstyle='round,pad=0.25', facecolor=(0, 0, 0, 0.35),
+                                      edgecolor='none', alpha=0.9))
+                ax.set_yticks(range(len(names)))
+                ax.set_yticklabels(names, fontsize=10)
+                unit = "增强酸性" if pka_val < 7 else "增强碱性"
+                ax.set_xlabel(f"对 {unit} 的贡献", fontsize=11)
+                ax.set_title(f"pKa = {pka_val:.2f} | 化学因素分解", fontsize=12, pad=12)
+                ax.spines['top'].set_visible(False)
+                ax.spines['right'].set_visible(False)
+                ax.spines['left'].set_visible(False)
+                ax.spines['bottom'].set_color('#33334d')
+                from matplotlib.patches import Patch
+                legend_elements = [
+                    Patch(facecolor='#a78bfa', label=f'增强{"酸性" if pka_val < 7 else "碱性"}'),
+                    Patch(facecolor='#22d3ee', label=f'减弱{"酸性" if pka_val < 7 else "碱性"}')
+                ]
+                ax.legend(handles=legend_elements, loc='upper right', fontsize=9,
+                          framealpha=0.8, facecolor='#1a1a2e', edgecolor=(1, 1, 1, 0.1))
+                plt.tight_layout()
+                st.pyplot(fig, width="stretch")
+                plt.close(fig)
+                st.caption("""
+                **如何读懂这张图**：
+                紫色条越长 = 该因素越推动分子**释放/结合质子**；
+                青色条越长 = 该因素越**抵抗**质子转移。
+                和 SHAP 不同，这些不是机器学习权重，而是**真实的结构化学效应**。
+                """)
+                st.markdown("""
+                <div style="margin-top: 0.3rem; padding: 0.65rem 0.9rem; background: rgba(124, 58, 237, 0.06); border-left: 2px solid rgba(124, 58, 237, 0.3); border-radius: 4px; font-size: 0.82rem; color: #a0a0b5; line-height: 1.9;">
+                <b style="color: #c4b5fd;">图表术语速查</b> &nbsp;点击术语查看中英双语定义：<br>
+                &bull; <b>诱导效应</b>（Inductive Effect）&mdash; 电负性原子通过 σ 键吸引或排斥电子，从而影响质子的结合与释放<br>
+                &bull; <b>共轭效应</b>（Resonance / Conjugation）&mdash; π 电子在共轭体系中离域分布，稳定电离后的离子形式<br>
+                &bull; <b>分子内氢键</b>（Intramolecular H-Bond）&mdash; 同一分子内不同基团间形成氢键，屏蔽极性、调节 pKa<br>
+                &bull; <b>空间位阻</b>（Steric Hindrance）&mdash; 大体积原子或基团阻碍质子的接近与离去，改变反应活性<br>
+                &bull; <b>杂化/芳香性</b>（Hybridization / Aromaticity）&mdash; sp² 碳比例与芳香环共轭体系带来的额外稳定性
+                </div>
+                """, unsafe_allow_html=True)
+            else:
+                st.info("化学因素分析暂不可用")
+        else:
+            st.info("pKa 模型未加载，pKa 分析不可用。")
+
+    # =========================================
+    # TAB 3: Pharmacology (药理学预测)
+    # =========================================
+    with tab_pharm:
         # ── Lipinski's Rule of Five ──
-        st.markdown("<br>", unsafe_allow_html=True)
         st.markdown("""<div class="card-title">&#128300; Drug-likeness: Lipinski's Rule of Five</div>""", unsafe_allow_html=True)
         lipinski_result = cached_lipinski(tuple(features.items()))
         rules = lipinski_result["rules"]
@@ -2158,24 +2385,18 @@ if st.session_state.predicted_smiles and st.session_state.predicted_logS is not 
         for i, ((prop_name, threshold), rule) in enumerate(zip(property_labels, rules)):
             _, _, passed, actual = rule
             color = '#34d399' if passed else '#f87171'
-            # background bar
             ax.barh(i, 1, color='#1e1e30', edgecolor=(1, 1, 1, 0.06), height=0.65, zorder=1)
-            # colored progress bar
             ax.barh(i, 1, color=color, edgecolor=(1, 1, 1, 0.12), height=0.65, alpha=0.82, zorder=2)
-            # property name on the left
             ax.text(-0.02, i, prop_name, va='center', ha='right', fontsize=10,
                     fontweight='600', color='#d0d0e0', zorder=5)
-            # threshold on the left side
             ax.text(0.03, i, threshold, va='center', ha='left', fontsize=9,
                     color='#7b7b8b', zorder=5)
-            # actual value + PASS/FAIL in center
             icon = "PASS" if passed else "FAIL"
             ax.text(0.53, i, f"{actual}  [{icon}]", va='center', ha='center',
                     fontsize=11, fontweight='bold', color='#ffffff',
                     bbox=dict(boxstyle='round,pad=0.35', facecolor=(0, 0, 0, 0.55),
                               edgecolor=(1, 1, 1, 0.10)), zorder=6)
 
-        # Legend bar at bottom
         from matplotlib.patches import Patch
         legend_elements = [
             Patch(facecolor='#34d399', alpha=0.82, label='PASS — 符合规则'),
@@ -2208,162 +2429,42 @@ if st.session_state.predicted_smiles and st.session_state.predicted_logS is not 
         </div>
         """, unsafe_allow_html=True)
 
-    # =========================================
-    # TAB 2: Molecular Profile
-    # =========================================
-    with tab_profile:
-        st.markdown("""<div class="card-title">&#128202; Molecular Descriptors</div>""", unsafe_allow_html=True)
-        with st.container(border=True):
-            desc_col1, desc_col2, desc_col3, desc_col4 = st.columns(4)
-            with desc_col1:
-                st.metric("Molecular Weight", f"{features['MolWt']:.1f}")
-                st.metric("LogP (Hydrophobicity)", f"{features['LogP']:.2f}")
-            with desc_col2:
-                st.metric("H-Bond Donors", f"{features['NumHDonors']}")
-                st.metric("H-Bond Acceptors", f"{features['NumHAcceptors']}")
-            with desc_col3:
-                st.metric("TPSA (A2)", f"{features['TPSA']:.1f}")
-                st.metric("Rotatable Bonds", f"{features['NumRotatableBonds']}")
-            with desc_col4:
-                st.metric("Aromatic Rings", f"{features['NumAromaticRings']}")
-                st.metric("Aliphatic Rings", f"{features['NumAliphaticRings']}")
-        st.info("""
-        **Chemistry Insight:**
-        - **TPSA** (Topological Polar Surface Area) measures how much of the molecule is polar.
-           Higher TPSA usually means better water solubility.
-        - **H-Bond Donors/Acceptors** tell us how well the molecule can form hydrogen bonds with water.
-        - **LogP** measures lipophilicity. Lower LogP means the molecule prefers water over oil.
-        """)
-
         if pka_val is not None:
             st.markdown("<br>", unsafe_allow_html=True)
-            st.markdown("""<div class="card-title">&#129516; Structural Chemistry: pKa Deep Dive</div>""", unsafe_allow_html=True)
-            chem_factors = cached_pka_analysis(st.session_state.predicted_smiles, pka_val)
-            col_3d, col_chem = st.columns([1, 1])
-            with col_3d:
-                st.markdown("<div style='font-weight: 600; color: var(--ob-text-secondary); margin-bottom: 0.5rem; font-family: \"Space Grotesk\", sans-serif;'>&#127919; 3D 球棍模型（可旋转缩放）</div>", unsafe_allow_html=True)
-                html_3d = cached_show_3d(st.session_state.predicted_smiles)
-                if html_3d:
-                    components.html(html_3d, height=420, scrolling=False)
-                else:
-                    st.info("3D 模型生成失败（需安装 py3Dmol）")
-            with col_chem:
-                if chem_factors:
-                    import matplotlib.pyplot as plt
-                    cjk_font = get_cjk_font()
-                    if cjk_font:
-                        plt.rcParams['font.family'] = cjk_font
-                    plt.rcParams['axes.unicode_minus'] = False
-                    names = list(chem_factors.keys())
-                    vals = list(chem_factors.values())
-                    colors = ['#a78bfa' if v > 0 else '#22d3ee' for v in vals]
-                    plt.rcParams['figure.facecolor'] = '#0d0d14'
-                    plt.rcParams['axes.facecolor'] = '#1a1a2e'
-                    plt.rcParams['axes.edgecolor'] = '#33334d'
-                    plt.rcParams['axes.labelcolor'] = '#a0a0b0'
-                    plt.rcParams['xtick.color'] = '#a0a0b0'
-                    plt.rcParams['ytick.color'] = '#a0a0b0'
-                    plt.rcParams['text.color'] = '#f0f0f5'
-                    fig, ax = plt.subplots(figsize=(8, 4.5))
-                    bars = ax.barh(range(len(vals)), vals, color=colors, edgecolor=(1, 1, 1, 0.15), height=0.6, linewidth=0.5)
-                    ax.invert_yaxis()
-                    ax.axvline(x=0, color='#f0f0f5', linewidth=1.0, alpha=0.4)
-                    for bar, val in zip(bars, vals):
-                        width = bar.get_width()
-                        label_x = width * 0.5
-                        ax.text(label_x, bar.get_y() + bar.get_height()/2,
-                                f'{val:+.2f}', va='center', ha='center', fontsize=10, fontweight='bold',
-                                color='#ffffff',
-                                bbox=dict(boxstyle='round,pad=0.25', facecolor=(0, 0, 0, 0.35),
-                                          edgecolor='none', alpha=0.9))
-                    ax.set_yticks(range(len(names)))
-                    ax.set_yticklabels(names, fontsize=10)
-                    unit = "增强酸性" if pka_val < 7 else "增强碱性"
-                    ax.set_xlabel(f"对 {unit} 的贡献", fontsize=11)
-                    ax.set_title(f"pKa = {pka_val:.2f} | 化学因素分解", fontsize=12, pad=12)
-                    ax.spines['top'].set_visible(False)
-                    ax.spines['right'].set_visible(False)
-                    ax.spines['left'].set_visible(False)
-                    ax.spines['bottom'].set_color('#33334d')
-                    from matplotlib.patches import Patch
-                    legend_elements = [
-                        Patch(facecolor='#a78bfa', label=f'增强{"酸性" if pka_val < 7 else "碱性"}'),
-                        Patch(facecolor='#22d3ee', label=f'减弱{"酸性" if pka_val < 7 else "碱性"}')
-                    ]
-                    ax.legend(handles=legend_elements, loc='upper right', fontsize=9,
-                              framealpha=0.8, facecolor='#1a1a2e', edgecolor=(1, 1, 1, 0.1))
-                    plt.tight_layout()
-                    st.pyplot(fig, width="stretch")
-                    plt.close(fig)
-                    st.caption("""
-                    **如何读懂这张图**：
-                    紫色条越长 = 该因素越推动分子**释放/结合质子**；
-                    青色条越长 = 该因素越**抵抗**质子转移。
-                    和 SHAP 不同，这些不是机器学习权重，而是**真实的结构化学效应**。
-                    """)
-                    st.markdown("""
-                    <div style="margin-top: 0.3rem; padding: 0.65rem 0.9rem; background: rgba(124, 58, 237, 0.06); border-left: 2px solid rgba(124, 58, 237, 0.3); border-radius: 4px; font-size: 0.82rem; color: #a0a0b5; line-height: 1.9;">
-                    <b style="color: #c4b5fd;">图表术语速查</b> &nbsp;点击术语查看中英双语定义：<br>
-                    &bull; <b>诱导效应</b>（Inductive Effect）&mdash; 电负性原子通过 σ 键吸引或排斥电子，从而影响质子的结合与释放<br>
-                    &bull; <b>共轭效应</b>（Resonance / Conjugation）&mdash; π 电子在共轭体系中离域分布，稳定电离后的离子形式<br>
-                    &bull; <b>分子内氢键</b>（Intramolecular H-Bond）&mdash; 同一分子内不同基团间形成氢键，屏蔽极性、调节 pKa<br>
-                    &bull; <b>空间位阻</b>（Steric Hindrance）&mdash; 大体积原子或基团阻碍质子的接近与离去，改变反应活性<br>
-                    &bull; <b>杂化/芳香性</b>（Hybridization / Aromaticity）&mdash; sp² 碳比例与芳香环共轭体系带来的额外稳定性
-                    </div>
-                    """, unsafe_allow_html=True)
-                else:
-                    st.info("化学因素分析暂不可用")
-
-    # =========================================
-    # TAB 3: Pharmacology
-    # =========================================
-    with tab_pharma:
-        if pka_val is not None:
-            st.markdown("""<div class="card-title">&#9889; pKa & Ionization Profile</div>""", unsafe_allow_html=True)
-            col_pka1, col_pka2 = st.columns([1, 1.2])
-            with col_pka1:
-                st.markdown("<br>", unsafe_allow_html=True)
-                st.metric("Predicted pKa", f"{pka_val:.2f}")
-                st.markdown(f"""
-                <div class="{pka_css}" style="margin-top: 0.8rem;">
-                    <div style="font-size: 1.1rem; font-weight: 700; color: {pka_text_color};">-> {pka_label}</div>
-                    <div style="font-size: 0.85rem; color: var(--ob-text-tertiary); margin-top: 0.4rem;">{pka_desc}</div>
-                </div>
-                """, unsafe_allow_html=True)
-            with col_pka2:
-                import matplotlib.pyplot as plt
-                cjk_font = get_cjk_font()
-                if cjk_font:
-                    plt.rcParams['font.family'] = cjk_font
-                plt.rcParams['axes.unicode_minus'] = False
-                env_ph = [1.5, 4.5, 6.8, 7.4]
-                env_names = ['Stomach\n胃', 'Duodenum\n十二指肠', 'Small Intestine\n小肠', 'Blood/Brain\n血液/脑']
-                if pka_type == "acid":
-                    fractions = [1 / (1 + 10**(ph - pka_val)) for ph in env_ph]
-                else:
-                    fractions = [1 / (1 + 10**(pka_val - ph)) for ph in env_ph]
-                plt.rcParams['figure.facecolor'] = '#0a0a0f'
-                plt.rcParams['axes.facecolor'] = '#1e1e2e'
-                plt.rcParams['axes.edgecolor'] = '#2a2a3a'
-                plt.rcParams['axes.labelcolor'] = '#a0a0b0'
-                plt.rcParams['xtick.color'] = '#a0a0b0'
-                plt.rcParams['ytick.color'] = '#a0a0b0'
-                plt.rcParams['text.color'] = '#f0f0f5'
-                fig, ax = plt.subplots(figsize=(7, 3.2))
-                colors_bar = ['#f87171', '#fbbf24', '#34d399', '#60a5fa']
-                bars = ax.bar(env_names, [f*100 for f in fractions], color=colors_bar, edgecolor='white', width=0.6)
-                for bar, frac in zip(bars, fractions):
-                    height = bar.get_height()
-                    ax.text(bar.get_x() + bar.get_width()/2., height + 2,
-                            f'{frac*100:.1f}%', ha='center', va='bottom', fontsize=10, fontfamily='monospace')
-                ax.set_ylabel('分子态比例 (Unionized %)', fontsize=11)
-                ax.set_ylim(0, 105)
-                ax.set_title(f'不同生理环境下的分子态比例 | pKa = {pka_val:.2f}', fontsize=12)
-                ax.spines['top'].set_visible(False)
-                ax.spines['right'].set_visible(False)
-                plt.tight_layout()
-                st.pyplot(fig, width="stretch")
-                plt.close(fig)
+            st.markdown("""<div class="card-title">&#9889; Ionization Profile</div>""", unsafe_allow_html=True)
+            import matplotlib.pyplot as plt
+            cjk_font = get_cjk_font()
+            if cjk_font:
+                plt.rcParams['font.family'] = cjk_font
+            plt.rcParams['axes.unicode_minus'] = False
+            env_ph = [1.5, 4.5, 6.8, 7.4]
+            env_names = ['Stomach\n胃', 'Duodenum\n十二指肠', 'Small Intestine\n小肠', 'Blood/Brain\n血液/脑']
+            if pka_type == "acid":
+                fractions = [1 / (1 + 10**(ph - pka_val)) for ph in env_ph]
+            else:
+                fractions = [1 / (1 + 10**(pka_val - ph)) for ph in env_ph]
+            plt.rcParams['figure.facecolor'] = '#0a0a0f'
+            plt.rcParams['axes.facecolor'] = '#1e1e2e'
+            plt.rcParams['axes.edgecolor'] = '#2a2a3a'
+            plt.rcParams['axes.labelcolor'] = '#a0a0b0'
+            plt.rcParams['xtick.color'] = '#a0a0b0'
+            plt.rcParams['ytick.color'] = '#a0a0b0'
+            plt.rcParams['text.color'] = '#f0f0f5'
+            fig, ax = plt.subplots(figsize=(7, 3.2))
+            colors_bar = ['#f87171', '#fbbf24', '#34d399', '#60a5fa']
+            bars = ax.bar(env_names, [f*100 for f in fractions], color=colors_bar, edgecolor='white', width=0.6)
+            for bar, frac in zip(bars, fractions):
+                height = bar.get_height()
+                ax.text(bar.get_x() + bar.get_width()/2., height + 2,
+                        f'{frac*100:.1f}%', ha='center', va='bottom', fontsize=10, fontfamily='monospace')
+            ax.set_ylabel('分子态比例 (Unionized %)', fontsize=11)
+            ax.set_ylim(0, 105)
+            ax.set_title(f'不同生理环境下的分子态比例 | pKa = {pka_val:.2f}', fontsize=12)
+            ax.spines['top'].set_visible(False)
+            ax.spines['right'].set_visible(False)
+            plt.tight_layout()
+            st.pyplot(fig, width="stretch")
+            plt.close(fig)
 
             st.markdown("<br>", unsafe_allow_html=True)
             st.markdown("""<div class="card-title">&#128138; 药理学分析</div>""", unsafe_allow_html=True)
@@ -2423,7 +2524,6 @@ if st.session_state.predicted_smiles and st.session_state.predicted_logS is not 
             pka_val
         )
 
-        # 使用 5 个可展开的 section
         adme_tabs = st.tabs([
             "Absorption 吸收",
             "Distribution 分布",
@@ -2547,110 +2647,16 @@ if st.session_state.predicted_smiles and st.session_state.predicted_logS is not 
             """)
 
     # =========================================
-    # TAB 4: Explainability
+    # TAB 4: AI Explanation (AI 化学解释)
     # =========================================
-    with tab_explain:
-        st.markdown("""<div class="card-title">&#128269; SHAP Explainability</div>""", unsafe_allow_html=True)
-        st.caption("基于 SHAP (SHapley Additive exPlanations) 分析每个特征对预测的贡献")
-        if st.session_state.get("shap_values"):
-            import matplotlib.pyplot as plt
-            import numpy as np
-            cjk_font = get_cjk_font()
-            if cjk_font:
-                plt.rcParams['font.family'] = cjk_font
-            plt.rcParams['axes.unicode_minus'] = False
-            shap_vals = np.array(st.session_state.shap_values)
-            names = st.session_state.shap_names
-            abs_vals = np.abs(shap_vals)
-            sorted_idx = np.argsort(abs_vals)[::-1][:8]
-            top_shap = shap_vals[sorted_idx]
-            top_names = [names[i] for i in sorted_idx]
-            colors = ['#a78bfa' if v > 0 else '#06b6d4' for v in top_shap]
-            plt.rcParams['figure.facecolor'] = '#0a0a0f'
-            plt.rcParams['axes.facecolor'] = '#1e1e2e'
-            plt.rcParams['axes.edgecolor'] = '#2a2a3a'
-            plt.rcParams['axes.labelcolor'] = '#a0a0b0'
-            plt.rcParams['xtick.color'] = '#a0a0b0'
-            plt.rcParams['ytick.color'] = '#a0a0b0'
-            plt.rcParams['text.color'] = '#f0f0f5'
-            fig, ax = plt.subplots(figsize=(8, 4.5))
-            bars = ax.barh(range(len(top_shap)), top_shap, color=colors, edgecolor="white", height=0.6)
-            ax.invert_yaxis()
-            for i, (bar, val) in enumerate(zip(bars, top_shap)):
-                width = bar.get_width()
-                label_x = width * 0.5
-                ax.text(label_x, i, f"{val:+.3f}", va="center", ha="center", fontsize=10, fontweight="bold",
-                        color="#ffffff",
-                        bbox=dict(boxstyle="round,pad=0.3", facecolor=(0, 0, 0, 0.5),
-                                  edgecolor=(1, 1, 1, 0.15), linewidth=0.5))
-            ax.set_yticks(range(len(top_names)))
-            ax.set_yticklabels(top_names, fontsize=11)
-            ax.axvline(x=0, color="#f0f0f5", linewidth=1.0, alpha=0.4)
-            ax.set_xlabel("对溶解度的贡献值 (logS)", fontsize=11)
-            ev = get_shap_explainer(model).expected_value
-            if isinstance(ev, (list, tuple, np.ndarray)):
-                base_value = float(np.array(ev).flatten()[0])
-            else:
-                base_value = float(ev)
-            ax.set_title(f"预测值: {prediction:.3f}  (基准值: {base_value:.3f})", fontsize=12, pad=10)
-            ax.spines["top"].set_visible(False)
-            ax.spines["right"].set_visible(False)
-            ax.spines["left"].set_visible(False)
-            from matplotlib.patches import Patch
-            legend_elements = [
-                Patch(facecolor="#a78bfa", label="推动易溶 (正贡献)"),
-                Patch(facecolor="#06b6d4", label="推动难溶 (负贡献)")
-            ]
-            ax.legend(handles=legend_elements, loc="lower right", fontsize=9)
-            plt.tight_layout()
-            st.pyplot(fig, width="stretch")
-            plt.close(fig)
-            if prediction > 0:
-                solubility_level = "易溶于水"
-            elif prediction > -2:
-                solubility_level = "中等溶解"
-            else:
-                solubility_level = "难溶于水"
-            supporting = []
-            resisting = []
-            for i in range(min(3, len(top_names))):
-                name = top_names[i]
-                val = top_shap[i]
-                if prediction <= -2:
-                    if val < 0:
-                        supporting.append("**" + name + "**（" + f"{val:.3f}" + "）")
-                    else:
-                        resisting.append("**" + name + "**（+" + f"{val:.3f}" + "）")
-                elif prediction >= 0:
-                    if val > 0:
-                        supporting.append("**" + name + "**（+" + f"{val:.3f}" + "）")
-                    else:
-                        resisting.append("**" + name + "**（" + f"{val:.3f}" + "）")
-                else:
-                    direction = "推动易溶" if val > 0 else "推动难溶"
-                    supporting.append("**" + name + "**（" + f"{val:+.3f}" + "，" + direction + "）")
-            parts = ["**关键分析**：模型预测该分子 **" + solubility_level + "**（logS = " + f"{prediction:.3f}" + "）。"]
-            if supporting:
-                parts.append("推动这一结果的主要因素：" + ", ".join(supporting) + "。")
-            if resisting:
-                target = "更易溶" if prediction <= -2 else "更难溶"
-                parts.append("但以下因素在抵抗这一趋势、试图让分子" + target + "：" + ", ".join(resisting) + "。")
-            shift = abs(prediction - base_value)
-            direction = "向上" if prediction > base_value else "向下"
-            parts.append("相比训练集平均分子（基准值 " + f"{base_value:.3f}" + "），该分子的结构特征将预测值" + direction + "拉动了 " + f"{shift:.3f}" + " 个单位。")
-            insight_text = " ".join(parts)
-            st.info(insight_text)
-        else:
-            st.info("SHAP 可解释性分析暂不可用，但预测结果仍然有效。")
-
-        st.markdown("<br>", unsafe_allow_html=True)
+    with tab_ai:
         st.markdown("""<div class="card-title">&#129504; AI Chemistry Explanation</div>""", unsafe_allow_html=True)
         with st.container(border=True):
             if st.session_state.ai_explanation:
                 st.markdown(st.session_state.ai_explanation)
                 if st.button("清除解释", key="clear_ai"):
                     st.session_state.ai_explanation = None
-                    st.session_state._target_tab = "Explainability"
+                    st.session_state._target_tab = "AI Explanation"
                     st.rerun()
             else:
                 st.caption("AI 解释需要手动调用（消耗 API 额度）")
@@ -2670,7 +2676,7 @@ if st.session_state.predicted_smiles and st.session_state.predicted_logS is not 
                             pka_type=pka_type_gen
                         )
                     st.session_state.ai_explanation = explanation
-                    st.session_state._target_tab = "Explainability"
+                    st.session_state._target_tab = "AI Explanation"
                     st.rerun()
 
 # ========== 化学术语双语词汇表（点击弹窗） ==========
