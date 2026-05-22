@@ -9,7 +9,7 @@ from rdkit import Chem
 from dotenv import load_dotenv
 import os
 
-from features import compute_features, analyze_pka_chemistry, show_3d_molecule, mol_to_dark_image, analyze_lipinski, analyze_admet
+from features import compute_features, analyze_pka_chemistry, show_3d_molecule, mol_to_dark_image, analyze_lipinski, analyze_admet, analyze_druglikeness
 from molecules import MOLECULE_DB, SEARCH_INDEX, search_pubchem as search_pubchem_final
 from model import (
     load_solubility_model, load_pka_model, get_shap_explainer,
@@ -1650,6 +1650,11 @@ def cached_admet(smiles, features_tuple, pka_val):
     features = dict(features_tuple)
     return analyze_admet(smiles, features, pka_val)
 
+@st.cache_data(show_spinner=False)
+def cached_druglikeness(smiles):
+    """Cached QED, SAscore, Fsp³ drug-likeness metrics."""
+    return analyze_druglikeness(smiles)
+
 @st.cache_resource
 def get_cjk_font():
     """Detect and cache a CJK-capable matplotlib font. Returns font name or None."""
@@ -2475,6 +2480,62 @@ if st.session_state.predicted_smiles and st.session_state.predicted_logS is not 
         &bull; 超出规则范围 (bRo5) 的分子仍是现代药物化学的重要方向（如 PROTAC、大环分子）
         </div>
         """, unsafe_allow_html=True)
+
+        # ── QED / SAscore / Fsp³ 药物相似性综合评分 ──
+        st.markdown("<br>", unsafe_allow_html=True)
+        st.markdown("""<div class="card-title">&#128142; Drug-likeness Metrics: QED &middot; SAscore &middot; Fsp&sup3;</div>""", unsafe_allow_html=True)
+        dl = cached_druglikeness(st.session_state.predicted_smiles)
+        if dl:
+            col_qed, col_sa, col_fsp3 = st.columns(3)
+            with col_qed:
+                qed_val = dl["qed"]
+                st.markdown(f"""
+                <div style="text-align:center;padding:1rem;background:linear-gradient(135deg,rgba(30,30,46,0.6),rgba(15,15,25,0.4));border-radius:12px;border:1px solid rgba(255,255,255,0.06);">
+                    <div style="font-size:0.7rem;color:#6b6b7b;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:0.5rem;">QED 药物相似性</div>
+                    <div style="font-size:2rem;font-weight:700;font-family:'Cascadia Code',monospace;color:{dl['qed_color']};">{qed_val:.3f}</div>
+                    <div style="margin:0.5rem 0;height:6px;background:#1e1e30;border-radius:3px;overflow:hidden;">
+                        <div style="height:100%;width:{qed_val*100:.0f}%;background:{dl['qed_color']};border-radius:3px;transition:width 0.3s ease;"></div>
+                    </div>
+                    <div style="font-size:0.78rem;color:{dl['qed_color']};">{dl['qed_level']}</div>
+                </div>
+                """, unsafe_allow_html=True)
+
+            with col_sa:
+                sa_val = dl["sascore"]
+                sa_pct = max(5, min(100, (1 - (sa_val - 1) / 9) * 100))
+                st.markdown(f"""
+                <div style="text-align:center;padding:1rem;background:linear-gradient(135deg,rgba(30,30,46,0.6),rgba(15,15,25,0.4));border-radius:12px;border:1px solid rgba(255,255,255,0.06);">
+                    <div style="font-size:0.7rem;color:#6b6b7b;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:0.5rem;">SAscore 合成可及性</div>
+                    <div style="font-size:2rem;font-weight:700;font-family:'Cascadia Code',monospace;color:{dl['sa_color']};">{sa_val:.2f}</div>
+                    <div style="margin:0.5rem 0;height:6px;background:#1e1e30;border-radius:3px;overflow:hidden;">
+                        <div style="height:100%;width:{sa_pct:.0f}%;background:{dl['sa_color']};border-radius:3px;transition:width 0.3s ease;"></div>
+                    </div>
+                    <div style="font-size:0.78rem;color:{dl['sa_color']};">{dl['sa_level']}</div>
+                </div>
+                """, unsafe_allow_html=True)
+
+            with col_fsp3:
+                fsp3_val = dl["fsp3"]
+                st.markdown(f"""
+                <div style="text-align:center;padding:1rem;background:linear-gradient(135deg,rgba(30,30,46,0.6),rgba(15,15,25,0.4));border-radius:12px;border:1px solid rgba(255,255,255,0.06);">
+                    <div style="font-size:0.7rem;color:#6b6b7b;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:0.5rem;">Fsp&sup3; 三维复杂度</div>
+                    <div style="font-size:2rem;font-weight:700;font-family:'Cascadia Code',monospace;color:{dl['fsp3_color']};">{fsp3_val:.3f}</div>
+                    <div style="margin:0.5rem 0;height:6px;background:#1e1e30;border-radius:3px;overflow:hidden;">
+                        <div style="height:100%;width:{fsp3_val*100:.0f}%;background:{dl['fsp3_color']};border-radius:3px;transition:width 0.3s ease;"></div>
+                    </div>
+                    <div style="font-size:0.78rem;color:{dl['fsp3_color']};">{dl['fsp3_level']}</div>
+                </div>
+                """, unsafe_allow_html=True)
+
+            st.markdown(f"""
+            <div style="margin-top:0.8rem;padding:0.65rem 0.9rem;background:rgba(124,58,237,0.06);border-left:2px solid rgba(124,58,237,0.3);border-radius:4px;font-size:0.82rem;color:#a0a0b5;line-height:1.9;">
+            <b style="color:#c4b5fd;">About These Metrics</b><br>
+            &bull; <b>QED (Bickerton et al., 2012)</b> — 综合分子量、LogP、氢键、TPSA、可旋转键和结构警报，衡量分子是否落在已知药物化学空间内<br>
+            &bull; <b>SAscore (Ertl & Schuffenhauer, 2009)</b> — 基于分子片段贡献和复杂度惩罚，评估合成难度。1=极易合成，10=极难合成<br>
+            &bull; <b>Fsp&sup3; (Lovering et al., 2009)</b> — sp&sup3; 杂化碳占总碳数比例。研究发现 Fsp&sup3; &ge; 0.45 的候选药物临床成功率更高，反映三维复杂性对选择性和溶解度的有利影响<br>
+            &bull; 碳原子总数: {dl['n_carbons']}，其中 sp&sup3; 碳: {dl['n_sp3']}
+            </div>
+            """, unsafe_allow_html=True)
 
         if pka_val is not None:
             st.markdown("<br>", unsafe_allow_html=True)

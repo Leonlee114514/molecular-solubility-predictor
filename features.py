@@ -148,6 +148,79 @@ def analyze_lipinski(features):
     }
 
 
+def analyze_druglikeness(smiles):
+    """Compute QED, SAscore, and Fsp³ drug-likeness metrics.
+
+    QED (Quantitative Estimate of Drug-likeness): 0-1, higher = more drug-like.
+      Combines MW, LogP, HBD, HBA, TPSA, rotatable bonds, aromatic rings, and alerts.
+
+    SAscore (Synthetic Accessibility): typically 1-10, lower = easier to synthesize.
+      Based on fragment contributions and molecular complexity (Ertl & Schuffenhauer, 2009).
+
+    Fsp³ (Fraction of sp3 carbons): 0-1, higher = more 3D character.
+      Fsp³ ≥ 0.45 correlates with higher clinical success rates (Lovering et al., 2009).
+    """
+    from rdkit.Chem import QED, rdMolDescriptors
+    from rdkit.Contrib.SA_Score import sascorer
+
+    mol = Chem.MolFromSmiles(smiles)
+    if mol is None:
+        return None
+
+    qed = QED.default(mol)
+    sa = sascorer.calculateScore(mol)
+    fsp3 = rdMolDescriptors.CalcFractionCSP3(mol)
+    n_carbons = sum(1 for a in mol.GetAtoms() if a.GetAtomicNum() == 6)
+    n_sp3 = int(round(fsp3 * n_carbons)) if n_carbons > 0 else 0
+
+    # QED interpretation
+    if qed >= 0.67:
+        qed_level = "Attractive (有吸引力)"
+        qed_color = "#34d399"
+    elif qed >= 0.49:
+        qed_level = "Moderate (中等)"
+        qed_color = "#fbbf24"
+    else:
+        qed_level = "Low (偏低)"
+        qed_color = "#f87171"
+
+    # SAscore interpretation
+    if sa <= 3.0:
+        sa_level = "Easy (容易合成)"
+        sa_color = "#34d399"
+    elif sa <= 6.0:
+        sa_level = "Moderate (中等难度)"
+        sa_color = "#fbbf24"
+    else:
+        sa_level = "Difficult (难以合成)"
+        sa_color = "#f87171"
+
+    # Fsp³ interpretation
+    if fsp3 >= 0.45:
+        fsp3_level = "High 3D complexity (高三维复杂度)"
+        fsp3_color = "#34d399"
+    elif fsp3 >= 0.25:
+        fsp3_level = "Moderate (中等)"
+        fsp3_color = "#fbbf24"
+    else:
+        fsp3_level = "Mostly planar (偏平面)"
+        fsp3_color = "#a78bfa"
+
+    return {
+        "qed": qed,
+        "qed_color": qed_color,
+        "qed_level": qed_level,
+        "sascore": sa,
+        "sa_color": sa_color,
+        "sa_level": sa_level,
+        "fsp3": fsp3,
+        "fsp3_color": fsp3_color,
+        "fsp3_level": fsp3_level,
+        "n_carbons": n_carbons,
+        "n_sp3": n_sp3,
+    }
+
+
 def detect_functional_groups(smiles):
     """Detect common functional groups and structural motifs relevant to ADME/Tox.
 
