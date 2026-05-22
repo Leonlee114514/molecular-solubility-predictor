@@ -2490,50 +2490,64 @@ if st.session_state.predicted_smiles and st.session_state.predicted_logS is not 
             with col_qed:
                 qed_val = dl["qed"]
                 st.markdown(f"""
-                <div style="text-align:center;padding:1rem;background:linear-gradient(135deg,rgba(30,30,46,0.6),rgba(15,15,25,0.4));border-radius:12px;border:1px solid rgba(255,255,255,0.06);">
-                    <div style="font-size:0.7rem;color:#6b6b7b;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:0.5rem;">QED 药物相似性</div>
-                    <div style="font-size:2rem;font-weight:700;font-family:'Cascadia Code',monospace;color:{dl['qed_color']};">{qed_val:.3f}</div>
-                    <div style="margin:0.5rem 0;height:6px;background:#1e1e30;border-radius:3px;overflow:hidden;">
-                        <div style="height:100%;width:{qed_val*100:.0f}%;background:{dl['qed_color']};border-radius:3px;transition:width 0.3s ease;"></div>
-                    </div>
-                    <div style="font-size:0.78rem;color:{dl['qed_color']};">{dl['qed_level']}</div>
+                <div style="text-align:center;padding:1.2rem 1rem;background:linear-gradient(155deg,rgba(30,30,50,0.75),rgba(18,18,35,0.65));border-radius:14px;border:1px solid rgba(124,58,237,0.12);backdrop-filter:blur(8px);">
+                    <div style="font-size:0.7rem;color:#8b8b9b;text-transform:uppercase;letter-spacing:0.12em;margin-bottom:0.3rem;">Quantitative Estimate of Drug-likeness</div>
                 </div>
                 """, unsafe_allow_html=True)
+                st.markdown(f"""
+                <div style="text-align:center;margin-top:-0.5rem;">
+                    <div style="font-size:2.2rem;font-weight:700;font-family:'Cascadia Code',monospace;color:{dl['qed_color']};">{qed_val:.3f}</div>
+                    <div style="margin:0.5rem 0;height:6px;background:#1e1e30;border-radius:3px;overflow:hidden;max-width:200px;margin-left:auto;margin-right:auto;">
+                        <div style="height:100%;width:{qed_val*100:.0f}%;background:{dl['qed_color']};border-radius:3px;transition:width 0.4s ease;"></div>
+                    </div>
+                    <div style="font-size:0.85rem;font-weight:600;color:{dl['qed_color']};margin-bottom:0.5rem;">{dl['qed_level']}</div>
+                </div>
+                """, unsafe_allow_html=True)
+                st.markdown("QED / 药物相似性定量评估 — **点击查看中英双语解释**")
 
             with col_sa:
                 sa_val = dl["sascore"]
                 sa_pct = max(5, min(100, (1 - (sa_val - 1) / 9) * 100))
                 st.markdown(f"""
-                <div style="text-align:center;padding:1rem;background:linear-gradient(135deg,rgba(30,30,46,0.6),rgba(15,15,25,0.4));border-radius:12px;border:1px solid rgba(255,255,255,0.06);">
-                    <div style="font-size:0.7rem;color:#6b6b7b;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:0.5rem;">SAscore 合成可及性</div>
-                    <div style="font-size:2rem;font-weight:700;font-family:'Cascadia Code',monospace;color:{dl['sa_color']};">{sa_val:.2f}</div>
-                    <div style="margin:0.5rem 0;height:6px;background:#1e1e30;border-radius:3px;overflow:hidden;">
-                        <div style="height:100%;width:{sa_pct:.0f}%;background:{dl['sa_color']};border-radius:3px;transition:width 0.3s ease;"></div>
-                    </div>
-                    <div style="font-size:0.78rem;color:{dl['sa_color']};">{dl['sa_level']}</div>
+                <div style="text-align:center;padding:1.2rem 1rem;background:linear-gradient(155deg,rgba(30,30,50,0.75),rgba(18,18,35,0.65));border-radius:14px;border:1px solid rgba(6,182,212,0.12);backdrop-filter:blur(8px);">
+                    <div style="font-size:0.7rem;color:#8b8b9b;text-transform:uppercase;letter-spacing:0.12em;margin-bottom:0.3rem;">Synthetic Accessibility Score</div>
                 </div>
                 """, unsafe_allow_html=True)
+                st.markdown(f"""
+                <div style="text-align:center;margin-top:-0.5rem;">
+                    <div style="font-size:2.2rem;font-weight:700;font-family:'Cascadia Code',monospace;color:{dl['sa_color']};">{sa_val:.2f}</div>
+                    <div style="margin:0.5rem 0;height:6px;background:#1e1e30;border-radius:3px;overflow:hidden;max-width:200px;margin-left:auto;margin-right:auto;">
+                        <div style="height:100%;width:{sa_pct:.0f}%;background:{dl['sa_color']};border-radius:3px;transition:width 0.4s ease;"></div>
+                    </div>
+                    <div style="font-size:0.85rem;font-weight:600;color:{dl['sa_color']};margin-bottom:0.5rem;">{dl['sa_level']}</div>
+                </div>
+                """, unsafe_allow_html=True)
+                st.markdown("SAscore / 合成可及性评分 — **点击查看中英双语解释**")
 
             with col_fsp3:
                 fsp3_val = dl["fsp3"]
                 st.markdown(f"""
-                <div style="text-align:center;padding:1rem;background:linear-gradient(135deg,rgba(30,30,46,0.6),rgba(15,15,25,0.4));border-radius:12px;border:1px solid rgba(255,255,255,0.06);">
-                    <div style="font-size:0.7rem;color:#6b6b7b;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:0.5rem;">Fsp&sup3; 三维复杂度</div>
-                    <div style="font-size:2rem;font-weight:700;font-family:'Cascadia Code',monospace;color:{dl['fsp3_color']};">{fsp3_val:.3f}</div>
-                    <div style="margin:0.5rem 0;height:6px;background:#1e1e30;border-radius:3px;overflow:hidden;">
-                        <div style="height:100%;width:{fsp3_val*100:.0f}%;background:{dl['fsp3_color']};border-radius:3px;transition:width 0.3s ease;"></div>
-                    </div>
-                    <div style="font-size:0.78rem;color:{dl['fsp3_color']};">{dl['fsp3_level']}</div>
+                <div style="text-align:center;padding:1.2rem 1rem;background:linear-gradient(155deg,rgba(30,30,50,0.75),rgba(18,18,35,0.65));border-radius:14px;border:1px solid rgba(251,191,36,0.12);backdrop-filter:blur(8px);">
+                    <div style="font-size:0.7rem;color:#8b8b9b;text-transform:uppercase;letter-spacing:0.12em;margin-bottom:0.3rem;">Fraction sp&sup3; Carbons</div>
                 </div>
                 """, unsafe_allow_html=True)
+                st.markdown(f"""
+                <div style="text-align:center;margin-top:-0.5rem;">
+                    <div style="font-size:2.2rem;font-weight:700;font-family:'Cascadia Code',monospace;color:{dl['fsp3_color']};">{fsp3_val:.3f}</div>
+                    <div style="margin:0.5rem 0;height:6px;background:#1e1e30;border-radius:3px;overflow:hidden;max-width:200px;margin-left:auto;margin-right:auto;">
+                        <div style="height:100%;width:{fsp3_val*100:.0f}%;background:{dl['fsp3_color']};border-radius:3px;transition:width 0.4s ease;"></div>
+                    </div>
+                    <div style="font-size:0.85rem;font-weight:600;color:{dl['fsp3_color']};margin-bottom:0.5rem;">{dl['fsp3_level']}</div>
+                </div>
+                """, unsafe_allow_html=True)
+                st.markdown("Fsp³ / 三维复杂度指标 — **点击查看中英双语解释**")
 
+            # Carbon count summary line
             st.markdown(f"""
-            <div style="margin-top:0.8rem;padding:0.65rem 0.9rem;background:rgba(124,58,237,0.06);border-left:2px solid rgba(124,58,237,0.3);border-radius:4px;font-size:0.82rem;color:#a0a0b5;line-height:1.9;">
-            <b style="color:#c4b5fd;">About These Metrics</b><br>
-            &bull; <b>QED (Bickerton et al., 2012)</b> — 综合分子量、LogP、氢键、TPSA、可旋转键和结构警报，衡量分子是否落在已知药物化学空间内<br>
-            &bull; <b>SAscore (Ertl & Schuffenhauer, 2009)</b> — 基于分子片段贡献和复杂度惩罚，评估合成难度。1=极易合成，10=极难合成<br>
-            &bull; <b>Fsp&sup3; (Lovering et al., 2009)</b> — sp&sup3; 杂化碳占总碳数比例。研究发现 Fsp&sup3; &ge; 0.45 的候选药物临床成功率更高，反映三维复杂性对选择性和溶解度的有利影响<br>
-            &bull; 碳原子总数: {dl['n_carbons']}，其中 sp&sup3; 碳: {dl['n_sp3']}
+            <div style="margin-top:0.6rem;text-align:center;font-size:0.72rem;color:#6b6b7b;">
+            碳原子总数 Total carbons: <b style="color:#a0a0b0;">{dl['n_carbons']}</b> &nbsp;|&nbsp;
+            sp&sup3; 碳 sp&sup3; carbons: <b style="color:#a0a0b0;">{dl['n_sp3']}</b> &nbsp;|&nbsp;
+            Refs: Bickerton et al. (2012), Ertl &amp; Schuffenhauer (2009), Lovering et al. (2009)
             </div>
             """, unsafe_allow_html=True)
 
@@ -2909,6 +2923,9 @@ components.html("""
         { keys: ["肠溶片", "Enteric-Coated Tablet"], en: "Enteric-Coated Tablet", cn: "肠溶片", def: "一种特殊包衣的药物剂型，在胃酸中不溶解，到达小肠后才释放药物。用于保护胃黏膜或防止药物在酸性环境中降解。", defEn: "A drug dosage form with a special coating that resists stomach acid and releases the drug only upon reaching the small intestine. Used to protect the stomach lining or prevent drug degradation in acidic environments." },
         { keys: ["RDKit"], en: "RDKit", cn: "RDKit 化学信息学工具包", def: "开源的化学信息学软件库，用于分子结构的解析、化学描述符计算、分子指纹生成和结构绘制。本应用的核心化学计算均由 RDKit 驱动。", defEn: "An open-source cheminformatics toolkit for molecular structure parsing, descriptor calculation, fingerprint generation, and structure depiction. All core chemistry computations in this app are powered by RDKit." },
         { keys: ["Lipinski", "Lipinski's Rule of Five", "五规则", "Rule of Five", "Ro5"], en: "Lipinski's Rule of Five", cn: "Lipinski 五规则", def: "由 Pfizer 的 Christopher Lipinski 在 1997 年提出的口服药物筛选经验规则：分子量 ≤ 500、LogP ≤ 5、氢键供体 ≤ 5、氢键受体 ≤ 10。违反不超过 1 条的分子更可能具有良好的口服吸收。这是一条经验性初筛标准，不是绝对规则。", defEn: "Empirical oral drug-likeness rules proposed by Christopher Lipinski (Pfizer, 1997): MW ≤ 500, LogP ≤ 5, HBD ≤ 5, HBA ≤ 10. Molecules violating ≤1 rule are more likely to have good oral absorption. This is an empirical screening guideline, not an absolute rule." },
+        { keys: ["QED", "Quantitative Estimate of Drug-likeness", "药物相似性定量评估"], en: "QED (Quantitative Estimate of Drug-likeness)", cn: "QED 药物相似性定量评估", def: "由 Bickerton 等人 (2012) 提出的综合药物相似性指标，范围 0-1。QED 综合了分子量、LogP、氢键供体/受体数、TPSA、可旋转键数、芳香环数和结构警报，将分子映射到已知口服药物的化学空间。QED ≥ 0.67 = 有吸引力；0.49–0.67 = 中等；< 0.49 = 偏低。QED 的优势在于将多维性质整合为单一直观分数，便于快速筛选。", defEn: "A composite drug-likeness metric (0–1) proposed by Bickerton et al. (2012). QED integrates MW, LogP, HBD/HBA counts, TPSA, rotatable bonds, aromatic rings, and structural alerts, mapping molecules to the chemical space of known oral drugs. QED ≥ 0.67 = attractive; 0.49–0.67 = moderate; < 0.49 = low. Its strength lies in collapsing multidimensional properties into a single intuitive score for rapid screening." },
+        { keys: ["SAscore", "Synthetic Accessibility Score", "合成可及性评分", "SA Score"], en: "SAscore (Synthetic Accessibility Score)", cn: "SAscore 合成可及性评分", def: "由 Ertl 和 Schuffenhauer (2009) 提出的合成难度评估指标，范围 1-10（1=极易合成，10=极难合成）。SAscore 基于两个核心部分：(1) 片段贡献 — 从 PubChem 数百万化合物中统计出的常见分子片段的"合成友好度"分数；(2) 复杂度惩罚 — 考虑分子大小、手性中心、螺环/桥环原子和大环结构。1-3 = 容易合成；3-6 = 中等难度；> 6 = 难以合成。该指标的计算与原始 PipelinePilot 实现的 R² = 0.97。", defEn: "A synthetic difficulty metric (1–10, 1=easiest, 10=hardest) proposed by Ertl & Schuffenhauer (2009). SAscore is based on two components: (1) Fragment contribution — 'synthetic friendliness' scores of common molecular fragments derived from millions of PubChem compounds; (2) Complexity penalty — accounting for molecular size, chiral centers, spiro/bridgehead atoms, and macrocycles. 1–3 = easy; 3–6 = moderate; > 6 = difficult. This implementation achieves R² = 0.97 with the original PipelinePilot implementation." },
+        { keys: ["Fsp³", "Fsp3", "Fraction sp3", "sp3碳比例", "三维复杂度"], en: "Fsp³ (Fraction of sp³ Carbons)", cn: "Fsp³ 三维复杂度指标", def: "由 Lovering 等人 (2009) 提出的分子三维复杂度指标，计算 sp³ 杂化碳原子占总碳原子数的比例，范围 0-1。研究发现 Fsp³ ≥ 0.45 的候选药物在临床试验中的成功率显著更高，原因包括：(1) 三维结构提高靶点选择性；(2) 减少平面芳香分子的 π-π 堆积导致的聚集和沉淀；(3) 增加溶解度和代谢稳定性。Fsp³ 越低，分子越'扁平'，更像传统筛选库中的分子；Fsp³ 越高，分子越接近天然产物的三维复杂性。", defEn: "A 3D complexity metric (0–1) proposed by Lovering et al. (2009), measuring the fraction of sp³-hybridized carbons among all carbon atoms. Clinical candidates with Fsp³ ≥ 0.45 show significantly higher success rates because: (1) 3D structures improve target selectivity; (2) Reduced π-π stacking (aggregation/precipitation) common in flat aromatic molecules; (3) Enhanced solubility and metabolic stability. Lower Fsp³ = flatter, more 'library-like'; higher Fsp³ = more natural-product-like 3D complexity." },
         { keys: ["ADME", "ADME/Tox", "ADMET", "药代动力学"], en: "ADME/Tox", cn: "ADME/Tox 药代动力学", def: "药物在体内的吸收 (Absorption)、分布 (Distribution)、代谢 (Metabolism)、排泄 (Excretion) 和毒性 (Toxicity) 五个关键过程。合称 ADME/Tox，是药物发现和开发中必须评估的核心性质。", defEn: "The five key processes governing a drug's fate in the body: Absorption, Distribution, Metabolism, Excretion, and Toxicity. ADME/Tox properties must be evaluated for any drug candidate during discovery and development." },
         { keys: ["CYP450", "CYP3A4", "CYP2D6", "CYP2C9", "细胞色素P450", "P450"], en: "Cytochrome P450 (CYP450)", cn: "细胞色素 P450 酶系", def: "肝脏中最重要的 I 相药物代谢酶超家族。CYP3A4 代谢约 50% 的临床药物；CYP2D6 存在显著的基因多态性；CYP2C9 参与多种 NSAID 药物代谢。药物间相互作用常与 CYP450 酶的诱导或抑制相关。", defEn: "The most important Phase I drug-metabolizing enzyme superfamily in the liver. CYP3A4 metabolizes ~50% of clinical drugs; CYP2D6 shows significant genetic polymorphism; CYP2C9 metabolizes many NSAIDs. Drug-drug interactions often involve CYP450 enzyme induction or inhibition." },
         { keys: ["血脑屏障", "Blood-Brain Barrier", "BBB"], en: "Blood-Brain Barrier (BBB)", cn: "血脑屏障", def: "由脑毛细血管内皮细胞紧密连接构成的选择性屏障，阻止大多数分子从血液进入大脑。低 TPSA (< 70 Å²)、适中 LogP、分子量较小的分子更容易通过血脑屏障。", defEn: "A selective barrier formed by tight junctions between brain capillary endothelial cells, blocking most molecules from entering the brain from blood. Molecules with low TPSA (< 70 Å²), moderate LogP, and smaller size are more likely to cross the BBB." },
