@@ -1959,7 +1959,8 @@ with st.container(border=True):
                     if len(matches) > 1:
                         with st.expander(f"查看全部 {len(matches)} 个模糊匹配结果", expanded=False):
                             for m in matches[:8]:
-                                st.code(f"{m}  →  {SEARCH_INDEX[m][:80]}")
+                                st.caption(f"**{m}**")
+                                st.code(SEARCH_INDEX[m], language=None)
 
                     confirm_col1, confirm_col2 = st.columns(2)
                     with confirm_col1:
