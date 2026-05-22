@@ -148,6 +148,102 @@ def analyze_lipinski(features):
     }
 
 
+# ── SAscore inline implementation ──────────────────────────────────────
+# Reimplements the Ertl & Schuffenhauer (2009) SAscore algorithm without
+# depending on rdkit.Contrib, so it works on Streamlit Cloud and any RDKit install.
+#
+# Reference: Estimation of Synthetic Accessibility Score of Drug-like
+# Molecules based on Molecular Complexity and Fragment Contributions.
+# Peter Ertl and Ansgar Schuffenhauer, J. Cheminformatics 1:8 (2009).
+
+import gzip
+import math
+import os as _os
+import pickle as _pickle
+
+_sa_fscores = None
+_sa_mfpgen = None
+
+def _sa_load_fragment_scores():
+    """Load fragment contribution scores from the bundled data file."""
+    global _sa_fscores
+    if _sa_fscores is not None:
+        return
+    pkl_path = _os.path.join(_os.path.dirname(_os.path.abspath(__file__)),
+                             "data", "sa_fpscores.pkl.gz")
+    data = _pickle.load(gzip.open(pkl_path))
+    out = {}
+    for entry in data:
+        score = float(entry[0])
+        for frag_id in entry[1:]:
+            out[int(frag_id)] = score
+    _sa_fscores = out
+
+
+def _sa_calculate_score(mol):
+    """Compute SAscore (1=easy, 10=hard) for a molecule.
+    Based on the RDKit Contrib implementation by Ertl & Landrum (2013).
+    """
+    global _sa_mfpgen
+    from rdkit.Chem import rdFingerprintGenerator, rdMolDescriptors
+
+    if not mol.GetNumAtoms():
+        return None
+
+    if _sa_fscores is None:
+        _sa_load_fragment_scores()
+    if _sa_mfpgen is None:
+        _sa_mfpgen = rdFingerprintGenerator.GetMorganGenerator(radius=2)
+
+    # ── Fragment score ──
+    sfp = _sa_mfpgen.GetSparseCountFingerprint(mol)
+    nze = sfp.GetNonzeroElements()
+    score1 = 0.0
+    nf = 0
+    for frag_id, count in nze.items():
+        nf += count
+        score1 += _sa_fscores.get(frag_id, -4.0) * count
+    score1 /= max(nf, 1)
+
+    # ── Complexity penalty ──
+    nAtoms = mol.GetNumAtoms()
+    nChiralCenters = len(Chem.FindMolChiralCenters(mol, includeUnassigned=True))
+    ri = mol.GetRingInfo()
+    nBridgeheads = rdMolDescriptors.CalcNumBridgeheadAtoms(mol)
+    nSpiro = rdMolDescriptors.CalcNumSpiroAtoms(mol)
+    nMacrocycles = sum(1 for x in ri.AtomRings() if len(x) > 8)
+
+    sizePenalty = nAtoms ** 1.005 - nAtoms
+    stereoPenalty = math.log10(nChiralCenters + 1)
+    spiroPenalty = math.log10(nSpiro + 1)
+    bridgePenalty = math.log10(nBridgeheads + 1)
+    macrocyclePenalty = math.log10(2) if nMacrocycles > 0 else 0.0
+
+    score2 = 0.0 - sizePenalty - stereoPenalty - spiroPenalty - bridgePenalty - macrocyclePenalty
+
+    # ── Fingerprint density correction (for highly symmetric molecules) ──
+    score3 = 0.0
+    numBits = len(nze)
+    if nAtoms > numBits:
+        score3 = math.log(float(nAtoms) / numBits) * 0.5
+
+    raw = score1 + score2 + score3
+
+    # Transform raw score to 1–10 scale
+    min_val, max_val = -4.0, 2.5
+    sascore = 11.0 - (raw - min_val + 1.0) / (max_val - min_val) * 9.0
+
+    # Smooth the high end
+    if sascore > 8.0:
+        sascore = 8.0 + math.log(sascore + 1.0 - 9.0)
+    if sascore > 10.0:
+        sascore = 10.0
+    elif sascore < 1.0:
+        sascore = 1.0
+
+    return sascore
+
+
 def analyze_druglikeness(smiles):
     """Compute QED, SAscore, and Fsp³ drug-likeness metrics.
 
@@ -161,14 +257,13 @@ def analyze_druglikeness(smiles):
       Fsp³ ≥ 0.45 correlates with higher clinical success rates (Lovering et al., 2009).
     """
     from rdkit.Chem import QED, rdMolDescriptors
-    from rdkit.Contrib.SA_Score import sascorer
 
     mol = Chem.MolFromSmiles(smiles)
     if mol is None:
         return None
 
     qed = QED.default(mol)
-    sa = sascorer.calculateScore(mol)
+    sa = _sa_calculate_score(mol)
     fsp3 = rdMolDescriptors.CalcFractionCSP3(mol)
     n_carbons = sum(1 for a in mol.GetAtoms() if a.GetAtomicNum() == 6)
     n_sp3 = int(round(fsp3 * n_carbons)) if n_carbons > 0 else 0
