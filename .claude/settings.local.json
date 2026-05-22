@@ -23,7 +23,8 @@
       "Bash(GIT_SSL_NO_VERIFY=1 git push origin main)",
       "Bash(curl -s http://localhost:8502)",
       "Bash(taskkill //F //IM python.exe)",
-      "Bash(curl -s http://localhost:8503)"
+      "Bash(curl -s http://localhost:8503)",
+      "WebSearch"
     ]
   }
 }

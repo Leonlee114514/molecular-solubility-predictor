@@ -9,6 +9,9 @@ from rdkit import Chem
 from dotenv import load_dotenv
 import os
 
+# 加载环境变量（本地开发用）— 必须在导入本地模块之前，确保 PUBCHEM_BASE_URL 等配置生效
+load_dotenv()
+
 from features import compute_features, analyze_pka_chemistry, show_3d_molecule, mol_to_dark_image, analyze_lipinski, analyze_admet, analyze_druglikeness
 from molecules import MOLECULE_DB, SEARCH_INDEX, search_pubchem as search_pubchem_final
 from model import (
@@ -19,9 +22,6 @@ from model import (
 
 import openai
 import streamlit.components.v1 as components
-
-# 加载环境变量（本地开发用）
-load_dotenv()
 
 # 优先读取 Streamlit Secrets（Cloud 部署），其次读取 .env（本地开发）
 KIMI_API_KEY = st.secrets.get("KIMI_API_KEY") or os.getenv("KIMI_API_KEY")

@@ -517,6 +517,36 @@ def save_cache():
 load_cache()
 
 
+PUBCHEM_BASE_URL = os.environ.get(
+    "PUBCHEM_BASE_URL",
+    "https://pubchem.ncbi.nlm.nih.gov",
+).rstrip("/")
+
+# Alternative domains to try as fallback (some may be more accessible from China)
+_PUBCHEM_FALLBACK_HOSTS = [
+    "pubchem.ncbi.nlm.nih.gov",
+]
+
+
+def _try_pubchem_urls(encoded_name):
+    """Try PubChem lookup across base URL and fallback hosts."""
+    path = f"/rest/pug/compound/name/{encoded_name}/property/CanonicalSMILES/JSON"
+    urls = [f"{PUBCHEM_BASE_URL}{path}"]
+    for host in _PUBCHEM_FALLBACK_HOSTS:
+        alt = f"https://{host}{path}"
+        if alt not in urls:
+            urls.append(alt)
+
+    for url in urls:
+        try:
+            r = _pubchem_request(url, timeout=10)
+            if r.status_code == 200:
+                return r
+        except (requests.exceptions.ConnectionError, requests.exceptions.Timeout):
+            continue
+    return None
+
+
 def search_pubchem(name, max_retries=3):
     """Search PubChem PUG REST API for a compound SMILES by name."""
     if not name or not name.strip():
@@ -528,13 +558,15 @@ def search_pubchem(name, max_retries=3):
     if name_lower in pubchem_cache:
         return pubchem_cache[name_lower], "success (cached)"
 
-    time.sleep(1.2)
+    time.sleep(0.5)
     encoded = urllib.parse.quote(name_clean)
-    url = f"https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/name/{encoded}/property/CanonicalSMILES/JSON"
 
     for attempt in range(max_retries):
         try:
-            r = _pubchem_request(url, timeout=20)
+            r = _try_pubchem_urls(encoded)
+            if r is None:
+                time.sleep(1.0 * (attempt + 1))
+                continue
             if r.status_code == 200:
                 data = r.json()
                 if 'Fault' in data:
@@ -553,13 +585,13 @@ def search_pubchem(name, max_retries=3):
                         return result, "success (PubChem)"
                 return None, "PubChem 返回空数据"
             elif r.status_code == 503:
-                wait = 2.0 * (attempt + 1)
-                time.sleep(wait)
+                time.sleep(2.0 * (attempt + 1))
                 continue
             elif r.status_code == 404:
                 return None, "PubChem 未找到该化合物 (404)"
             else:
-                return None, f"PubChem HTTP {r.status_code}: {r.text[:100]}"
+                time.sleep(1.0 * (attempt + 1))
+                continue
         except requests.exceptions.SSLError:
             if attempt < max_retries - 1:
                 time.sleep(1)
@@ -570,6 +602,9 @@ def search_pubchem(name, max_retries=3):
                 time.sleep(2)
                 continue
             return None, "查询超时，PubChem 服务器无响应"
+        except requests.exceptions.ConnectionError:
+            time.sleep(1.0 * (attempt + 1))
+            continue
         except Exception as e:
             if attempt < max_retries - 1:
                 time.sleep(1)
