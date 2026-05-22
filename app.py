@@ -2491,66 +2491,63 @@ if st.session_state.predicted_smiles and st.session_state.predicted_logS is not 
                 qed_val = dl["qed"]
                 st.markdown(f"""
                 <div style="text-align:center;padding:1.2rem 1rem;background:linear-gradient(155deg,rgba(30,30,50,0.75),rgba(18,18,35,0.65));border-radius:14px;border:1px solid rgba(124,58,237,0.12);backdrop-filter:blur(8px);">
-                    <div style="font-size:0.68rem;color:#8b8b9b;text-transform:uppercase;letter-spacing:0.12em;margin-bottom:0.4rem;">QED</div>
-                    <div style="font-size:1.1rem;font-weight:600;color:#c4b5fd;margin-bottom:0.15rem;">Quantitative Estimate</div>
-                    <div style="font-size:0.85rem;color:#a78bfa;margin-bottom:0.6rem;">药物相似性定量评估</div>
-                    <div style="font-size:2.2rem;font-weight:700;font-family:'Cascadia Code',monospace;color:{dl['qed_color']};">{qed_val:.3f}</div>
-                    <div style="margin:0.6rem 0;height:6px;background:#1e1e30;border-radius:3px;overflow:hidden;">
-                        <div style="height:100%;width:{qed_val*100:.0f}%;background:{dl['qed_color']};border-radius:3px;transition:width 0.4s ease;"></div>
-                    </div>
-                    <div style="font-size:0.82rem;font-weight:600;color:{dl['qed_color']};">{dl['qed_level']}</div>
-                    <div style="margin-top:0.7rem;padding-top:0.6rem;border-top:1px solid rgba(255,255,255,0.06);font-size:0.72rem;color:#8b8b9b;line-height:1.55;text-align:left;">
-                        <span style="color:#c0c0d0;">QED 综合分子量、LogP、氢键供体/受体数、TPSA、可旋转键、芳香环和结构警报，将分子映射到已知口服药物的化学空间。</span><br>
-                        <span style="color:#7b7b8b;font-size:0.68rem;">QED integrates MW, LogP, HBD/HBA, TPSA, rotatable bonds, aromatic rings, and structural alerts into a single drug-likeness score (Bickerton et al., 2012).</span>
-                    </div>
+                    <div style="font-size:0.7rem;color:#8b8b9b;text-transform:uppercase;letter-spacing:0.12em;margin-bottom:0.3rem;">Quantitative Estimate of Drug-likeness</div>
                 </div>
                 """, unsafe_allow_html=True)
+                st.markdown(f"""
+                <div style="text-align:center;margin-top:-0.5rem;">
+                    <div style="font-size:2.2rem;font-weight:700;font-family:'Cascadia Code',monospace;color:{dl['qed_color']};">{qed_val:.3f}</div>
+                    <div style="margin:0.5rem 0;height:6px;background:#1e1e30;border-radius:3px;overflow:hidden;max-width:200px;margin-left:auto;margin-right:auto;">
+                        <div style="height:100%;width:{qed_val*100:.0f}%;background:{dl['qed_color']};border-radius:3px;transition:width 0.4s ease;"></div>
+                    </div>
+                    <div style="font-size:0.85rem;font-weight:600;color:{dl['qed_color']};margin-bottom:0.5rem;">{dl['qed_level']}</div>
+                </div>
+                """, unsafe_allow_html=True)
+                st.markdown("QED / 药物相似性定量评估 — **点击查看中英双语解释**")
 
             with col_sa:
                 sa_val = dl["sascore"]
                 sa_pct = max(5, min(100, (1 - (sa_val - 1) / 9) * 100))
                 st.markdown(f"""
                 <div style="text-align:center;padding:1.2rem 1rem;background:linear-gradient(155deg,rgba(30,30,50,0.75),rgba(18,18,35,0.65));border-radius:14px;border:1px solid rgba(6,182,212,0.12);backdrop-filter:blur(8px);">
-                    <div style="font-size:0.68rem;color:#8b8b9b;text-transform:uppercase;letter-spacing:0.12em;margin-bottom:0.4rem;">SAscore</div>
-                    <div style="font-size:1.1rem;font-weight:600;color:#67e8f9;margin-bottom:0.15rem;">Synthetic Accessibility</div>
-                    <div style="font-size:0.85rem;color:#22d3ee;margin-bottom:0.6rem;">合成可及性评分</div>
-                    <div style="font-size:2.2rem;font-weight:700;font-family:'Cascadia Code',monospace;color:{dl['sa_color']};">{sa_val:.2f}</div>
-                    <div style="margin:0.6rem 0;height:6px;background:#1e1e30;border-radius:3px;overflow:hidden;">
-                        <div style="height:100%;width:{sa_pct:.0f}%;background:{dl['sa_color']};border-radius:3px;transition:width 0.4s ease;"></div>
-                    </div>
-                    <div style="font-size:0.82rem;font-weight:600;color:{dl['sa_color']};">{dl['sa_level']}</div>
-                    <div style="margin-top:0.7rem;padding-top:0.6rem;border-top:1px solid rgba(255,255,255,0.06);font-size:0.72rem;color:#8b8b9b;line-height:1.55;text-align:left;">
-                        <span style="color:#c0c0d0;">基于片段贡献（从 PubChem 数百万化合物统计）和分子复杂度惩罚（大小、手性、螺环/桥环、大环）。1=极易合成，10=极难合成。</span><br>
-                        <span style="color:#7b7b8b;font-size:0.68rem;">Based on fragment contributions (derived from millions of PubChem compounds) and complexity penalties (size, chirality, spiro/bridgeheads, macrocycles). 1=easiest, 10=hardest (Ertl & Schuffenhauer, 2009).</span>
-                    </div>
+                    <div style="font-size:0.7rem;color:#8b8b9b;text-transform:uppercase;letter-spacing:0.12em;margin-bottom:0.3rem;">Synthetic Accessibility Score</div>
                 </div>
                 """, unsafe_allow_html=True)
+                st.markdown(f"""
+                <div style="text-align:center;margin-top:-0.5rem;">
+                    <div style="font-size:2.2rem;font-weight:700;font-family:'Cascadia Code',monospace;color:{dl['sa_color']};">{sa_val:.2f}</div>
+                    <div style="margin:0.5rem 0;height:6px;background:#1e1e30;border-radius:3px;overflow:hidden;max-width:200px;margin-left:auto;margin-right:auto;">
+                        <div style="height:100%;width:{sa_pct:.0f}%;background:{dl['sa_color']};border-radius:3px;transition:width 0.4s ease;"></div>
+                    </div>
+                    <div style="font-size:0.85rem;font-weight:600;color:{dl['sa_color']};margin-bottom:0.5rem;">{dl['sa_level']}</div>
+                </div>
+                """, unsafe_allow_html=True)
+                st.markdown("SAscore / 合成可及性评分 — **点击查看中英双语解释**")
 
             with col_fsp3:
                 fsp3_val = dl["fsp3"]
                 st.markdown(f"""
                 <div style="text-align:center;padding:1.2rem 1rem;background:linear-gradient(155deg,rgba(30,30,50,0.75),rgba(18,18,35,0.65));border-radius:14px;border:1px solid rgba(251,191,36,0.12);backdrop-filter:blur(8px);">
-                    <div style="font-size:0.68rem;color:#8b8b9b;text-transform:uppercase;letter-spacing:0.12em;margin-bottom:0.4rem;">Fsp&sup3;</div>
-                    <div style="font-size:1.1rem;font-weight:600;color:#fde68a;margin-bottom:0.15rem;">Fraction sp&sup3; Carbons</div>
-                    <div style="font-size:0.85rem;color:#fbbf24;margin-bottom:0.6rem;">三维复杂度指标</div>
-                    <div style="font-size:2.2rem;font-weight:700;font-family:'Cascadia Code',monospace;color:{dl['fsp3_color']};">{fsp3_val:.3f}</div>
-                    <div style="margin:0.6rem 0;height:6px;background:#1e1e30;border-radius:3px;overflow:hidden;">
-                        <div style="height:100%;width:{fsp3_val*100:.0f}%;background:{dl['fsp3_color']};border-radius:3px;transition:width 0.4s ease;"></div>
-                    </div>
-                    <div style="font-size:0.82rem;font-weight:600;color:{dl['fsp3_color']};">{dl['fsp3_level']}</div>
-                    <div style="margin-top:0.7rem;padding-top:0.6rem;border-top:1px solid rgba(255,255,255,0.06);font-size:0.72rem;color:#8b8b9b;line-height:1.55;text-align:left;">
-                        <span style="color:#c0c0d0;">sp&sup3; 杂化碳占总碳数比例。Fsp&sup3; &ge; 0.45 的候选药物临床成功率显著更高，反映三维结构的选择性和溶解性优势。</span><br>
-                        <span style="color:#7b7b8b;font-size:0.68rem;">Ratio of sp&sup3;-hybridized carbons to total carbons. Candidates with Fsp&sup3; &ge; 0.45 show higher clinical success rates — 3D structures improve selectivity and solubility (Lovering et al., 2009).</span>
-                    </div>
+                    <div style="font-size:0.7rem;color:#8b8b9b;text-transform:uppercase;letter-spacing:0.12em;margin-bottom:0.3rem;">Fraction sp&sup3; Carbons</div>
                 </div>
                 """, unsafe_allow_html=True)
+                st.markdown(f"""
+                <div style="text-align:center;margin-top:-0.5rem;">
+                    <div style="font-size:2.2rem;font-weight:700;font-family:'Cascadia Code',monospace;color:{dl['fsp3_color']};">{fsp3_val:.3f}</div>
+                    <div style="margin:0.5rem 0;height:6px;background:#1e1e30;border-radius:3px;overflow:hidden;max-width:200px;margin-left:auto;margin-right:auto;">
+                        <div style="height:100%;width:{fsp3_val*100:.0f}%;background:{dl['fsp3_color']};border-radius:3px;transition:width 0.4s ease;"></div>
+                    </div>
+                    <div style="font-size:0.85rem;font-weight:600;color:{dl['fsp3_color']};margin-bottom:0.5rem;">{dl['fsp3_level']}</div>
+                </div>
+                """, unsafe_allow_html=True)
+                st.markdown("Fsp³ / 三维复杂度指标 — **点击查看中英双语解释**")
 
             # Carbon count summary line
             st.markdown(f"""
             <div style="margin-top:0.6rem;text-align:center;font-size:0.72rem;color:#6b6b7b;">
             碳原子总数 Total carbons: <b style="color:#a0a0b0;">{dl['n_carbons']}</b> &nbsp;|&nbsp;
             sp&sup3; 碳 sp&sup3; carbons: <b style="color:#a0a0b0;">{dl['n_sp3']}</b> &nbsp;|&nbsp;
-            参考文献 Refs: <i>Bickerton et al. (2012), Ertl &amp; Schuffenhauer (2009), Lovering et al. (2009)</i>
+            Refs: Bickerton et al. (2012), Ertl &amp; Schuffenhauer (2009), Lovering et al. (2009)
             </div>
             """, unsafe_allow_html=True)
 
