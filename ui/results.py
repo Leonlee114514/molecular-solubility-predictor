@@ -105,7 +105,7 @@ def render_results(model):
             _tab_preview(features)
 
         with tab_sol:
-            _tab_solubility(features, prediction, interp, color, css_class)
+            _tab_solubility(features, prediction, interp, color, css_class, model)
 
         with tab_pka:
             _tab_pka(pka_val, pka_type, pka_label, pka_css, pka_text_color, pka_desc, features)
@@ -159,7 +159,7 @@ def _tab_preview(features):
         st.info("3D 模型生成失败（需安装 py3Dmol）")
 
 
-def _tab_solubility(features, prediction, interp, color, css_class):
+def _tab_solubility(features, prediction, interp, color, css_class, model):
     """Tab 1: Solubility prediction details + SHAP explainability."""
     st.markdown("""<div class="card-title">&#128202; Solubility Prediction</div>""", unsafe_allow_html=True)
 
