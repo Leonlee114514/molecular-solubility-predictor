@@ -24,7 +24,8 @@
       "Bash(curl -s http://localhost:8502)",
       "Bash(taskkill //F //IM python.exe)",
       "Bash(curl -s http://localhost:8503)",
-      "WebSearch"
+      "WebSearch",
+      "Bash(rm -rf assets/__pycache__ core/__pycache__ ui/__pycache__ __pycache__)"
     ]
   }
 }

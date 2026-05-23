@@ -2,14 +2,20 @@
 DisSolve - Reusable UI components (header, footer, input area, CJK font).
 """
 
+import base64
 import streamlit as st
-import streamlit.components.v1 as components
 from molecules import MOLECULE_DB, SEARCH_INDEX, search_pubchem as search_pubchem_final
 
 
 def render_html(html_content, height=1, scrolling=True):
-    """Render HTML/JS via components.html (avoids iframe artifacts)."""
-    components.html(html_content, height=height)
+    """Render HTML/JS via an off-screen iframe – invisible but JS executes."""
+    encoded = base64.b64encode(html_content.encode("utf-8")).decode("utf-8")
+    st.markdown(
+        f'<iframe src="data:text/html;charset=utf-8;base64,{encoded}" '
+        f'style="position:absolute;left:-9999px;width:1px;height:1px;border:0;" '
+        f'sandbox="allow-scripts allow-same-origin"></iframe>',
+        unsafe_allow_html=True,
+    )
 
 
 def get_cjk_font():
