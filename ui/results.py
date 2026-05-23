@@ -16,25 +16,27 @@ from core.cache import (
     cached_compute_features, cached_show_3d, cached_pka_analysis,
     cached_shap_contributions, cached_lipinski, cached_admet, cached_druglikeness,
 )
-from ui.components import get_cjk_font, render_html
+from core.state_keys import StateKey
+from ui.components import render_html
+from ui.plots import setup_plt_dark
 
 
 def render_results(model):
     """Render the 5-tab prediction results. Must be called only when predictions exist."""
     # ========== 显示预测结果（Tab分组版）==========
-    if st.session_state.predicted_smiles and st.session_state.predicted_logS is not None:
+    if st.session_state.get(StateKey.PREDICTED_SMILES) and st.session_state.get(StateKey.PREDICTED_LOGS) is not None:
 
-        features = st.session_state.get("cached_features")
+        features = st.session_state.get(StateKey.CACHED_FEATURES)
         if features is None:
-            result_display = cached_compute_features(st.session_state.predicted_smiles)
+            result_display = cached_compute_features(st.session_state[StateKey.PREDICTED_SMILES])
             if result_display is None:
                 st.error("显示时解析失败，请重新输入 SMILES")
                 st.stop()
             features, _ = result_display
-        prediction = st.session_state.predicted_logS
+        prediction = st.session_state[StateKey.PREDICTED_LOGS]
 
         # ── 预计算pKa相关变量（供多Tab使用）──
-        pka_val = st.session_state.get("predicted_pka")
+        pka_val = st.session_state.get(StateKey.PREDICTED_PKA)
         pka_type = pka_label = pka_css = pka_text_color = pka_desc = None
         if pka_val is not None:
             pka_type, pka_label, pka_css, pka_text_color, pka_desc = get_pka_type(pka_val)
@@ -43,8 +45,8 @@ def render_results(model):
         interp, color, css_class = get_solubility_level(prediction)
 
         # ── OOD 分布检测结果显示 ──
-        ood_risk = st.session_state.get("ood_risk", "UNKNOWN")
-        ood_result = st.session_state.get("ood_result")
+        ood_risk = st.session_state.get(StateKey.OOD_RISK, "UNKNOWN")
+        ood_result = st.session_state.get(StateKey.OOD_RESULT)
 
         if ood_risk == "HIGH":
             st.error(f"**Out-of-Distribution 警告 — 预测可能不可靠**")
@@ -85,7 +87,7 @@ def render_results(model):
         tab_preview, tab_sol, tab_pka, tab_pharm, tab_ai = st.tabs(tab_labels)
 
         # 记住 rerun 后的目标 Tab（解决 st.rerun() 导致 Tab 重置的问题）
-        target_tab = st.session_state.pop("_target_tab", None)
+        target_tab = st.session_state.pop(StateKey.TARGET_TAB, None)
         if target_tab is not None:
             target_idx = tab_labels.index(target_tab) if target_tab in tab_labels else 0
             render_html(f"""
@@ -105,7 +107,7 @@ def render_results(model):
         with tab_preview:
             st.markdown("""<div class="card-title">&#128065; Molecule Preview</div>""", unsafe_allow_html=True)
 
-            mol = Chem.MolFromSmiles(st.session_state.predicted_smiles)
+            mol = Chem.MolFromSmiles(st.session_state[StateKey.PREDICTED_SMILES])
             from rdkit.Chem import rdMolDescriptors
 
             col_pv_left, col_pv_right = st.columns([1, 1])
@@ -129,14 +131,14 @@ def render_results(model):
                     st.metric("Molecular Formula", formula)
                     st.metric("Molecular Weight", f"{mw:.1f} Da")
                     st.markdown("""<div style="font-size:0.82rem;color:var(--ob-text-tertiary);margin-top:0.5rem;margin-bottom:0.2rem;">SMILES</div>""", unsafe_allow_html=True)
-                    st.code(st.session_state.predicted_smiles, language=None)
+                    st.code(st.session_state[StateKey.PREDICTED_SMILES], language=None)
                 else:
                     st.warning("无法解析分子结构")
 
             # 3D ball-and-stick model
             st.markdown("<br>", unsafe_allow_html=True)
             st.markdown("""<div class="card-title">&#127919; 3D Ball-and-Stick Model</div>""", unsafe_allow_html=True)
-            html_3d = cached_show_3d(st.session_state.predicted_smiles)
+            html_3d = cached_show_3d(st.session_state[StateKey.PREDICTED_SMILES])
             if html_3d:
                 render_html(html_3d, height=420)
             else:
@@ -195,27 +197,17 @@ def render_results(model):
             st.markdown("<br>", unsafe_allow_html=True)
             st.markdown("""<div class="card-title">&#128269; SHAP Explainability</div>""", unsafe_allow_html=True)
             st.caption("基于 SHAP (SHapley Additive exPlanations) 分析每个特征对预测的贡献")
-            if st.session_state.get("shap_values"):
+            if st.session_state.get(StateKey.SHAP_VALUES):
                 import matplotlib.pyplot as plt
                 import numpy as np
-                cjk_font = get_cjk_font()
-                if cjk_font:
-                    plt.rcParams['font.family'] = cjk_font
-                plt.rcParams['axes.unicode_minus'] = False
-                shap_vals = np.array(st.session_state.shap_values)
-                names = st.session_state.shap_names
+                shap_vals = np.array(st.session_state[StateKey.SHAP_VALUES])
+                names = st.session_state[StateKey.SHAP_NAMES]
                 abs_vals = np.abs(shap_vals)
                 sorted_idx = np.argsort(abs_vals)[::-1][:8]
                 top_shap = shap_vals[sorted_idx]
                 top_names = [names[i] for i in sorted_idx]
                 colors = ['#a78bfa' if v > 0 else '#06b6d4' for v in top_shap]
-                plt.rcParams['figure.facecolor'] = '#0a0a0f'
-                plt.rcParams['axes.facecolor'] = '#1e1e2e'
-                plt.rcParams['axes.edgecolor'] = '#2a2a3a'
-                plt.rcParams['axes.labelcolor'] = '#a0a0b0'
-                plt.rcParams['xtick.color'] = '#a0a0b0'
-                plt.rcParams['ytick.color'] = '#a0a0b0'
-                plt.rcParams['text.color'] = '#f0f0f5'
+                setup_plt_dark()
                 fig, ax = plt.subplots(figsize=(8, 4.5))
                 bars = ax.barh(range(len(top_shap)), top_shap, color=colors, edgecolor="white", height=0.6)
                 ax.invert_yaxis()
@@ -305,23 +297,13 @@ def render_results(model):
 
                 st.markdown("<br>", unsafe_allow_html=True)
                 st.markdown("""<div class="card-title">&#129516; Chemical Factor Decomposition</div>""", unsafe_allow_html=True)
-                chem_factors = cached_pka_analysis(st.session_state.predicted_smiles, pka_val)
+                chem_factors = cached_pka_analysis(st.session_state[StateKey.PREDICTED_SMILES], pka_val)
                 if chem_factors:
                     import matplotlib.pyplot as plt
-                    cjk_font = get_cjk_font()
-                    if cjk_font:
-                        plt.rcParams['font.family'] = cjk_font
-                    plt.rcParams['axes.unicode_minus'] = False
                     names = list(chem_factors.keys())
                     vals = list(chem_factors.values())
                     colors = ['#a78bfa' if v > 0 else '#22d3ee' for v in vals]
-                    plt.rcParams['figure.facecolor'] = '#0d0d14'
-                    plt.rcParams['axes.facecolor'] = '#1a1a2e'
-                    plt.rcParams['axes.edgecolor'] = '#33334d'
-                    plt.rcParams['axes.labelcolor'] = '#a0a0b0'
-                    plt.rcParams['xtick.color'] = '#a0a0b0'
-                    plt.rcParams['ytick.color'] = '#a0a0b0'
-                    plt.rcParams['text.color'] = '#f0f0f5'
+                    setup_plt_dark()
                     fig, ax = plt.subplots(figsize=(8, 4.5))
                     bars = ax.barh(range(len(vals)), vals, color=colors, edgecolor=(1, 1, 1, 0.15), height=0.6, linewidth=0.5)
                     ax.invert_yaxis()
@@ -383,17 +365,7 @@ def render_results(model):
             lipinski_result = cached_lipinski(tuple(features.items()))
             rules = lipinski_result["rules"]
             import matplotlib.pyplot as plt
-            cjk_font = get_cjk_font()
-            if cjk_font:
-                plt.rcParams['font.family'] = cjk_font
-            plt.rcParams['axes.unicode_minus'] = False
-            plt.rcParams['figure.facecolor'] = '#0d0d14'
-            plt.rcParams['axes.facecolor'] = '#1a1a2e'
-            plt.rcParams['axes.edgecolor'] = '#33334d'
-            plt.rcParams['axes.labelcolor'] = '#a0a0b0'
-            plt.rcParams['xtick.color'] = '#a0a0b0'
-            plt.rcParams['ytick.color'] = '#f0f0f5'
-            plt.rcParams['text.color'] = '#f0f0f5'
+            setup_plt_dark()
 
             fig, ax = plt.subplots(figsize=(10, 3.6))
 
@@ -456,7 +428,7 @@ def render_results(model):
             # ── QED / SAscore / Fsp³ 药物相似性综合评分 ──
             st.markdown("<br>", unsafe_allow_html=True)
             st.markdown("""<div class="card-title">&#128142; Drug-likeness Metrics: QED &middot; SAscore &middot; Fsp&sup3;</div>""", unsafe_allow_html=True)
-            dl = cached_druglikeness(st.session_state.predicted_smiles)
+            dl = cached_druglikeness(st.session_state[StateKey.PREDICTED_SMILES])
             if dl:
                 col_qed, col_sa, col_fsp3 = st.columns(3)
                 with col_qed:
@@ -524,23 +496,13 @@ def render_results(model):
                 st.markdown("<br>", unsafe_allow_html=True)
                 st.markdown("""<div class="card-title">&#9889; Ionization Profile</div>""", unsafe_allow_html=True)
                 import matplotlib.pyplot as plt
-                cjk_font = get_cjk_font()
-                if cjk_font:
-                    plt.rcParams['font.family'] = cjk_font
-                plt.rcParams['axes.unicode_minus'] = False
                 env_ph = [1.5, 4.5, 6.8, 7.4]
                 env_names = ['Stomach\n胃', 'Duodenum\n十二指肠', 'Small Intestine\n小肠', 'Blood/Brain\n血液/脑']
                 if pka_type == "acid":
                     fractions = [1 / (1 + 10**(ph - pka_val)) for ph in env_ph]
                 else:
                     fractions = [1 / (1 + 10**(pka_val - ph)) for ph in env_ph]
-                plt.rcParams['figure.facecolor'] = '#0a0a0f'
-                plt.rcParams['axes.facecolor'] = '#1e1e2e'
-                plt.rcParams['axes.edgecolor'] = '#2a2a3a'
-                plt.rcParams['axes.labelcolor'] = '#a0a0b0'
-                plt.rcParams['xtick.color'] = '#a0a0b0'
-                plt.rcParams['ytick.color'] = '#a0a0b0'
-                plt.rcParams['text.color'] = '#f0f0f5'
+                setup_plt_dark()
                 fig, ax = plt.subplots(figsize=(7, 3.2))
                 colors_bar = ['#f87171', '#fbbf24', '#34d399', '#60a5fa']
                 bars = ax.bar(env_names, [f*100 for f in fractions], color=colors_bar, edgecolor='white', width=0.6)
@@ -610,7 +572,7 @@ def render_results(model):
             st.markdown("""<div class="card-title">&#129514; ADME/Tox 药代动力学概览</div>""", unsafe_allow_html=True)
 
             admet = cached_admet(
-                st.session_state.predicted_smiles,
+                st.session_state[StateKey.PREDICTED_SMILES],
                 tuple(features.items()),
                 pka_val
             )
@@ -743,22 +705,22 @@ def render_results(model):
         with tab_ai:
             st.markdown("""<div class="card-title">&#129504; AI Chemistry Explanation</div>""", unsafe_allow_html=True)
             with st.container(border=True):
-                if st.session_state.ai_explanation:
-                    st.markdown(st.session_state.ai_explanation)
+                if st.session_state[StateKey.AI_EXPLANATION]:
+                    st.markdown(st.session_state[StateKey.AI_EXPLANATION])
                     if st.button("清除解释", key="clear_ai"):
-                        st.session_state.ai_explanation = None
-                        st.session_state._target_tab = "AI Explanation"
+                        st.session_state[StateKey.AI_EXPLANATION] = None
+                        st.session_state[StateKey.TARGET_TAB] = "AI Explanation"
                         st.rerun()
                 else:
                     st.caption("AI 解释需要手动调用（消耗 API 额度）")
                     if st.button("生成 AI 解释", key="gen_ai", use_container_width=True):
                         with st.spinner("正在分析分子结构..."):
-                            pka_val_gen = st.session_state.get("predicted_pka")
+                            pka_val_gen = st.session_state.get(StateKey.PREDICTED_PKA)
                             pka_type_gen = None
                             if pka_val_gen is not None:
                                 pka_type_gen, _, _, _, _ = get_pka_type(pka_val_gen)
                             explanation = explain_with_kimi(
-                                st.session_state.predicted_smiles,
+                                st.session_state[StateKey.PREDICTED_SMILES],
                                 prediction,
                                 features,
                                 shap_features=st.session_state.get("shap_names"),
@@ -766,6 +728,6 @@ def render_results(model):
                                 pka_value=pka_val_gen,
                                 pka_type=pka_type_gen
                             )
-                        st.session_state.ai_explanation = explanation
-                        st.session_state._target_tab = "AI Explanation"
+                        st.session_state[StateKey.AI_EXPLANATION] = explanation
+                        st.session_state[StateKey.TARGET_TAB] = "AI Explanation"
                         st.rerun()

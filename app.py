@@ -21,6 +21,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+from core.state_keys import StateKey
 from model import (
     load_solubility_model, load_pka_model,
     load_ood_detector, run_ood_check,
@@ -63,14 +64,14 @@ except Exception:
 
 
 # ========== Session state init ==========
-if "smiles_input_box" not in st.session_state:
-    st.session_state.smiles_input_box = ""
-if "predicted_smiles" not in st.session_state:
-    st.session_state.predicted_smiles = None
-if "predicted_logS" not in st.session_state:
-    st.session_state.predicted_logS = None
-if "ai_explanation" not in st.session_state:
-    st.session_state.ai_explanation = None
+if StateKey.SMILES_INPUT not in st.session_state:
+    st.session_state[StateKey.SMILES_INPUT] = ""
+if StateKey.PREDICTED_SMILES not in st.session_state:
+    st.session_state[StateKey.PREDICTED_SMILES] = None
+if StateKey.PREDICTED_LOGS not in st.session_state:
+    st.session_state[StateKey.PREDICTED_LOGS] = None
+if StateKey.AI_EXPLANATION not in st.session_state:
+    st.session_state[StateKey.AI_EXPLANATION] = None
 
 
 # ========== Render header ==========
@@ -91,7 +92,7 @@ st.markdown("<br>", unsafe_allow_html=True)
 
 # ========== Execute prediction ==========
 if predict_button and model_ready:
-    current = st.session_state.smiles_input_box.strip()
+    current = st.session_state[StateKey.SMILES_INPUT].strip()
 
     if not current:
         st.warning("请先输入或选择一个分子的 SMILES")
@@ -111,43 +112,43 @@ if predict_button and model_ready:
                 """)
             else:
                 features, fp_array = result
-                st.session_state.cached_features = features
+                st.session_state[StateKey.CACHED_FEATURES] = features
                 X_input = np.hstack([list(features.values()), fp_array]).reshape(1, -1)
 
                 status.update(label="Step 2/4: Random Forest 预测溶解度...")
                 prediction = model.predict(X_input)[0]
-                st.session_state.predicted_smiles = current
-                st.session_state.predicted_logS = float(prediction)
+                st.session_state[StateKey.PREDICTED_SMILES] = current
+                st.session_state[StateKey.PREDICTED_LOGS] = float(prediction)
 
                 if pka_ready:
                     status.update(label="Step 3/4: 预测 pKa 与电离行为...")
                     pka_pred = pka_model.predict(X_input)[0]
-                    st.session_state.predicted_pka = float(pka_pred)
+                    st.session_state[StateKey.PREDICTED_PKA] = float(pka_pred)
 
                 status.update(label="Step 4/4: SHAP 可解释性分析...")
                 try:
                     combined_shap, combined_names = cached_shap_contributions(current)
-                    st.session_state.shap_values = combined_shap
-                    st.session_state.shap_names = combined_names
+                    st.session_state[StateKey.SHAP_VALUES] = combined_shap
+                    st.session_state[StateKey.SHAP_NAMES] = combined_names
                 except Exception:
-                    st.session_state.shap_values = None
-                    st.session_state.shap_names = None
-                st.session_state.ai_explanation = None
+                    st.session_state[StateKey.SHAP_VALUES] = None
+                    st.session_state[StateKey.SHAP_NAMES] = None
+                st.session_state[StateKey.AI_EXPLANATION] = None
 
                 if ood_ready:
                     status.update(label="Step 4+/4: OOD 分布检测...")
                     ood_risk, ood_result = run_ood_check(features, fp_array)
-                    st.session_state.ood_risk = ood_risk
-                    st.session_state.ood_result = ood_result
+                    st.session_state[StateKey.OOD_RISK] = ood_risk
+                    st.session_state[StateKey.OOD_RESULT] = ood_result
                 else:
-                    st.session_state.ood_risk = "UNKNOWN"
-                    st.session_state.ood_result = None
+                    st.session_state[StateKey.OOD_RISK] = "UNKNOWN"
+                    st.session_state[StateKey.OOD_RESULT] = None
 
                 status.update(label=f"分析完成！预测 logS = {float(prediction):.3f}", state="complete")
 
 
 # ========== Display results (5 tabs) ==========
-if st.session_state.predicted_smiles and st.session_state.predicted_logS is not None:
+if st.session_state.get(StateKey.PREDICTED_SMILES) and st.session_state.get(StateKey.PREDICTED_LOGS) is not None:
     render_results(model)
 
 

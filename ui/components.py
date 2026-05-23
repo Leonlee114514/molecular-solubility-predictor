@@ -4,6 +4,7 @@ DisSolve - Reusable UI components (header, footer, input area, CJK font).
 
 import streamlit as st
 from molecules import MOLECULE_DB, SEARCH_INDEX, search_pubchem as search_pubchem_final
+from core.state_keys import StateKey
 
 
 def render_html(html_content, height=1):
@@ -97,9 +98,9 @@ def render_input_area():
             filtered_mols = all_mols
 
         current_idx = 0
-        if "molecule_select_radio" in st.session_state and st.session_state.molecule_select_radio in filtered_mols:
-            current_idx = filtered_mols.index(st.session_state.molecule_select_radio)
-        elif st.session_state.get("molecule_select_radio") is None:
+        if StateKey.MOLECULE_SELECT_RADIO in st.session_state and st.session_state[StateKey.MOLECULE_SELECT_RADIO] in filtered_mols:
+            current_idx = filtered_mols.index(st.session_state[StateKey.MOLECULE_SELECT_RADIO])
+        elif st.session_state.get(StateKey.MOLECULE_SELECT_RADIO) is None:
             current_idx = 0
 
         selected_molecule = st.radio(
@@ -112,11 +113,11 @@ def render_input_area():
 
         if selected_molecule != "(自定义输入)":
             new_smiles = MOLECULE_DB[selected_molecule]
-            if new_smiles != st.session_state.smiles_input_box:
-                st.session_state.smiles_input_box = new_smiles
-                st.session_state.predicted_smiles = None
-                st.session_state.predicted_logS = None
-                st.session_state.ai_explanation = None
+            if new_smiles != st.session_state[StateKey.SMILES_INPUT]:
+                st.session_state[StateKey.SMILES_INPUT] = new_smiles
+                st.session_state[StateKey.PREDICTED_SMILES] = None
+                st.session_state[StateKey.PREDICTED_LOGS] = None
+                st.session_state[StateKey.AI_EXPLANATION] = None
                 st.rerun()
 
     # --- 方式2：三层搜索 ---
@@ -134,37 +135,37 @@ def render_input_area():
         with search_col2:
             search_clicked = st.button("&#128269; 搜索", key="search_btn", use_container_width=True)
 
-        if "search_state" not in st.session_state:
-            st.session_state.search_state = None
-            st.session_state.search_query = ""
-            st.session_state.fuzzy_matches = []
-            st.session_state.fuzzy_best = ""
-            st.session_state.fuzzy_smiles = ""
+        if StateKey.SEARCH_STATE not in st.session_state:
+            st.session_state[StateKey.SEARCH_STATE] = None
+            st.session_state[StateKey.SEARCH_QUERY] = ""
+            st.session_state[StateKey.FUZZY_MATCHES] = []
+            st.session_state[StateKey.FUZZY_BEST] = ""
+            st.session_state[StateKey.FUZZY_SMILES] = ""
 
         if search_clicked and search_name:
-            st.session_state.search_query = search_name.strip().lower()
-            st.session_state.search_state = None
-            st.session_state.fuzzy_matches = []
+            st.session_state[StateKey.SEARCH_QUERY] = search_name.strip().lower()
+            st.session_state[StateKey.SEARCH_STATE] = None
+            st.session_state[StateKey.FUZZY_MATCHES] = []
             st.rerun()
 
-        if not search_name and st.session_state.search_query:
-            st.session_state.search_query = ""
-            st.session_state.search_state = None
-            st.session_state.fuzzy_matches = []
+        if not search_name and st.session_state[StateKey.SEARCH_QUERY]:
+            st.session_state[StateKey.SEARCH_QUERY] = ""
+            st.session_state[StateKey.SEARCH_STATE] = None
+            st.session_state[StateKey.FUZZY_MATCHES] = []
             st.rerun()
 
-        query = st.session_state.search_query
+        query = st.session_state[StateKey.SEARCH_QUERY]
         if query:
             if query in SEARCH_INDEX:
                 found_smiles = SEARCH_INDEX[query]
                 st.success(f"本地精确匹配：`{search_name}` -> `{found_smiles}`")
-                if found_smiles != st.session_state.smiles_input_box:
-                    st.session_state.smiles_input_box = found_smiles
-                    st.session_state.predicted_smiles = None
-                    st.session_state.predicted_logS = None
-                    st.session_state.ai_explanation = None
+                if found_smiles != st.session_state[StateKey.SMILES_INPUT]:
+                    st.session_state[StateKey.SMILES_INPUT] = found_smiles
+                    st.session_state[StateKey.PREDICTED_SMILES] = None
+                    st.session_state[StateKey.PREDICTED_LOGS] = None
+                    st.session_state[StateKey.AI_EXPLANATION] = None
                 st.info("点击下方的 **Predict** 按钮查看结果")
-                st.session_state.search_state = "exact"
+                st.session_state[StateKey.SEARCH_STATE] = "exact"
             else:
                 matches = [k for k in SEARCH_INDEX.keys() if query in k or k in query]
                 if matches:
@@ -172,17 +173,17 @@ def render_input_area():
                     best_match = matches[0]
                     found_smiles = SEARCH_INDEX[best_match]
 
-                    if st.session_state.search_state not in ("fuzzy_pending", "fuzzy_confirmed", "pubchem_pending", "pubchem_done", "no_match"):
-                        st.session_state.search_state = "fuzzy_pending"
-                        st.session_state.fuzzy_matches = matches
-                        st.session_state.fuzzy_best = best_match
-                        st.session_state.fuzzy_smiles = found_smiles
+                    if st.session_state[StateKey.SEARCH_STATE] not in ("fuzzy_pending", "fuzzy_confirmed", "pubchem_pending", "pubchem_done", "no_match"):
+                        st.session_state[StateKey.SEARCH_STATE] = "fuzzy_pending"
+                        st.session_state[StateKey.FUZZY_MATCHES] = matches
+                        st.session_state[StateKey.FUZZY_BEST] = best_match
+                        st.session_state[StateKey.FUZZY_SMILES] = found_smiles
 
-                    matches = st.session_state.fuzzy_matches
-                    best_match = st.session_state.fuzzy_best
-                    found_smiles = st.session_state.fuzzy_smiles
+                    matches = st.session_state[StateKey.FUZZY_MATCHES]
+                    best_match = st.session_state[StateKey.FUZZY_BEST]
+                    found_smiles = st.session_state[StateKey.FUZZY_SMILES]
 
-                    if st.session_state.search_state == "fuzzy_pending":
+                    if st.session_state[StateKey.SEARCH_STATE] == "fuzzy_pending":
                         st.info(f"本地模糊匹配：`{search_name}` → `{best_match}`")
                         if len(matches) > 1:
                             with st.expander(f"查看全部 {len(matches)} 个模糊匹配结果", expanded=False):
@@ -197,22 +198,22 @@ def render_input_area():
                             use_pubchem = st.button("🔍 不是我要的，搜 PubChem", key="skip_to_pubchem", use_container_width=True)
 
                         if use_fuzzy:
-                            st.session_state.search_state = "fuzzy_confirmed"
-                            if found_smiles != st.session_state.smiles_input_box:
-                                st.session_state.smiles_input_box = found_smiles
-                                st.session_state.predicted_smiles = None
-                                st.session_state.predicted_logS = None
-                                st.session_state.ai_explanation = None
+                            st.session_state[StateKey.SEARCH_STATE] = "fuzzy_confirmed"
+                            if found_smiles != st.session_state[StateKey.SMILES_INPUT]:
+                                st.session_state[StateKey.SMILES_INPUT] = found_smiles
+                                st.session_state[StateKey.PREDICTED_SMILES] = None
+                                st.session_state[StateKey.PREDICTED_LOGS] = None
+                                st.session_state[StateKey.AI_EXPLANATION] = None
                             st.rerun()
                         elif use_pubchem:
-                            st.session_state.search_state = "pubchem_pending"
+                            st.session_state[StateKey.SEARCH_STATE] = "pubchem_pending"
                             st.rerun()
 
-                    if st.session_state.search_state == "fuzzy_confirmed":
+                    if st.session_state[StateKey.SEARCH_STATE] == "fuzzy_confirmed":
                         st.success(f"已采用：`{best_match}` → `{found_smiles}`")
                         st.info("点击下方的 **Predict** 按钮查看结果")
 
-                    if st.session_state.search_state == "pubchem_pending":
+                    if st.session_state[StateKey.SEARCH_STATE] == "pubchem_pending":
                         with st.status("正在查询 PubChem API...", expanded=True) as pub_status:
                             found_smiles, pub_status_str = search_pubchem_final(search_name)
                             if found_smiles:
@@ -220,26 +221,26 @@ def render_input_area():
                             else:
                                 pub_status.update(label=f"PubChem 未找到：{pub_status_str}", state="error")
                         if found_smiles:
-                            st.session_state.search_state = "pubchem_done"
-                            st.session_state.fuzzy_smiles = found_smiles
-                            if found_smiles != st.session_state.smiles_input_box:
-                                st.session_state.smiles_input_box = found_smiles
-                                st.session_state.predicted_smiles = None
-                                st.session_state.predicted_logS = None
-                                st.session_state.ai_explanation = None
+                            st.session_state[StateKey.SEARCH_STATE] = "pubchem_done"
+                            st.session_state[StateKey.FUZZY_SMILES] = found_smiles
+                            if found_smiles != st.session_state[StateKey.SMILES_INPUT]:
+                                st.session_state[StateKey.SMILES_INPUT] = found_smiles
+                                st.session_state[StateKey.PREDICTED_SMILES] = None
+                                st.session_state[StateKey.PREDICTED_LOGS] = None
+                                st.session_state[StateKey.AI_EXPLANATION] = None
                         else:
-                            st.session_state.search_state = "no_match"
+                            st.session_state[StateKey.SEARCH_STATE] = "no_match"
                         st.rerun()
 
-                    if st.session_state.search_state == "pubchem_done":
-                        st.success(f"PubChem 匹配：`{search_name}` → `{st.session_state.fuzzy_smiles}`")
+                    if st.session_state[StateKey.SEARCH_STATE] == "pubchem_done":
+                        st.success(f"PubChem 匹配：`{search_name}` → `{st.session_state[StateKey.FUZZY_SMILES]}`")
                         st.info("点击下方的 **Predict** 按钮查看结果")
 
-                    if st.session_state.search_state == "no_match":
+                    if st.session_state[StateKey.SEARCH_STATE] == "no_match":
                         st.error(f"未找到：`{search_name}`")
                 else:
-                    if st.session_state.search_state not in ("pubchem_done", "no_match"):
-                        st.session_state.search_state = "pubchem_pending"
+                    if st.session_state[StateKey.SEARCH_STATE] not in ("pubchem_done", "no_match"):
+                        st.session_state[StateKey.SEARCH_STATE] = "pubchem_pending"
                         with st.status("本地未找到，正在查询 PubChem API...", expanded=True) as pub_status:
                             found_smiles, pub_status_str = search_pubchem_final(search_name)
                             if found_smiles:
@@ -247,21 +248,21 @@ def render_input_area():
                             else:
                                 pub_status.update(label=f"PubChem 未找到：{pub_status_str}", state="error")
                         if found_smiles:
-                            st.session_state.search_state = "pubchem_done"
-                            st.session_state.fuzzy_smiles = found_smiles
+                            st.session_state[StateKey.SEARCH_STATE] = "pubchem_done"
+                            st.session_state[StateKey.FUZZY_SMILES] = found_smiles
                         else:
-                            st.session_state.search_state = "no_match"
+                            st.session_state[StateKey.SEARCH_STATE] = "no_match"
 
-                    if st.session_state.search_state == "pubchem_done":
-                        found_smiles = st.session_state.fuzzy_smiles
+                    if st.session_state[StateKey.SEARCH_STATE] == "pubchem_done":
+                        found_smiles = st.session_state[StateKey.FUZZY_SMILES]
                         st.success(f"PubChem 匹配：`{search_name}` -> `{found_smiles}`")
-                        if found_smiles != st.session_state.smiles_input_box:
-                            st.session_state.smiles_input_box = found_smiles
-                            st.session_state.predicted_smiles = None
-                            st.session_state.predicted_logS = None
-                            st.session_state.ai_explanation = None
+                        if found_smiles != st.session_state[StateKey.SMILES_INPUT]:
+                            st.session_state[StateKey.SMILES_INPUT] = found_smiles
+                            st.session_state[StateKey.PREDICTED_SMILES] = None
+                            st.session_state[StateKey.PREDICTED_LOGS] = None
+                            st.session_state[StateKey.AI_EXPLANATION] = None
                         st.info("点击下方的 **Predict** 按钮查看结果")
-                    elif st.session_state.search_state == "no_match":
+                    elif st.session_state[StateKey.SEARCH_STATE] == "no_match":
                         st.error(f"未找到：`{search_name}`")
                         st.info("尝试建议：")
                         st.markdown("""
@@ -293,7 +294,7 @@ def render_input_area():
             label_visibility="collapsed"
         )
 
-        if smiles_input != st.session_state.get("smiles_input_box", ""):
-            st.session_state.predicted_smiles = None
-            st.session_state.predicted_logS = None
-            st.session_state.ai_explanation = None
+        if smiles_input != st.session_state.get(StateKey.SMILES_INPUT, ""):
+            st.session_state[StateKey.PREDICTED_SMILES] = None
+            st.session_state[StateKey.PREDICTED_LOGS] = None
+            st.session_state[StateKey.AI_EXPLANATION] = None
