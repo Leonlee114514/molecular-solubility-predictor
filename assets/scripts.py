@@ -7,15 +7,10 @@ import base64
 import streamlit as st
 
 
-def _render_html(html_content, height=1, scrolling=True):
-    """Render HTML/JS via an off-screen iframe – invisible but JS executes."""
+def _render_html(html_content, height=1):
+    """Render HTML/JS via st.iframe data URL."""
     encoded = base64.b64encode(html_content.encode("utf-8")).decode("utf-8")
-    st.markdown(
-        f'<iframe src="data:text/html;charset=utf-8;base64,{encoded}" '
-        f'style="position:absolute;left:-9999px;width:1px;height:1px;border:0;" '
-        f'sandbox="allow-scripts allow-same-origin"></iframe>',
-        unsafe_allow_html=True,
-    )
+    st.iframe(f"data:text/html;charset=utf-8;base64,{encoded}", height=height)
 
 
 _DROPDOWN_OVERRIDE_JS = """<script>
@@ -803,29 +798,12 @@ _GLOSSARY_JS = """<script>
 </script>"""
 
 
-def inject_dropdown_override():
-    """Inject JS to force dark mode on dropdown menus and popovers."""
-    _render_html(_DROPDOWN_OVERRIDE_JS, height=1)
-
-
-def inject_starry_background():
-    """Inject JS for the Canvas particle starfield background."""
-    _render_html(_PARTICLE_STARRY_BG_JS, height=1)
-
-
-def inject_mouse_glow():
-    """Inject JS for mouse-follow glow, card tilt, and button ripple effects."""
-    _render_html(_MOUSE_GLOW_TILT_JS, height=1)
-
-
-def inject_glossary():
-    """Inject JS for the chemistry glossary popup."""
-    _render_html(_GLOSSARY_JS, height=1)
-
-
 def inject_all_scripts():
-    """Inject all client-side scripts."""
-    inject_dropdown_override()
-    inject_starry_background()
-    inject_mouse_glow()
-    inject_glossary()
+    """Inject all client-side scripts in a single iframe for performance."""
+    combined = (
+        _DROPDOWN_OVERRIDE_JS + "\n" +
+        _PARTICLE_STARRY_BG_JS + "\n" +
+        _MOUSE_GLOW_TILT_JS + "\n" +
+        _GLOSSARY_JS
+    )
+    _render_html(combined, height=1)
