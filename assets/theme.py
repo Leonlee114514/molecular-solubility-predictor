@@ -89,8 +89,8 @@ html, body,
 }
 
 .stApp {
-    background: var(--ob-bg-primary) !important;
-    background-color: var(--ob-bg-primary) !important;
+    background: transparent !important;
+    background-color: transparent !important;
     position: relative;
     min-height: 100vh;
 }
@@ -1065,7 +1065,7 @@ footer {visibility: hidden;}
     pointer-events: none;
     z-index: 9999;
     transform: translate3d(-50%, -50%, 0);
-    transition: opacity 0.3s ease, transform 0.12s ease-out;
+    transition: opacity 0.3s ease;
     will-change: transform;
 }
 </style>"""
