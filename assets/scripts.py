@@ -804,4 +804,4 @@ def inject_all_scripts():
         _MOUSE_GLOW_TILT_JS + "\n" +
         _GLOSSARY_JS
     )
-    _render_html(combined, height=0)
+    _render_html(combined, height=1)
