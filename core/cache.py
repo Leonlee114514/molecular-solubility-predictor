@@ -31,8 +31,8 @@ def cached_pka_analysis(smiles, pka_val):
 
 @st.cache_data(show_spinner=False)
 def cached_shap_contributions(smiles):
-    """Cached SHAP computation keyed by SMILES."""
-    result = compute_features(smiles)
+    """Cached SHAP computation keyed by SMILES. Reuses cached compute_features."""
+    result = cached_compute_features(smiles)
     if result is None:
         return None, None
     features, fp_array = result

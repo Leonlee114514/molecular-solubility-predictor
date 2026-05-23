@@ -1065,7 +1065,7 @@ footer {visibility: hidden;}
     pointer-events: none;
     z-index: 9999;
     transform: translate3d(-50%, -50%, 0);
-    transition: opacity 0.3s ease;
+    transition: opacity 0.3s ease, transform 0.12s ease-out;
     will-change: transform;
 }
 </style>"""

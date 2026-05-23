@@ -1,6 +1,7 @@
 """
 DisSolve - Client-side JavaScript injection.
-Contains dropdown override, starfield canvas, mouse glow, and glossary scripts.
+Contains dropdown override, mouse glow, card tilt, button ripple, and glossary scripts.
+Starfield background is handled by CSS (assets/theme.py) for better performance.
 """
 
 import streamlit as st
@@ -108,285 +109,6 @@ _DROPDOWN_OVERRIDE_JS = """<script>
 })();
 </script>"""
 
-_PARTICLE_STARRY_BG_JS = """<script>
-
-(function() {
-    'use strict';
-    console.log('[DisSolve] Starfield script loaded');
-    
-    // 检查是否偏好减弱动画
-    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-        console.log('[DisSolve] prefers-reduced-motion is enabled, skipping starfield');
-        return;
-    }
-    
-    var win = window.parent || window;
-    var doc = win.document;
-    
-    var canvas = doc.getElementById('ob-starfield');
-    if (!canvas) {
-        canvas = doc.createElement('canvas');
-        canvas.id = 'ob-starfield';
-        canvas.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;z-index:1;pointer-events:none;will-change:transform;';
-        var app = doc.querySelector('.stApp');
-        if (app) {
-            app.insertBefore(canvas, app.firstChild);
-        } else {
-            doc.body.insertBefore(canvas, doc.body.firstChild);
-        }
-        console.log('[DisSolve] Starfield canvas created');
-    } else {
-        console.log('[DisSolve] Starfield canvas already exists, reusing');
-    }
-    
-    var ctx = canvas.getContext('2d');
-    var W, H;
-    function resize() {
-        W = canvas.width = (win.innerWidth || 1920);
-        H = canvas.height = (win.innerHeight || 1080);
-    }
-    resize();
-    win.addEventListener('resize', resize);
-    console.log('[DisSolve] Canvas size: ' + W + 'x' + H);
-    
-    // 防止事件重复绑定
-    if (!doc.__obStarMouseBound) {
-        doc.__obStarMouseBound = true;
-        doc.addEventListener('mousemove', function(e) {
-            mouseStarX = e.clientX; mouseStarY = e.clientY;
-            mouseTrail.push({x: e.clientX, y: e.clientY, age: 0});
-            if (mouseTrail.length > maxTrail) mouseTrail.shift();
-        }, { passive: true });
-        doc.addEventListener('click', function(e) {
-            bursts.push({x: e.clientX, y: e.clientY, radius: 0, maxRadius: 200, life: 1.0});
-        }, { passive: true });
-    }
-    
-    // 粒子配置 - 3层（优化数量：从380减至200）
-    var layers = [
-        { count: 50, minR: 1.8, maxR: 3.5, speed: 0.08, colors: ['rgba(196,181,253,', 'rgba(103,232,249,', 'rgba(233,213,255,', 'rgba(255,255,255,'] },
-        { count: 70, minR: 1.0, maxR: 2.2, speed: 0.04, colors: ['rgba(167,139,250,', 'rgba(34,211,238,', 'rgba(139,92,246,', 'rgba(253,224,71,'] },
-        { count: 80, minR: 0.5, maxR: 1.2, speed: 0.02, colors: ['rgba(196,181,253,', 'rgba(103,232,249,', 'rgba(255,255,255,'] }
-    ];
-    
-    var stars = [];
-    layers.forEach(function(layer, li) {
-        for (var i = 0; i < layer.count; i++) {
-            var colorBase = layer.colors[Math.floor(Math.random() * layer.colors.length)];
-            stars.push({
-                x: Math.random() * W,
-                y: Math.random() * H,
-                r: layer.minR + Math.random() * (layer.maxR - layer.minR),
-                baseR: layer.minR + Math.random() * (layer.maxR - layer.minR),
-                vx: (Math.random() - 0.5) * layer.speed,
-                vy: (Math.random() - 0.5) * layer.speed,
-                color: colorBase,
-                alpha: 0.5 + Math.random() * 0.5,
-                twinkleSpeed: 0.005 + Math.random() * 0.015,
-                twinklePhase: Math.random() * Math.PI * 2,
-                layer: li
-            });
-        }
-    });
-    
-    var mouseStarX = W / 2, mouseStarY = H / 2;
-    var mouseTrail = [];
-    var maxTrail = 20;
-    var bursts = [];
-    
-    var frame = 0;
-    function animate() {
-        // 绘制深色背景（替代 .stApp 的 CSS 背景）
-        var bgGrad = ctx.createLinearGradient(0, 0, 0, H);
-        bgGrad.addColorStop(0, '#0f0f1c');
-        bgGrad.addColorStop(0.3, '#131328');
-        bgGrad.addColorStop(0.5, '#181830');
-        bgGrad.addColorStop(0.7, '#131328');
-        bgGrad.addColorStop(1, '#0f0f1c');
-        ctx.fillStyle = bgGrad;
-        ctx.clearRect(0, 0, W, H);
-
-        // 绘制星云光晕
-        var nebulas = [
-            {x: W*0.18, y: H*0.25, rx: W*0.35, ry: H*0.28, color: 'rgba(124,58,237,'},
-            {x: W*0.82, y: H*0.12, rx: W*0.28, ry: H*0.22, color: 'rgba(6,182,212,'},
-            {x: W*0.50, y: H*0.80, rx: W*0.25, ry: H*0.20, color: 'rgba(251,191,36,'},
-            {x: W*0.50, y: H*0.40, rx: W*0.40, ry: H*0.32, color: 'rgba(67,56,202,'}
-        ];
-        nebulas.forEach(function(n) {
-            var g = ctx.createRadialGradient(n.x, n.y, 0, n.x, n.y, Math.max(n.rx, n.ry));
-            g.addColorStop(0, n.color + '0.25)');
-            g.addColorStop(0.5, n.color + '0.08)');
-            g.addColorStop(1, n.color + '0)');
-            ctx.fillStyle = g;
-            ctx.beginPath();
-            ctx.ellipse(n.x, n.y, n.rx, n.ry, 0, 0, Math.PI*2);
-            ctx.fill();
-        });
-
-        frame++;
-        
-        // 鼠标附近星星连线网络（限制范围，仅检查亮星和中星层）
-        var lineCount = 0;
-        var maxLines = 30;
-        for (var i = 0; i < stars.length && lineCount < maxLines; i++) {
-            var dmx = stars[i].x - mouseStarX, dmy = stars[i].y - mouseStarY;
-            var dMouse = Math.sqrt(dmx*dmx + dmy*dmy);
-            if (dMouse > 200) continue;
-            // 只与有限数量的邻居连线
-            for (var j = i + 1; j < stars.length && lineCount < maxLines; j++) {
-                if (stars[j].layer > 1) continue; // 跳过微星层
-                var dx = stars[i].x - stars[j].x, dy = stars[i].y - stars[j].y;
-                var dist = Math.sqrt(dx*dx + dy*dy);
-                if (dist < 120) {
-                    var lineAlpha = 0.1 * (1 - dist/120) * (1 - dMouse/200);
-                    ctx.beginPath();
-                    ctx.moveTo(stars[i].x, stars[i].y);
-                    ctx.lineTo(stars[j].x, stars[j].y);
-                    ctx.strokeStyle = 'rgba(167,139,250,' + lineAlpha + ')';
-                    ctx.lineWidth = 0.6;
-                    ctx.stroke();
-                    lineCount++;
-                }
-            }
-        }
-
-        // ── 处理点击爆发效果 ──
-        for (var b = bursts.length - 1; b >= 0; b--) {
-            var burst = bursts[b];
-            burst.radius += 5;
-            burst.life = Math.max(0, 1 - burst.radius / burst.maxRadius);
-            if (burst.life <= 0) {
-                bursts.splice(b, 1);
-            }
-        }
-
-        // ── 更新所有爆发对星星的脉冲速度 ──
-        for (var i = 0; i < stars.length; i++) {
-            var s = stars[i];
-            for (var b = 0; b < bursts.length; b++) {
-                var burst = bursts[b];
-                var bdx = s.x - burst.x, bdy = s.y - burst.y;
-                var bDist = Math.sqrt(bdx*bdx + bdy*bdy);
-                if (bDist < burst.radius && bDist < burst.maxRadius && bDist > 2) {
-                    var force = (1 - bDist / burst.maxRadius) * burst.life * 2.5 * (1 - s.layer * 0.3);
-                    s.vx += (bdx / bDist) * force;
-                    s.vy += (bdy / bDist) * force;
-                }
-            }
-            s.x += s.vx;
-            s.y += s.vy;
-
-            // 速度阻尼：让星星逐渐减速，避免屏幕过于混乱
-            var damping = 0.992;
-            s.vx *= damping;
-            s.vy *= damping;
-
-            // 鼠标吸引效果（星座聚集）
-            var mdx = mouseStarX - s.x, mdy = mouseStarY - s.y;
-            var mDist = Math.sqrt(mdx*mdx + mdy*mdy);
-            if (mDist < 250 && mDist > 5) {
-                var attract = (250 - mDist) / 250 * 0.35 * (1 - s.layer * 0.3);
-                s.x += (mdx / mDist) * attract;
-                s.y += (mdy / mDist) * attract;
-            }
-
-            // 边界环绕
-            if (s.x < -20) s.x = W + 20; if (s.x > W + 20) s.x = -20;
-            if (s.y < -20) s.y = H + 20; if (s.y > H + 20) s.y = -20;
-
-            // 闪烁
-            var twinkle = Math.sin(frame * s.twinkleSpeed + s.twinklePhase);
-            var curAlpha = s.alpha * (0.5 + 0.5 * twinkle);
-            s.r = s.baseR * (0.8 + 0.2 * twinkle);
-
-            // 鼠标附近增亮
-            if (mDist < 200) {
-                curAlpha = Math.min(1, curAlpha + (200 - mDist)/200 * 0.4);
-                s.r *= 1 + (200 - mDist)/200 * 0.5;
-            }
-
-            // 发光效果
-            var glowR = s.r * (s.layer === 0 ? 8 : 5);
-            var glow = ctx.createRadialGradient(s.x, s.y, 0, s.x, s.y, glowR);
-            glow.addColorStop(0, s.color + (curAlpha * 0.5) + ')');
-            glow.addColorStop(1, s.color + '0)');
-            ctx.beginPath();
-            ctx.arc(s.x, s.y, glowR, 0, Math.PI*2);
-            ctx.fillStyle = glow;
-            ctx.fill();
-
-            // 核心星点
-            ctx.beginPath();
-            ctx.arc(s.x, s.y, s.r, 0, Math.PI*2);
-            ctx.fillStyle = s.color + curAlpha + ')';
-            ctx.fill();
-        }
-
-        // 鼠标轨迹光带
-        for (var t = 0; t < mouseTrail.length; t++) {
-            var pt = mouseTrail[t];
-            pt.age++;
-            var life = 1 - pt.age / 40;
-            if (life <= 0) continue;
-            var tr = 2 + life * 4;
-            var tg = ctx.createRadialGradient(pt.x, pt.y, 0, pt.x, pt.y, tr);
-            tg.addColorStop(0, 'rgba(196,181,253,' + (life * 0.35) + ')');
-            tg.addColorStop(1, 'rgba(124,58,237,0)');
-            ctx.beginPath();
-            ctx.arc(pt.x, pt.y, tr, 0, Math.PI*2);
-            ctx.fillStyle = tg;
-            ctx.fill();
-        }
-        while (mouseTrail.length > 0 && mouseTrail[0].age > 40) mouseTrail.shift();
-
-        // 鼠标核心光晕
-        var mGlow = ctx.createRadialGradient(mouseStarX, mouseStarY, 0, mouseStarX, mouseStarY, 60);
-        mGlow.addColorStop(0, 'rgba(196,181,253,0.15)');
-        mGlow.addColorStop(0.4, 'rgba(124,58,237,0.06)');
-        mGlow.addColorStop(1, 'rgba(124,58,237,0)');
-        ctx.beginPath();
-        ctx.arc(mouseStarX, mouseStarY, 60, 0, Math.PI*2);
-        ctx.fillStyle = mGlow;
-        ctx.fill();
-
-        // ── 点击爆发涟漪渲染 ──
-        for (var b = 0; b < bursts.length; b++) {
-            var burst = bursts[b];
-            var alpha = burst.life * 0.4;
-            // 外圈冲击波
-            ctx.beginPath();
-            ctx.arc(burst.x, burst.y, burst.radius, 0, Math.PI*2);
-            ctx.strokeStyle = 'rgba(167,139,250,' + alpha + ')';
-            ctx.lineWidth = 2 * burst.life;
-            ctx.stroke();
-            // 内圈光晕
-            var bGlow = ctx.createRadialGradient(burst.x, burst.y, 0, burst.x, burst.y, burst.radius);
-            bGlow.addColorStop(0, 'rgba(196,181,253,' + (alpha * 0.6) + ')');
-            bGlow.addColorStop(0.4, 'rgba(124,58,237,' + (alpha * 0.2) + ')');
-            bGlow.addColorStop(1, 'rgba(124,58,237,0)');
-            ctx.beginPath();
-            ctx.arc(burst.x, burst.y, burst.radius, 0, Math.PI*2);
-            ctx.fillStyle = bGlow;
-            ctx.fill();
-        }
-
-        animFrameId = requestAnimationFrame(animate);
-    }
-
-    var animFrameId = requestAnimationFrame(animate);
-
-    // 页面不可见时暂停动画，节省 CPU
-    document.addEventListener('visibilitychange', function() {
-        if (document.hidden) {
-            if (animFrameId) { cancelAnimationFrame(animFrameId); animFrameId = null; }
-        } else {
-            if (!animFrameId) animFrameId = requestAnimationFrame(animate);
-        }
-    });
-})();
-</script>"""
-
 _MOUSE_GLOW_TILT_JS = """<script>
 
 (function() {
@@ -397,36 +119,27 @@ _MOUSE_GLOW_TILT_JS = """<script>
         glow.className = 'cursor-glow';
         window.parent.document.body.appendChild(glow);
     }
-    
+
     let win2 = window.parent || window;
     let doc2 = win2.document;
-    let mouseX = win2.innerWidth / 2, mouseY = win2.innerHeight / 2;
-    let currentX = mouseX, currentY = mouseY;
     let moveTimeout;
-    
+
     console.log('[DisSolve] Cursor glow script loaded, win size: ' + win2.innerWidth + 'x' + win2.innerHeight);
-    
+
     if (!doc2.__obGlowMouseBound) {
         doc2.__obGlowMouseBound = true;
         doc2.addEventListener('mousemove', function(e) {
-            mouseX = e.clientX; mouseY = e.clientY;
             glow.style.opacity = '1';
+            glow.style.transform = 'translate3d(' + (e.clientX - 150) + 'px, ' + (e.clientY - 150) + 'px, 0)';
             clearTimeout(moveTimeout);
-            moveTimeout = setTimeout(() => { glow.style.opacity = '0'; }, 150);
+            moveTimeout = setTimeout(function() { glow.style.opacity = '0'; }, 150);
         }, { passive: true });
     }
     if (!doc2.__obCursorLeaveBound) {
         doc2.__obCursorLeaveBound = true;
-        doc2.addEventListener('mouseleave', () => glow.style.opacity = '0');
+        doc2.addEventListener('mouseleave', function() { glow.style.opacity = '0'; });
     }
-    
-    (function animate() {
-        currentX += (mouseX - currentX) * 0.08;
-        currentY += (mouseY - currentY) * 0.08;
-        glow.style.transform = 'translate3d(' + (currentX - 150) + 'px, ' + (currentY - 150) + 'px, 0)';
-        requestAnimationFrame(animate);
-    })();
-    console.log('[DisSolve] Cursor glow initialized at ' + currentX + ',' + currentY);
+    console.log('[DisSolve] Cursor glow initialized');
     
     // 卡片 3D tilt 效果（更克制的角度，避免与CSS hover冲突）
     function bindTilt() {
@@ -797,10 +510,14 @@ _GLOSSARY_JS = """<script>
 
 
 def inject_all_scripts():
-    """Inject all client-side scripts in a single iframe for performance."""
+    """Inject essential client-side scripts in a single iframe.
+
+    NOTE: The CSS theme (assets/theme.py) already provides a performant
+    starfield background via ::before / ::after pseudo-elements.
+    No JS canvas animation is needed.
+    """
     combined = (
         _DROPDOWN_OVERRIDE_JS + "\n" +
-        _PARTICLE_STARRY_BG_JS + "\n" +
         _MOUSE_GLOW_TILT_JS + "\n" +
         _GLOSSARY_JS
     )
