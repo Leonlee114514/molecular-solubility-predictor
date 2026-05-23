@@ -138,7 +138,7 @@ def render_results(model):
             st.markdown("""<div class="card-title">&#127919; 3D Ball-and-Stick Model</div>""", unsafe_allow_html=True)
             html_3d = cached_show_3d(st.session_state.predicted_smiles)
             if html_3d:
-                render_html(html_3d, height=420, scrolling=False)
+                render_html(html_3d, height=420)
             else:
                 st.info("3D 模型生成失败（需安装 py3Dmol）")
 

@@ -4,10 +4,21 @@ Thin orchestrator: imports modules, manages session state, and coordinates rende
 """
 
 import streamlit as st
+
+# CRITICAL: st.set_page_config() MUST be the first Streamlit command.
+# Importing core.cache or other modules with @st.cache_data triggers
+# Streamlit commands at import time, violating the ordering requirement
+# and causing CSS/layout/rendering issues.
+st.set_page_config(
+    page_title="DisSolve - Molecular Property Predictor",
+    page_icon="🧬",
+    layout="wide",
+    initial_sidebar_state="collapsed"
+)
+
 import numpy as np
 from dotenv import load_dotenv
 
-# Load environment variables before importing local modules
 load_dotenv()
 
 from model import (
@@ -22,15 +33,6 @@ from assets.theme import inject_theme_css
 from assets.scripts import inject_all_scripts
 from ui.components import render_header, render_footer, render_input_area
 from ui.results import render_results
-
-
-# ========== Page config ==========
-st.set_page_config(
-    page_title="DisSolve - Molecular Property Predictor",
-    page_icon="🧬",
-    layout="wide",
-    initial_sidebar_state="collapsed"
-)
 
 
 # ========== Inject CSS and JS ==========

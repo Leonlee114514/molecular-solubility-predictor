@@ -7,7 +7,7 @@ import streamlit as st
 from molecules import MOLECULE_DB, SEARCH_INDEX, search_pubchem as search_pubchem_final
 
 
-def render_html(html_content, height=1, scrolling=True):
+def render_html(html_content, height=1):
     """Render HTML/JS via st.iframe data URL."""
     encoded = base64.b64encode(html_content.encode("utf-8")).decode("utf-8")
     st.iframe(f"data:text/html;charset=utf-8;base64,{encoded}", height=height)
