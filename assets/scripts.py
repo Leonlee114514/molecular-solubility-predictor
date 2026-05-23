@@ -7,7 +7,7 @@ import base64
 import streamlit as st
 
 
-def _render_html(html_content, height=0, scrolling=True):
+def _render_html(html_content, height=1, scrolling=True):
     """Render HTML/JS via st.iframe using a data URL."""
     encoded = base64.b64encode(html_content.encode("utf-8")).decode("utf-8")
     st.iframe(f"data:text/html;charset=utf-8;base64,{encoded}", height=height)
@@ -800,22 +800,22 @@ _GLOSSARY_JS = """<script>
 
 def inject_dropdown_override():
     """Inject JS to force dark mode on dropdown menus and popovers."""
-    _render_html(_DROPDOWN_OVERRIDE_JS, height=0)
+    _render_html(_DROPDOWN_OVERRIDE_JS, height=1)
 
 
 def inject_starry_background():
     """Inject JS for the Canvas particle starfield background."""
-    _render_html(_PARTICLE_STARRY_BG_JS, height=0)
+    _render_html(_PARTICLE_STARRY_BG_JS, height=1)
 
 
 def inject_mouse_glow():
     """Inject JS for mouse-follow glow, card tilt, and button ripple effects."""
-    _render_html(_MOUSE_GLOW_TILT_JS, height=0)
+    _render_html(_MOUSE_GLOW_TILT_JS, height=1)
 
 
 def inject_glossary():
     """Inject JS for the chemistry glossary popup."""
-    _render_html(_GLOSSARY_JS, height=0)
+    _render_html(_GLOSSARY_JS, height=1)
 
 
 def inject_all_scripts():
