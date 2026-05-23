@@ -7,20 +7,12 @@ import numpy as np
 import openai
 import streamlit as st
 
-
 def _get_api_key():
     """Read Kimi API key from Streamlit Secrets or .env file."""
     return st.secrets.get("KIMI_API_KEY") or os.getenv("KIMI_API_KEY")
 
-
-def explain_with_kimi(smiles, prediction, features, shap_features=None, shap_values=None, pka_value=None, pka_type=None):
-    """Generate an AI-powered chemistry explanation using Kimi (Moonshot AI).
-
-    Returns a plain-text explanation string, or an error message on failure.
-    """
-    api_key = _get_api_key()
-    if not api_key:
-        return "未配置 Kimi API Key。请在 .env 文件中写入：KIMI_API_KEY=sk-你的密钥"
+def _build_explanation_prompt(smiles, prediction, features, shap_features=None, shap_values=None, pka_value=None, pka_type=None):
+    """Build the Kimi API prompt for chemistry explanation. Returns (prompt_str, solubility_level)."""
 
     if prediction > 0:
         solubility_level = "易溶于水"
@@ -129,6 +121,17 @@ def explain_with_kimi(smiles, prediction, features, shap_features=None, shap_val
 - 第2段必须基于 SMILES 识别出**至少2个具体官能团**和**骨架类型**。
 - 第3段必须引用分子性质数据（LogP、TPSA、H-Bond 数目等）和 SHAP 贡献值。
 - 语言准确但不过度学术，适合具备基础有机化学知识的高中生理解。"""
+    return prompt, solubility_level
+
+def explain_with_kimi(smiles, prediction, features, shap_features=None, shap_values=None, pka_value=None, pka_type=None):
+    """Generate an AI-powered chemistry explanation using Kimi (Moonshot AI).
+
+    Returns a plain-text explanation string, or an error message on failure.
+    """
+    api_key = _get_api_key()
+    if not api_key:
+        return "未配置 Kimi API Key。请在 .env 文件中写入：KIMI_API_KEY=sk-你的密钥"
+    prompt, _ = _build_explanation_prompt(smiles, prediction, features, shap_features, shap_values, pka_value, pka_type)
 
     try:
         client = openai.OpenAI(

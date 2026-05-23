@@ -27,7 +27,8 @@
       "WebSearch",
       "Bash(rm -rf assets/__pycache__ core/__pycache__ ui/__pycache__ __pycache__)",
       "Bash(git show *)",
-      "Read(//tmp/**)"
+      "Read(//tmp/**)",
+      "Bash(python3 *)"
     ]
   }
 }
