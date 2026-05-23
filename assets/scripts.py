@@ -127,7 +127,7 @@ _PARTICLE_STARRY_BG_JS = """<script>
     if (!canvas) {
         canvas = doc.createElement('canvas');
         canvas.id = 'ob-starfield';
-        canvas.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;z-index:1;pointer-events:none;';
+        canvas.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;z-index:1;pointer-events:none;will-change:transform;';
         var app = doc.querySelector('.stApp');
         if (app) {
             app.insertBefore(canvas, app.firstChild);
@@ -141,9 +141,46 @@ _PARTICLE_STARRY_BG_JS = """<script>
     
     var ctx = canvas.getContext('2d');
     var W, H;
+    var bgCache = null;  // 缓存静态背景（渐变+星云），避免每帧重绘
+
+    function buildBgCache() {
+        var off = document.createElement('canvas');
+        off.width = W; off.height = H;
+        var oc = off.getContext('2d');
+
+        var bgGrad = oc.createLinearGradient(0, 0, 0, H);
+        bgGrad.addColorStop(0, '#0f0f1c');
+        bgGrad.addColorStop(0.3, '#131328');
+        bgGrad.addColorStop(0.5, '#181830');
+        bgGrad.addColorStop(0.7, '#131328');
+        bgGrad.addColorStop(1, '#0f0f1c');
+        oc.fillStyle = bgGrad;
+        oc.fillRect(0, 0, W, H);
+
+        var nebulas = [
+            {x: W*0.18, y: H*0.25, rx: W*0.35, ry: H*0.28, color: 'rgba(124,58,237,'},
+            {x: W*0.82, y: H*0.12, rx: W*0.28, ry: H*0.22, color: 'rgba(6,182,212,'},
+            {x: W*0.50, y: H*0.80, rx: W*0.25, ry: H*0.20, color: 'rgba(251,191,36,'},
+            {x: W*0.50, y: H*0.40, rx: W*0.40, ry: H*0.32, color: 'rgba(67,56,202,'}
+        ];
+        nebulas.forEach(function(n) {
+            var g = oc.createRadialGradient(n.x, n.y, 0, n.x, n.y, Math.max(n.rx, n.ry));
+            g.addColorStop(0, n.color + '0.25)');
+            g.addColorStop(0.5, n.color + '0.08)');
+            g.addColorStop(1, n.color + '0)');
+            oc.fillStyle = g;
+            oc.beginPath();
+            oc.ellipse(n.x, n.y, n.rx, n.ry, 0, 0, Math.PI*2);
+            oc.fill();
+        });
+
+        bgCache = off;
+    }
+
     function resize() {
         W = canvas.width = (win.innerWidth || 1920);
         H = canvas.height = (win.innerHeight || 1080);
+        bgCache = null;  // 尺寸变化时重建缓存
     }
     resize();
     win.addEventListener('resize', resize);
@@ -196,33 +233,10 @@ _PARTICLE_STARRY_BG_JS = """<script>
     
     var frame = 0;
     function animate() {
-        // 绘制深色背景（替代 .stApp 的 CSS 背景）
-        var bgGrad = ctx.createLinearGradient(0, 0, 0, H);
-        bgGrad.addColorStop(0, '#0f0f1c');
-        bgGrad.addColorStop(0.3, '#131328');
-        bgGrad.addColorStop(0.5, '#181830');
-        bgGrad.addColorStop(0.7, '#131328');
-        bgGrad.addColorStop(1, '#0f0f1c');
-        ctx.fillStyle = bgGrad;
+        // 使用缓存的静态背景（渐变+星云），避免每帧重复绘制
+        if (!bgCache) buildBgCache();
         ctx.clearRect(0, 0, W, H);
-
-        // 绘制星云光晕
-        var nebulas = [
-            {x: W*0.18, y: H*0.25, rx: W*0.35, ry: H*0.28, color: 'rgba(124,58,237,'},
-            {x: W*0.82, y: H*0.12, rx: W*0.28, ry: H*0.22, color: 'rgba(6,182,212,'},
-            {x: W*0.50, y: H*0.80, rx: W*0.25, ry: H*0.20, color: 'rgba(251,191,36,'},
-            {x: W*0.50, y: H*0.40, rx: W*0.40, ry: H*0.32, color: 'rgba(67,56,202,'}
-        ];
-        nebulas.forEach(function(n) {
-            var g = ctx.createRadialGradient(n.x, n.y, 0, n.x, n.y, Math.max(n.rx, n.ry));
-            g.addColorStop(0, n.color + '0.25)');
-            g.addColorStop(0.5, n.color + '0.08)');
-            g.addColorStop(1, n.color + '0)');
-            ctx.fillStyle = g;
-            ctx.beginPath();
-            ctx.ellipse(n.x, n.y, n.rx, n.ry, 0, 0, Math.PI*2);
-            ctx.fill();
-        });
+        ctx.drawImage(bgCache, 0, 0);
 
         frame++;
         
@@ -804,4 +818,4 @@ def inject_all_scripts():
         _MOUSE_GLOW_TILT_JS + "\n" +
         _GLOSSARY_JS
     )
-    _render_html(combined, height=1)
+    _render_html(combined, height=0)
