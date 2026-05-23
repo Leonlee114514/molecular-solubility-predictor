@@ -82,6 +82,8 @@ print("\n📋 数据来源分布:")
 print(df['source'].value_counts())
 
 # ========== 第2步：特征计算（从共享模块导入）==========
+import sys
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from features import compute_features
 
 print("\n🔬 正在提取分子特征...")
@@ -225,4 +227,4 @@ print("   - 数据量: 1,144 → ~11,000 分子")
 print("   - 来源多样性: 单一 → 多数据集")
 print("   - 评估维度: 总体 R² → 分来源 R²（检验跨数据集泛化）")
 print("\n⚠️ 注意：如果要让 app.py 使用 V2 模型，需要修改 app.py 中的模型路径")
-print("   把 'output/solubility_model.pkl' 改成 'output_v2/solubility_model_v2.pkl'")
+print("   app.py 已自动加载 output_v2/ 中的模型，无需额外修改")

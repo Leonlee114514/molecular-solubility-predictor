@@ -9,7 +9,7 @@ from rdkit.Chem import rdMolDescriptors
 import matplotlib.pyplot as plt
 from matplotlib.patches import Patch
 
-from features import mol_to_dark_image
+from ui.plots import mol_to_dark_image
 from model import get_pka_type, get_solubility_level, get_shap_explainer
 from core.ai_client import explain_with_kimi
 from core.cache import (

@@ -16,7 +16,7 @@ import pandas as pd
 from ood_detector import OODDetector, save_ood_detector, DESCRIPTOR_ORDER
 
 # Add the project root to path so we can import features
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from features import compute_features
 
 N_FP_SAMPLES = 2000  # number of fingerprint reference samples to store

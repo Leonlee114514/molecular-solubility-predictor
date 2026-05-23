@@ -68,6 +68,8 @@ df = df.rename(columns={
 
 # ========== 第3步：定义特征计算函数 ==========
 # 从共享模块 features.py 导入
+import sys
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from features import compute_features
 
 print("\n🔬 正在从分子结构中提取特征...")

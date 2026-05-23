@@ -4,10 +4,9 @@ Separated from app.py so UI modules can import them without circular dependencie
 """
 
 import streamlit as st
-from features import (
-    compute_features, show_3d_molecule, analyze_pka_chemistry,
-    analyze_lipinski, analyze_admet, analyze_druglikeness,
-)
+from features import compute_features
+from core.analysis import analyze_pka_chemistry, analyze_lipinski, analyze_admet, analyze_druglikeness
+from ui.plots import show_3d_molecule
 from model import load_solubility_model, get_shap_contributions
 
 
