@@ -89,8 +89,8 @@ html, body,
 }
 
 .stApp {
-    background: transparent !important;
-    background-color: transparent !important;
+    background: var(--ob-bg-primary) !important;
+    background-color: var(--ob-bg-primary) !important;
     position: relative;
     min-height: 100vh;
 }
