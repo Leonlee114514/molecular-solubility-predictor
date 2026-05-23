@@ -10,7 +10,7 @@ import streamlit as st
 def _render_html(html_content, height=0, scrolling=True):
     """Render HTML/JS via st.iframe using a data URL."""
     encoded = base64.b64encode(html_content.encode("utf-8")).decode("utf-8")
-    st.iframe(f"data:text/html;charset=utf-8;base64,{encoded}", height=height, scrolling=scrolling)
+    st.iframe(f"data:text/html;charset=utf-8;base64,{encoded}", height=height)
 
 
 _DROPDOWN_OVERRIDE_JS = """<script>
