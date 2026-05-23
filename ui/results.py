@@ -97,7 +97,7 @@ def render_results(model):
                 }}
             }})();
             </script>
-            """, height=0)
+            """, height=1)
 
         # =========================================
         # TAB 0: Preview (分子预览)
