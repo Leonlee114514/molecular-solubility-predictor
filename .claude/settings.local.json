@@ -25,7 +25,9 @@
       "Bash(taskkill //F //IM python.exe)",
       "Bash(curl -s http://localhost:8503)",
       "WebSearch",
-      "Bash(rm -rf assets/__pycache__ core/__pycache__ ui/__pycache__ __pycache__)"
+      "Bash(rm -rf assets/__pycache__ core/__pycache__ ui/__pycache__ __pycache__)",
+      "Bash(git show *)",
+      "Read(//tmp/**)"
     ]
   }
 }

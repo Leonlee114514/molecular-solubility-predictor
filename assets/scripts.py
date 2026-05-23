@@ -3,14 +3,12 @@ DisSolve - Client-side JavaScript injection.
 Contains dropdown override, starfield canvas, mouse glow, and glossary scripts.
 """
 
-import base64
 import streamlit as st
 
 
 def _render_html(html_content, height=1):
-    """Render HTML/JS via st.iframe data URL."""
-    encoded = base64.b64encode(html_content.encode("utf-8")).decode("utf-8")
-    st.iframe(f"data:text/html;charset=utf-8;base64,{encoded}", height=height)
+    """Render HTML/JS via st.components.v1.html (same-origin, window.parent access works)."""
+    st.components.v1.html(html_content, height=height)
 
 
 _DROPDOWN_OVERRIDE_JS = """<script>
