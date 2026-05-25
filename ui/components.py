@@ -74,6 +74,29 @@ def render_footer():
     """, unsafe_allow_html=True)
 
 
+def _resolve_display_name(smiles, fallback=""):
+    """Reverse-lookup the display name for a SMILES in MOLECULE_DB."""
+    if not smiles:
+        return fallback
+    return next(
+        (k for k, v in MOLECULE_DB.items() if v == smiles and k != "(自定义输入)"),
+        fallback,
+    )
+
+
+def _set_current_smiles(smiles, name=None):
+    """Update SMILES_INPUT and track the molecule name for history."""
+    if smiles != st.session_state.get(StateKey.SMILES_INPUT, ""):
+        st.session_state[StateKey.SMILES_INPUT] = smiles
+        st.session_state[StateKey.PREDICTED_SMILES] = None
+        st.session_state[StateKey.PREDICTED_LOGS] = None
+        st.session_state[StateKey.AI_EXPLANATION] = None
+    if name:
+        st.session_state[StateKey.CURRENT_MOLECULE_NAME] = name
+    elif smiles:
+        st.session_state[StateKey.CURRENT_MOLECULE_NAME] = _resolve_display_name(smiles)
+
+
 def _on_radio_select():
     """Callback when user actively selects a molecule from the radio list.
     Only fires on explicit user interaction, not on every script run.
@@ -83,6 +106,7 @@ def _on_radio_select():
         smiles = MOLECULE_DB.get(selected)
         if smiles:
             st.session_state[StateKey.SMILES_INPUT] = smiles
+            st.session_state[StateKey.CURRENT_MOLECULE_NAME] = selected
             st.session_state[StateKey.PREDICTED_SMILES] = None
             st.session_state[StateKey.PREDICTED_LOGS] = None
             st.session_state[StateKey.AI_EXPLANATION] = None
@@ -165,11 +189,7 @@ def render_input_area():
             if query in SEARCH_INDEX:
                 found_smiles = SEARCH_INDEX[query]
                 st.success(f"本地精确匹配：`{search_name}` -> `{found_smiles}`")
-                if found_smiles != st.session_state[StateKey.SMILES_INPUT]:
-                    st.session_state[StateKey.SMILES_INPUT] = found_smiles
-                    st.session_state[StateKey.PREDICTED_SMILES] = None
-                    st.session_state[StateKey.PREDICTED_LOGS] = None
-                    st.session_state[StateKey.AI_EXPLANATION] = None
+                _set_current_smiles(found_smiles)
                 st.info("点击下方的 **Predict** 按钮查看结果")
                 st.session_state[StateKey.SEARCH_STATE] = "exact"
             else:
@@ -205,11 +225,7 @@ def render_input_area():
 
                         if use_fuzzy:
                             st.session_state[StateKey.SEARCH_STATE] = "fuzzy_confirmed"
-                            if found_smiles != st.session_state[StateKey.SMILES_INPUT]:
-                                st.session_state[StateKey.SMILES_INPUT] = found_smiles
-                                st.session_state[StateKey.PREDICTED_SMILES] = None
-                                st.session_state[StateKey.PREDICTED_LOGS] = None
-                                st.session_state[StateKey.AI_EXPLANATION] = None
+                            _set_current_smiles(found_smiles)
                             st.rerun()
                         elif use_pubchem:
                             st.session_state[StateKey.SEARCH_STATE] = "pubchem_pending"
@@ -229,11 +245,7 @@ def render_input_area():
                         if found_smiles:
                             st.session_state[StateKey.SEARCH_STATE] = "pubchem_done"
                             st.session_state[StateKey.FUZZY_SMILES] = found_smiles
-                            if found_smiles != st.session_state[StateKey.SMILES_INPUT]:
-                                st.session_state[StateKey.SMILES_INPUT] = found_smiles
-                                st.session_state[StateKey.PREDICTED_SMILES] = None
-                                st.session_state[StateKey.PREDICTED_LOGS] = None
-                                st.session_state[StateKey.AI_EXPLANATION] = None
+                            _set_current_smiles(found_smiles, name=search_name.strip())
                         else:
                             st.session_state[StateKey.SEARCH_STATE] = "no_match"
                         st.rerun()
@@ -262,11 +274,7 @@ def render_input_area():
                     if st.session_state[StateKey.SEARCH_STATE] == "pubchem_done":
                         found_smiles = st.session_state[StateKey.FUZZY_SMILES]
                         st.success(f"PubChem 匹配：`{search_name}` -> `{found_smiles}`")
-                        if found_smiles != st.session_state[StateKey.SMILES_INPUT]:
-                            st.session_state[StateKey.SMILES_INPUT] = found_smiles
-                            st.session_state[StateKey.PREDICTED_SMILES] = None
-                            st.session_state[StateKey.PREDICTED_LOGS] = None
-                            st.session_state[StateKey.AI_EXPLANATION] = None
+                        _set_current_smiles(found_smiles, name=search_name.strip())
                         st.info("点击下方的 **Predict** 按钮查看结果")
                     elif st.session_state[StateKey.SEARCH_STATE] == "no_match":
                         st.error(f"未找到：`{search_name}`")
@@ -304,6 +312,13 @@ def render_input_area():
             st.session_state[StateKey.PREDICTED_SMILES] = None
             st.session_state[StateKey.PREDICTED_LOGS] = None
             st.session_state[StateKey.AI_EXPLANATION] = None
+        # Keep molecule name in sync with the current SMILES
+        if smiles_input:
+            resolved = _resolve_display_name(smiles_input, "")
+            if resolved:
+                st.session_state[StateKey.CURRENT_MOLECULE_NAME] = resolved
+            elif not st.session_state.get(StateKey.CURRENT_MOLECULE_NAME):
+                pass  # keep whatever was set by Method 1 or 2
 
 
 def render_file_upload_input():
@@ -380,6 +395,7 @@ def render_prediction_history():
                     # Can't set widget key directly — widget already rendered this run.
                     # Store pending value; app.py will apply it before the widget renders.
                     st.session_state["_pending_history_smiles"] = smiles
+                    st.session_state["_pending_history_name"] = name
                     st.session_state[StateKey.PREDICTED_SMILES] = None
                     st.session_state[StateKey.PREDICTED_LOGS] = None
                     st.session_state[StateKey.AI_EXPLANATION] = None

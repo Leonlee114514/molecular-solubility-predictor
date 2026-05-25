@@ -89,6 +89,7 @@ if StateKey.AI_EXPLANATION not in st.session_state:
 # Apply pending history selection (must happen before widget renders)
 if "_pending_history_smiles" in st.session_state:
     st.session_state[StateKey.SMILES_INPUT] = st.session_state.pop("_pending_history_smiles")
+    st.session_state[StateKey.CURRENT_MOLECULE_NAME] = st.session_state.pop("_pending_history_name", "")
     st.session_state[StateKey.PREDICTED_SMILES] = None
     st.session_state[StateKey.PREDICTED_LOGS] = None
     st.session_state[StateKey.AI_EXPLANATION] = None
@@ -177,15 +178,16 @@ if predict_button and model_ready:
                 # ── Save to prediction history ──
                 try:
                     from molecules import MOLECULE_DB
-                    # Prefer the radio selection if it matches current SMILES
-                    mol_name = ""
-                    radio_key = st.session_state.get("molecule_select_radio")
-                    if radio_key and radio_key in MOLECULE_DB and MOLECULE_DB[radio_key] == current:
-                        mol_name = radio_key
-                    else:
-                        # Fall back to reverse SMILES lookup
+                    mol_name = st.session_state.get(StateKey.CURRENT_MOLECULE_NAME, "")
+                    if not mol_name:
+                        # Fall back to radio selection if it matches current SMILES
+                        radio_key = st.session_state.get("molecule_select_radio")
+                        if radio_key and radio_key in MOLECULE_DB and MOLECULE_DB[radio_key] == current:
+                            mol_name = radio_key
+                    if not mol_name:
+                        # Last resort: reverse SMILES lookup
                         mol_name = next(
-                            (k for k, v in MOLECULE_DB.items() if v == current),
+                            (k for k, v in MOLECULE_DB.items() if v == current and k != "(自定义输入)"),
                             "",
                         )
                 except Exception:

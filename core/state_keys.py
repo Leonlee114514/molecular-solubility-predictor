@@ -40,5 +40,8 @@ class StateKey:
     # ── Batch prediction ──
     BATCH_RESULTS = "batch_results"
 
+    # ── Molecule name tracking ──
+    CURRENT_MOLECULE_NAME = "_current_molecule_name"
+
     # ── Internal ──
     TARGET_TAB = "_target_tab"
