@@ -5,6 +5,7 @@ DisSolve - Reusable UI components (header, footer, input area, CJK font).
 import streamlit as st
 from molecules import MOLECULE_DB, SEARCH_INDEX, search_pubchem as search_pubchem_final
 from core.state_keys import StateKey
+from features import smiles_from_file
 
 
 def render_html(html_content, height=1):
@@ -298,3 +299,79 @@ def render_input_area():
             st.session_state[StateKey.PREDICTED_SMILES] = None
             st.session_state[StateKey.PREDICTED_LOGS] = None
             st.session_state[StateKey.AI_EXPLANATION] = None
+
+
+def render_file_upload_input():
+    """Render the 4th input method: upload .mol/.sdf/.pdb files."""
+    with st.container(border=True):
+        st.markdown("""<div class="card-title">&#128196; 方式 4：上传分子文件</div>""", unsafe_allow_html=True)
+        st.caption("支持 .mol .sdf .mol2 .pdb .xyz 格式")
+
+        uploaded = st.file_uploader(
+            "选择分子文件",
+            type=["mol", "sdf", "mol2", "pdb", "xyz"],
+            key="mol_file_uploader",
+            label_visibility="collapsed",
+        )
+
+        if uploaded is not None:
+            _file_upload_key = f"_parsed_{uploaded.name}"
+            if st.session_state.get(_file_upload_key) != uploaded.getvalue():
+                # New file — parse it
+                result = smiles_from_file(uploaded)
+                if result is not None:
+                    parsed_smiles, formula, mw = result
+                    st.success(f"解析成功：{uploaded.name} → {formula} ({mw:.1f} Da)")
+                    st.code(parsed_smiles, language=None)
+                    if parsed_smiles != st.session_state.get(StateKey.SMILES_INPUT):
+                        st.session_state[StateKey.SMILES_INPUT] = parsed_smiles
+                        st.session_state[StateKey.PREDICTED_SMILES] = None
+                        st.session_state[StateKey.PREDICTED_LOGS] = None
+                        st.session_state[StateKey.AI_EXPLANATION] = None
+                    st.session_state[_file_upload_key] = uploaded.getvalue()
+                    st.info("点击下方的 **Predict** 按钮查看结果")
+                    st.rerun()
+                else:
+                    st.error(f"文件解析失败：{uploaded.name} 无法被 RDKit 识别")
+                    st.info("请确保文件包含有效的 2D/3D 分子结构")
+
+
+def render_prediction_history():
+    """Show a collapsible list of past predictions for quick re-predict."""
+    history = st.session_state.get(StateKey.PREDICTION_HISTORY, [])
+    if not history:
+        return
+
+    with st.expander(f"&#128203; 预测历史记录 ({len(history)} 条)", expanded=False):
+        for i, entry in enumerate(history):
+            ts = entry.get("timestamp", "")
+            smiles = entry.get("smiles", "")
+            logS = entry.get("logS")
+            pka = entry.get("pKa")
+            name = entry.get("name", "")
+
+            label_parts = [f"#{len(history) - i}"]
+            if name:
+                label_parts.append(name)
+            label_parts.append(f"logS={logS:.3f}" if logS is not None else "logS=?")
+            if pka is not None:
+                label_parts.append(f"pKa={pka:.2f}")
+            label_parts.append(ts)
+
+            cols = st.columns([5, 1])
+            with cols[0]:
+                st.markdown(
+                    f'<div style="font-size:0.85rem;color:var(--ob-text-secondary);'
+                    f'font-family:monospace;overflow:hidden;text-overflow:ellipsis;">'
+                    f'{" | ".join(label_parts)}<br>'
+                    f'<span style="color:var(--ob-text-tertiary);font-size:0.75rem;">{smiles}</span>'
+                    f'</div>',
+                    unsafe_allow_html=True,
+                )
+            with cols[1]:
+                if st.button("复用", key=f"hist_reuse_{i}", use_container_width=True):
+                    st.session_state[StateKey.SMILES_INPUT] = smiles
+                    st.session_state[StateKey.PREDICTED_SMILES] = None
+                    st.session_state[StateKey.PREDICTED_LOGS] = None
+                    st.session_state[StateKey.AI_EXPLANATION] = None
+                    st.rerun()

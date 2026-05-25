@@ -25,7 +25,7 @@ from core.state_keys import StateKey
 from model import (
     load_solubility_model, load_pka_model,
     load_ood_detector, run_ood_check,
-    warmup_shap,
+    warmup_shap, get_solubility_level,
 )
 from core.cache import (
     cached_compute_features, cached_show_3d, cached_pka_analysis,
@@ -33,7 +33,7 @@ from core.cache import (
 )
 from assets.theme import inject_theme_css
 from assets.scripts import inject_all_scripts
-from ui.components import render_header, render_footer, render_input_area
+from ui.components import render_header, render_footer, render_input_area, render_file_upload_input, render_prediction_history
 from ui.results import render_results
 
 
@@ -108,6 +108,14 @@ render_header()
 render_input_area()
 
 
+# ========== Render file upload (4th input method) ==========
+render_file_upload_input()
+
+
+# ========== Prediction history ==========
+render_prediction_history()
+
+
 # ========== Predict button ==========
 st.markdown("<br>", unsafe_allow_html=True)
 btn_col1, btn_col2, btn_col3 = st.columns([1, 2, 1])
@@ -172,11 +180,150 @@ if predict_button and model_ready:
 
                 status.update(label=f"分析完成！预测 logS = {float(prediction):.3f}", state="complete")
 
+                # ── Save to prediction history ──
+                try:
+                    from molecules import MOLECULE_DB
+                    mol_name = next(
+                        (k for k, v in MOLECULE_DB.items() if v == current),
+                        "",
+                    )
+                except Exception:
+                    mol_name = ""
+                import datetime
+                history_entry = {
+                    "smiles": current,
+                    "name": mol_name,
+                    "logS": float(prediction),
+                    "pKa": st.session_state.get(StateKey.PREDICTED_PKA),
+                    "timestamp": datetime.datetime.now().strftime("%H:%M"),
+                }
+                history = st.session_state.setdefault(StateKey.PREDICTION_HISTORY, [])
+                # Avoid duplicate consecutive entries
+                if not history or history[0].get("smiles") != current:
+                    history.insert(0, history_entry)
+                    if len(history) > 15:
+                        history.pop()
+
 
 # ========== Display results (5 tabs) ==========
 if st.session_state.get(StateKey.PREDICTED_SMILES) and st.session_state.get(StateKey.PREDICTED_LOGS) is not None:
     render_results(model)
 
+
+# ========== Batch CSV prediction ==========
+st.markdown("---")
+with st.expander("&#128230; 批量预测（上传 CSV）", expanded=False):
+    st.caption("上传包含 SMILES 列的 CSV 文件，批量预测所有分子的溶解度与 pKa")
+
+    batch_file = st.file_uploader(
+        "选择 CSV 文件",
+        type=["csv"],
+        key="batch_csv_uploader",
+        label_visibility="collapsed",
+    )
+
+    if batch_file is not None:
+        try:
+            import pandas as pd
+
+            raw = batch_file.getvalue().decode("utf-8-sig")
+            # Peek at header row to find SMILES column
+            header_line = raw.split("\n", 1)[0]
+            header = [c.strip().strip('"').strip("'") for c in header_line.split(",")]
+            header_lower = [h.lower() for h in header]
+
+            # Auto-detect SMILES column
+            smiles_col = None
+            for keyword in ("smiles", "smile", "smi", "canonical_smiles", "isomeric_smiles"):
+                for i, h in enumerate(header_lower):
+                    if keyword in h:
+                        smiles_col = i
+                        break
+                if smiles_col is not None:
+                    break
+
+            if smiles_col is None:
+                # Fallback: first column with "smiles-like" content
+                for i, h in enumerate(header_lower):
+                    if "mol" in h or "structure" in h or "compound" in h:
+                        smiles_col = i
+                        break
+
+            if smiles_col is None:
+                smiles_col = 0  # default to first column
+
+            df = pd.read_csv(io.StringIO(raw))
+            st.info(
+                f"文件: `{batch_file.name}` | "
+                f"{len(df)} 行 | "
+                f"检测到 SMILES 列: **{header[smiles_col]}**"
+            )
+            st.dataframe(df.head(5), use_container_width=True)
+
+            if st.button("&#128302; 开始批量预测", key="batch_predict_btn", use_container_width=True):
+                # Validate SMILES column content
+                if header[smiles_col] not in df.columns:
+                    st.error(f"列 '{header[smiles_col]}' 不存在，请检查文件格式")
+                else:
+                    results = []
+                    smiles_list = df[header[smiles_col]].dropna().astype(str).tolist()
+                    progress_bar = st.progress(0, text=f"正在预测 0/{len(smiles_list)}...")
+
+                    for idx, smi in enumerate(smiles_list):
+                        progress_bar.progress(
+                            (idx + 1) / len(smiles_list),
+                            text=f"正在预测 {idx+1}/{len(smiles_list)}...",
+                        )
+                        feat_result = cached_compute_features(smi)
+                        if feat_result is None:
+                            results.append({
+                                "SMILES": smi,
+                                "logS": None,
+                                "Solubility Level": "Invalid SMILES",
+                                "pKa": None,
+                                "MolWt": None,
+                                "LogP": None,
+                            })
+                            continue
+                        features, fp = feat_result
+                        X = np.hstack([list(features.values()), fp]).reshape(1, -1)
+                        try:
+                            logS = float(model.predict(X)[0])
+                        except Exception:
+                            logS = None
+                        try:
+                            pKa_val = float(pka_model.predict(X)[0]) if pka_ready else None
+                        except Exception:
+                            pka_val = None
+
+                        level = get_solubility_level(logS)[0] if logS is not None else "?"
+                        results.append({
+                            "SMILES": smi,
+                            "logS": f"{logS:.3f}" if logS is not None else "?",
+                            "Solubility Level": level,
+                            "pKa": f"{pKa_val:.2f}" if pKa_val is not None else "?",
+                            "MolWt": f"{features['MolWt']:.1f}",
+                            "LogP": f"{features['LogP']:.2f}",
+                        })
+
+                    progress_bar.empty()
+                    result_df = pd.DataFrame(results)
+                    st.success(f"批量预测完成！共 {len(results)} 个分子")
+                    st.dataframe(result_df, use_container_width=True, height=400)
+
+                    # Download button
+                    csv_out = result_df.to_csv(index=False).encode("utf-8")
+                    st.download_button(
+                        "&#128229; 下载结果 CSV",
+                        data=csv_out,
+                        file_name="dissolve_batch_results.csv",
+                        mime="text/csv",
+                        use_container_width=True,
+                    )
+        except Exception as batch_err:
+            st.error(f"批量处理出错: {batch_err}")
+            import traceback
+            st.code(traceback.format_exc())
 
 # ========== Render footer ==========
 render_footer()

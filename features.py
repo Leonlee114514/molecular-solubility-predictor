@@ -35,3 +35,49 @@ def compute_features(smiles_string):
     rdBase.EnableLog("rdApp.warning")
 
     return features, fp_array
+
+
+def smiles_from_file(uploaded_file):
+    """Parse an uploaded molecular file (.mol, .sdf, .mol2, .pdb, .xyz) and return
+    (canonical_smiles, mol_formula, mol_weight) or None if parsing fails.
+
+    Returns
+    -------
+    tuple or None
+        (smiles: str, formula: str, mw: float) on success, or None on failure.
+    """
+    from rdkit.Chem import rdMolDescriptors
+
+    if uploaded_file is None:
+        return None
+
+    raw_bytes = uploaded_file.getvalue()
+    name = (uploaded_file.name or "").lower()
+
+    mol = None
+    if name.endswith(".mol") or name.endswith(".sdf"):
+        mol = Chem.MolFromMolBlock(raw_bytes.decode("utf-8", errors="replace"))
+    elif name.endswith(".mol2"):
+        mol = Chem.MolFromMol2Block(raw_bytes.decode("utf-8", errors="replace"))
+    elif name.endswith(".pdb"):
+        mol = Chem.MolFromPDBBlock(raw_bytes.decode("utf-8", errors="replace"))
+    elif name.endswith(".xyz"):
+        mol = Chem.MolFromXYZBlock(raw_bytes.decode("utf-8", errors="replace"))
+    else:
+        # Try each parser in order
+        text = raw_bytes.decode("utf-8", errors="replace")
+        for parser in (Chem.MolFromMolBlock, Chem.MolFromPDBBlock, Chem.MolFromMol2Block):
+            mol = parser(text)
+            if mol is not None:
+                break
+
+    if mol is None:
+        return None
+
+    smiles = Chem.MolToSmiles(mol)
+    if not smiles:
+        return None
+
+    formula = rdMolDescriptors.CalcMolFormula(mol)
+    mw = Descriptors.MolWt(mol)
+    return smiles, formula, mw

@@ -34,5 +34,11 @@ class StateKey:
     CLEAR_AI = "clear_ai"
     GEN_AI = "gen_ai"
 
+    # ── History ──
+    PREDICTION_HISTORY = "prediction_history"
+
+    # ── Batch prediction ──
+    BATCH_RESULTS = "batch_results"
+
     # ── Internal ──
     TARGET_TAB = "_target_tab"
