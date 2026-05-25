@@ -28,7 +28,9 @@
       "Bash(rm -rf assets/__pycache__ core/__pycache__ ui/__pycache__ __pycache__)",
       "Bash(git show *)",
       "Read(//tmp/**)",
-      "Bash(python3 *)"
+      "Bash(python3 *)",
+      "Bash(curl -s http://localhost:8501/healthz.json)",
+      "Bash(pkill -f \"streamlit run app.py\")"
     ]
   }
 }

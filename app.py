@@ -25,6 +25,7 @@ from core.state_keys import StateKey
 from model import (
     load_solubility_model, load_pka_model,
     load_ood_detector, run_ood_check,
+    warmup_shap,
 )
 from core.cache import (
     cached_compute_features, cached_show_3d, cached_pka_analysis,
@@ -41,26 +42,47 @@ inject_theme_css()
 inject_all_scripts()
 
 
-# ========== Load models ==========
+# ========== Load models (with cold-start progress) ==========
+_startup_bar = None
+if "startup_done" not in st.session_state:
+    _startup_bar = st.progress(0, text="初始化模型...")
+
+model_ready = False
+pka_ready = False
+ood_ready = False
 try:
+    if _startup_bar: _startup_bar.progress(20, "加载溶解度模型...")
     model, descriptor_names = load_solubility_model()
     model_ready = True
 except Exception as e:
     st.error(f"模型加载失败: {e}")
     st.info("请先运行 'python train_model_v2.py' 训练模型")
-    model_ready = False
 
 try:
+    if _startup_bar: _startup_bar.progress(45, "加载 pKa 模型...")
     pka_model = load_pka_model()
     pka_ready = True
 except Exception:
-    pka_ready = False
+    pass
 
 try:
+    if _startup_bar: _startup_bar.progress(70, "加载 OOD 检测器...")
     ood_detector = load_ood_detector()
     ood_ready = ood_detector is not None
 except Exception:
-    ood_ready = False
+    pass
+
+# Pre-warm SHAP TreeExplainer so first prediction doesn't lag
+if model_ready:
+    try:
+        if _startup_bar: _startup_bar.progress(90, "预热 SHAP 解释器...")
+        warmup_shap()
+    except Exception:
+        pass
+
+if _startup_bar:
+    _startup_bar.progress(100, "✓ 模型就绪")
+    st.session_state.startup_done = True
 
 
 # ========== Session state init ==========

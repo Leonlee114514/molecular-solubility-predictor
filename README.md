@@ -1,10 +1,10 @@
-# 🧪 Molecular Solubility Predictor
+#  Molecular Solubility Predictor
 
 Predict aqueous solubility (logS) of organic molecules using Machine Learning.
 
 [![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](YOUR_DEPLOYMENT_LINK_HERE)
 
-## 📖 Overview
+##  Overview
 
 This web application predicts how well a molecule dissolves in water (**logS**) from its molecular structure (SMILES string). It combines:
 
@@ -15,11 +15,11 @@ This web application predicts how well a molecule dissolves in water (**logS**) 
 
 Built as a high school chemistry + machine learning project.
 
-## 🚀 Live Demo
+##  Live Demo
 
 > Replace this badge/link once deployed on [Streamlit Community Cloud](https://streamlit.io/cloud).
 
-## 🖼️ Screenshots
+##  Screenshots
 
 | Input & Search | Prediction Result | AI Explanation |
 |:---:|:---:|:---:|
@@ -27,7 +27,7 @@ Built as a high school chemistry + machine learning project.
 
 > Add your own screenshots to a `docs/` folder.
 
-## 🛠️ Tech Stack
+##  Tech Stack
 
 | Layer | Technology |
 |-------|------------|
@@ -39,7 +39,7 @@ Built as a high school chemistry + machine learning project.
 | AI Explanation | Kimi API (OpenAI-compatible) |
 | External Data | PubChem PUG REST API |
 
-## 📁 Project Structure
+##  Project Structure
 
 ```
 .
@@ -55,7 +55,7 @@ Built as a high school chemistry + machine learning project.
 └── README.md
 ```
 
-## ⚡ Quick Start
+##  Quick Start
 
 ### 1. Clone the repository
 
@@ -119,7 +119,7 @@ streamlit run app.py
 
 The app will open at `http://localhost:8501`.
 
-## 🔬 How It Works
+##  How It Works
 
 ### Input Methods
 
@@ -151,7 +151,7 @@ For each molecule, RDKit extracts 8 molecular descriptors + 1024-bit Morgan fing
 | -2 ~ 0 | Moderately soluble | Many drug molecules |
 | < -2 | Poorly soluble | Hydrophobic compounds |
 
-## 🧠 AI Explanation
+##  AI Explanation
 
 The app optionally calls **Kimi (Moonshot AI)** to generate a student-friendly explanation:
 - Solubility conclusion
@@ -160,7 +160,7 @@ The app optionally calls **Kimi (Moonshot AI)** to generate a student-friendly e
 
 This is triggered manually to respect API rate limits and costs.
 
-## 📦 Model Training
+##  Model Training
 
 The training pipeline (`train_model_v2.py`) typically includes:
 
@@ -172,7 +172,7 @@ The training pipeline (`train_model_v2.py`) typically includes:
 
 > **Note:** The training script and raw datasets are not included in this repo due to size. Contact me if you're interested in the full pipeline.
 
-## 🌐 Deployment
+##  Deployment
 
 ### Streamlit Community Cloud (Free)
 
@@ -188,15 +188,15 @@ The training pipeline (`train_model_v2.py`) typically includes:
 - **RDKit**: Streamlit Cloud supports it via `requirements.txt`, but build time may be long. Consider using a lighter base image if needed.
 - **PubChem API**: The app includes rate limiting (1.2s delay) and SSL workarounds for Chinese networks.
 
-## 🤝 Contributing
+##  Contributing
 
 This is a personal learning project, but suggestions and issues are welcome!
 
-## 📄 License
+##  License
 
 [MIT License](LICENSE)
 
-## 🙏 Acknowledgments
+##  Acknowledgments
 
 - [RDKit](https://www.rdkit.org/) — Cheminformatics toolkit
 - [PubChem](https://pubchem.ncbi.nlm.nih.gov/) — Chemical database

@@ -30,6 +30,16 @@ def get_shap_explainer(_model):
     return shap.TreeExplainer(_model)
 
 
+def warmup_shap():
+    """Pre-warm the SHAP TreeExplainer at startup so first prediction is fast.
+
+    Call this once during app initialization after the solubility model is loaded.
+    The explainer is cached via @st.cache_resource, so subsequent calls are instant.
+    """
+    model, _ = load_solubility_model()
+    get_shap_explainer(model)
+
+
 def predict_solubility(model, features_dict, fp_array):
     """Run solubility prediction given features and fingerprint."""
     import numpy as np
