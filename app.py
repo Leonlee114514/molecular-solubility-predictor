@@ -99,6 +99,13 @@ if StateKey.PREDICTED_LOGS not in st.session_state:
 if StateKey.AI_EXPLANATION not in st.session_state:
     st.session_state[StateKey.AI_EXPLANATION] = None
 
+# Apply pending history selection (must happen before widget renders)
+if "_pending_history_smiles" in st.session_state:
+    st.session_state[StateKey.SMILES_INPUT] = st.session_state.pop("_pending_history_smiles")
+    st.session_state[StateKey.PREDICTED_SMILES] = None
+    st.session_state[StateKey.PREDICTED_LOGS] = None
+    st.session_state[StateKey.AI_EXPLANATION] = None
+
 
 # ========== Render header ==========
 render_header()

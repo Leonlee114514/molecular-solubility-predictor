@@ -324,7 +324,8 @@ def render_file_upload_input():
                     st.success(f"解析成功：{uploaded.name} → {formula} ({mw:.1f} Da)")
                     st.code(parsed_smiles, language=None)
                     if parsed_smiles != st.session_state.get(StateKey.SMILES_INPUT):
-                        st.session_state[StateKey.SMILES_INPUT] = parsed_smiles
+                        # Widget already rendered — use pending pattern
+                        st.session_state["_pending_history_smiles"] = parsed_smiles
                         st.session_state[StateKey.PREDICTED_SMILES] = None
                         st.session_state[StateKey.PREDICTED_LOGS] = None
                         st.session_state[StateKey.AI_EXPLANATION] = None
@@ -370,7 +371,9 @@ def render_prediction_history():
                 )
             with cols[1]:
                 if st.button("复用", key=f"hist_reuse_{i}", use_container_width=True):
-                    st.session_state[StateKey.SMILES_INPUT] = smiles
+                    # Can't set widget key directly — widget already rendered this run.
+                    # Store pending value; app.py will apply it before the widget renders.
+                    st.session_state["_pending_history_smiles"] = smiles
                     st.session_state[StateKey.PREDICTED_SMILES] = None
                     st.session_state[StateKey.PREDICTED_LOGS] = None
                     st.session_state[StateKey.AI_EXPLANATION] = None
