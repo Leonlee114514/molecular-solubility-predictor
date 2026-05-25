@@ -42,16 +42,23 @@ inject_theme_css()
 inject_all_scripts()
 
 
-# ========== Load models (with cold-start progress) ==========
-_startup_bar = None
+# ========== Load models (with cold-start indicator) ==========
+# st.progress() can trigger DOM reconciliation errors on Streamlit Cloud,
+# so we use an st.empty() placeholder with text instead.
+_startup_placeholder = None
 if "startup_done" not in st.session_state:
-    _startup_bar = st.progress(0, text="初始化模型...")
+    _startup_placeholder = st.empty()
+    _startup_placeholder.markdown(
+        '<div style="text-align:center;padding:3rem 0;">'
+        '<p style="color:#94a3b8;font-size:1.1rem;">🧬 正在初始化模型，请稍候...</p>'
+        "</div>",
+        unsafe_allow_html=True,
+    )
 
 model_ready = False
 pka_ready = False
 ood_ready = False
 try:
-    if _startup_bar: _startup_bar.progress(20, "加载溶解度模型...")
     model, descriptor_names = load_solubility_model()
     model_ready = True
 except Exception as e:
@@ -59,14 +66,12 @@ except Exception as e:
     st.info("请先运行 'python train_model_v2.py' 训练模型")
 
 try:
-    if _startup_bar: _startup_bar.progress(45, "加载 pKa 模型...")
     pka_model = load_pka_model()
     pka_ready = True
 except Exception:
     pass
 
 try:
-    if _startup_bar: _startup_bar.progress(70, "加载 OOD 检测器...")
     ood_detector = load_ood_detector()
     ood_ready = ood_detector is not None
 except Exception:
@@ -75,13 +80,12 @@ except Exception:
 # Pre-warm SHAP TreeExplainer so first prediction doesn't lag
 if model_ready:
     try:
-        if _startup_bar: _startup_bar.progress(90, "预热 SHAP 解释器...")
         warmup_shap()
     except Exception:
         pass
 
-if _startup_bar:
-    _startup_bar.progress(100, "✓ 模型就绪")
+if _startup_placeholder:
+    _startup_placeholder.empty()
     st.session_state.startup_done = True
 
 
