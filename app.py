@@ -192,7 +192,7 @@ if predict_button and model_ready:
                         )
                 except Exception:
                     mol_name = ""
-                import datetime
+                import datetime, copy
                 history_entry = {
                     "smiles": current,
                     "name": mol_name,
@@ -200,12 +200,17 @@ if predict_button and model_ready:
                     "pKa": st.session_state.get(StateKey.PREDICTED_PKA),
                     "timestamp": datetime.datetime.now().strftime("%H:%M"),
                 }
-                history = st.session_state.setdefault(StateKey.PREDICTION_HISTORY, [])
+                if StateKey.PREDICTION_HISTORY not in st.session_state:
+                    st.session_state[StateKey.PREDICTION_HISTORY] = []
+                history = st.session_state[StateKey.PREDICTION_HISTORY]
                 # Avoid duplicate consecutive entries
                 if not history or history[0].get("smiles") != current:
-                    history.insert(0, history_entry)
+                    history.insert(0, copy.deepcopy(history_entry))
                     if len(history) > 15:
                         history.pop()
+                    # Explicitly reassign so Streamlit detects the in-place mutation
+                    st.session_state[StateKey.PREDICTION_HISTORY] = history
+                    st.rerun()
 
 
 # ========== Display results (5 tabs) ==========
