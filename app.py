@@ -42,19 +42,10 @@ inject_theme_css()
 inject_all_scripts()
 
 
-# ========== Load models (with cold-start indicator) ==========
-# st.progress() can trigger DOM reconciliation errors on Streamlit Cloud,
-# so we use an st.empty() placeholder with text instead.
-_startup_placeholder = None
-if "startup_done" not in st.session_state:
-    _startup_placeholder = st.empty()
-    _startup_placeholder.markdown(
-        '<div style="text-align:center;padding:3rem 0;">'
-        '<p style="color:#94a3b8;font-size:1.1rem;">🧬 正在初始化模型，请稍候...</p>'
-        "</div>",
-        unsafe_allow_html=True,
-    )
-
+# ========== Load models ==========
+# Models are cached by @st.cache_resource — first load reads from disk,
+# subsequent runs return instantly from cache. SHAP explainer is pre-warmed
+# so the first prediction is fast.
 model_ready = False
 pka_ready = False
 ood_ready = False
@@ -83,10 +74,6 @@ if model_ready:
         warmup_shap()
     except Exception:
         pass
-
-if _startup_placeholder:
-    _startup_placeholder.empty()
-    st.session_state.startup_done = True
 
 
 # ========== Session state init ==========
