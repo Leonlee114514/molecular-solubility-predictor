@@ -5,7 +5,6 @@ DisSolve - Reusable UI components (header, footer, input area, CJK font).
 import streamlit as st
 from molecules import MOLECULE_DB, SEARCH_INDEX, search_pubchem as search_pubchem_final
 from core.state_keys import StateKey
-from features import smiles_from_file
 
 
 def render_html(html_content, height=1):
@@ -318,6 +317,7 @@ def render_file_upload_input():
             _file_upload_key = f"_parsed_{uploaded.name}"
             if st.session_state.get(_file_upload_key) != uploaded.getvalue():
                 # New file — parse it
+                from features import smiles_from_file
                 result = smiles_from_file(uploaded)
                 if result is not None:
                     parsed_smiles, formula, mw = result
