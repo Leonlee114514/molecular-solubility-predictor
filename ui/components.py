@@ -74,6 +74,20 @@ def render_footer():
     """, unsafe_allow_html=True)
 
 
+def _on_radio_select():
+    """Callback when user actively selects a molecule from the radio list.
+    Only fires on explicit user interaction, not on every script run.
+    """
+    selected = st.session_state["molecule_select_radio"]
+    if selected != "(自定义输入)":
+        smiles = MOLECULE_DB.get(selected)
+        if smiles:
+            st.session_state[StateKey.SMILES_INPUT] = smiles
+            st.session_state[StateKey.PREDICTED_SMILES] = None
+            st.session_state[StateKey.PREDICTED_LOGS] = None
+            st.session_state[StateKey.AI_EXPLANATION] = None
+
+
 def render_input_area():
     """Render the three input methods: quick-select, name search, and SMILES input."""
 
@@ -108,17 +122,9 @@ def render_input_area():
             filtered_mols,
             index=current_idx,
             key="molecule_select_radio",
-            label_visibility="collapsed"
+            label_visibility="collapsed",
+            on_change=_on_radio_select,
         )
-
-        if selected_molecule != "(自定义输入)":
-            new_smiles = MOLECULE_DB[selected_molecule]
-            if new_smiles != st.session_state[StateKey.SMILES_INPUT]:
-                st.session_state[StateKey.SMILES_INPUT] = new_smiles
-                st.session_state[StateKey.PREDICTED_SMILES] = None
-                st.session_state[StateKey.PREDICTED_LOGS] = None
-                st.session_state[StateKey.AI_EXPLANATION] = None
-                st.rerun()
 
     # --- 方式2：三层搜索 ---
     with st.container(border=True):

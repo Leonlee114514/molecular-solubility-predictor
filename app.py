@@ -177,10 +177,17 @@ if predict_button and model_ready:
                 # ── Save to prediction history ──
                 try:
                     from molecules import MOLECULE_DB
-                    mol_name = next(
-                        (k for k, v in MOLECULE_DB.items() if v == current),
-                        "",
-                    )
+                    # Prefer the radio selection if it matches current SMILES
+                    mol_name = ""
+                    radio_key = st.session_state.get("molecule_select_radio")
+                    if radio_key and radio_key in MOLECULE_DB and MOLECULE_DB[radio_key] == current:
+                        mol_name = radio_key
+                    else:
+                        # Fall back to reverse SMILES lookup
+                        mol_name = next(
+                            (k for k, v in MOLECULE_DB.items() if v == current),
+                            "",
+                        )
                 except Exception:
                     mol_name = ""
                 import datetime
