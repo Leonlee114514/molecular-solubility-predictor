@@ -28,10 +28,9 @@ from model import (
     warmup_shap, get_solubility_level,
 )
 from core.cache import (
-    cached_show_3d, cached_pka_analysis,
+    cached_compute_features, cached_show_3d, cached_pka_analysis,
     cached_shap_contributions, cached_lipinski, cached_admet, cached_druglikeness,
 )
-from features import compute_features  # direct, bypass @st.cache_data for debugging
 from assets.theme import inject_theme_css
 from assets.scripts import inject_all_scripts
 from ui.components import render_header, render_footer, render_input_area, render_file_upload_input, render_prediction_history
@@ -130,7 +129,7 @@ if predict_button and model_ready:
     else:
         with st.status("正在分析分子结构...", expanded=False) as status:
             status.update(label="Step 1/4: 解析分子结构...")
-            result = compute_features(current)  # bypass @st.cache_data to rule out cache bug
+            result = cached_compute_features(current)
 
             if result is None:
                 status.update(label="解析失败", state="error")
@@ -215,17 +214,7 @@ if predict_button and model_ready:
                 if StateKey.PREDICTION_HISTORY not in st.session_state:
                     st.session_state[StateKey.PREDICTION_HISTORY] = []
                 history = st.session_state[StateKey.PREDICTION_HISTORY]
-                st.toast(f"预测: SMILES={current[:30]}... name={mol_name} logS={_logS:.3f} pKa={_pKa}", icon="🔬")
-                # Persist debug info so it survives the st.rerun() below
-                st.session_state["_last_pred_debug"] = {
-                    "current_smiles": current,
-                    "mol_name": mol_name,
-                    "logS": _logS,
-                    "pKa": _pKa,
-                    "prediction_raw": float(prediction),
-                    "history_len_before": len(history),
-                    "duplicate_skipped": (history and history[0].get("smiles") == current),
-                }
+                st.toast(f"预测: name={mol_name} logS={_logS:.3f} pKa={_pKa}", icon="🔬")
                 # Avoid duplicate consecutive entries
                 if not history or history[0].get("smiles") != current:
                     new_history = [deepcopy(history_entry)] + [deepcopy(e) for e in history]
@@ -235,40 +224,6 @@ if predict_button and model_ready:
                     st.rerun()
 
 
-# ========== DEBUG: Raw history data (REMOVE AFTER FIX) ==========
-debug = st.session_state.get("_last_pred_debug", {})
-hist = st.session_state.get(StateKey.PREDICTION_HISTORY, [])
-if debug:
-    st.markdown("---")
-    st.warning("DEBUG MODE ACTIVE — check data below for bug diagnosis")
-    col_a, col_b = st.columns(2)
-    with col_a:
-        st.markdown("**Last Prediction (before rerun):**")
-        st.code(
-            f"SMILES:  {debug.get('current_smiles', '?')}\n"
-            f"Name:    {debug.get('mol_name', '?')}\n"
-            f"logS:    {debug.get('logS', '?')}\n"
-            f"pKa:     {debug.get('pKa', '?')}\n"
-            f"SkipDup: {debug.get('duplicate_skipped', '?')}\n"
-            f"HistLen: {debug.get('history_len_before', '?')}"
-        )
-    with col_b:
-        st.markdown("**Current Session State:**")
-        st.code(
-            f"SMILES_INPUT:       {str(st.session_state.get(StateKey.SMILES_INPUT, ''))[:80]}\n"
-            f"CURRENT_MOLECULE:   {st.session_state.get(StateKey.CURRENT_MOLECULE_NAME, '')}\n"
-            f"PREDICTED_SMILES:   {str(st.session_state.get(StateKey.PREDICTED_SMILES, ''))[:80]}\n"
-            f"PREDICTED_LOGS:     {st.session_state.get(StateKey.PREDICTED_LOGS, '?')}\n"
-            f"PREDICTED_PKA:      {st.session_state.get(StateKey.PREDICTED_PKA, '?')}"
-        )
-    st.markdown("**History (raw):**")
-    for i, e in enumerate(hist):
-        st.code(
-            f"#{i+1}: smiles={e.get('smiles','?')}\n"
-            f"     name={e.get('name','?')}  logS={e.get('logS','?')}  "
-            f"pKa={e.get('pKa','?')}  ts={e.get('timestamp','?')}"
-        )
-    st.markdown("---")
 # ========== Display results (5 tabs) ==========
 if st.session_state.get(StateKey.PREDICTED_SMILES) and st.session_state.get(StateKey.PREDICTED_LOGS) is not None:
     render_results(model)
@@ -338,7 +293,7 @@ with st.expander("&#128230; 批量预测（上传 CSV）", expanded=False):
                             (idx + 1) / len(smiles_list),
                             text=f"正在预测 {idx+1}/{len(smiles_list)}...",
                         )
-                        feat_result = compute_features(smi)  # bypass @st.cache_data
+                        feat_result = cached_compute_features(smi)
                         if feat_result is None:
                             results.append({
                                 "SMILES": smi,
