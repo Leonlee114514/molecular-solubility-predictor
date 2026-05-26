@@ -211,6 +211,9 @@ if predict_button and model_ready:
                     "pKa": _pKa,
                     "timestamp": datetime.datetime.now().strftime("%H:%M"),
                 }
+                if StateKey.PREDICTION_HISTORY not in st.session_state:
+                    st.session_state[StateKey.PREDICTION_HISTORY] = []
+                history = st.session_state[StateKey.PREDICTION_HISTORY]
                 st.toast(f"预测: SMILES={current[:30]}... name={mol_name} logS={_logS:.3f} pKa={_pKa}", icon="🔬")
                 # Persist debug info so it survives the st.rerun() below
                 st.session_state["_last_pred_debug"] = {
@@ -222,9 +225,6 @@ if predict_button and model_ready:
                     "history_len_before": len(history),
                     "duplicate_skipped": (history and history[0].get("smiles") == current),
                 }
-                if StateKey.PREDICTION_HISTORY not in st.session_state:
-                    st.session_state[StateKey.PREDICTION_HISTORY] = []
-                history = st.session_state[StateKey.PREDICTION_HISTORY]
                 # Avoid duplicate consecutive entries
                 if not history or history[0].get("smiles") != current:
                     new_history = [deepcopy(history_entry)] + [deepcopy(e) for e in history]
