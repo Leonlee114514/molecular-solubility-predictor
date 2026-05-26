@@ -369,27 +369,42 @@ def render_prediction_history():
         return
 
     with st.expander(f"&#128203; 预测历史记录 ({len(history)} 条)", expanded=False):
+        # Build a single HTML table — one st.markdown call, no per-entry
+        # Streamlit element tracking issues when entry count changes.
+        rows_html = []
         for i, entry in enumerate(history):
             ts = entry.get("timestamp", "")
             smiles = entry.get("smiles", "")
             logS = entry.get("logS")
             pka = entry.get("pKa")
             name = entry.get("name", "")
-
-            label_parts = [f"#{i + 1}"]
+            label = f"<b>#{i + 1}</b>"
             if name:
-                label_parts.append(name)
-            label_parts.append(f"logS={logS:.3f}" if logS is not None else "logS=?")
+                label += f" | {name}"
+            label += f" | logS={logS:.3f}" if logS is not None else f" | logS=?"
             if pka is not None:
-                label_parts.append(f"pKa={pka:.2f}")
-            label_parts.append(ts)
-
-            row_label = " | ".join(label_parts)
-            st.write(row_label)
-            st.code(smiles, language=None)
-            if st.button("复用", key=f"hist_reuse_{i}"):
-                st.session_state["_pending_history_smiles"] = smiles
-                st.session_state["_pending_history_name"] = name
+                label += f" | pKa={pka:.2f}"
+            label += f" | {ts}"
+            rows_html.append(
+                f'<tr>'
+                f'<td style="padding:4px 8px;font-size:0.85rem;color:var(--ob-text-secondary);'
+                f'font-family:monospace;white-space:nowrap;">{label}</td>'
+                f'<td style="padding:4px 8px;font-size:0.75rem;color:var(--ob-text-tertiary);'
+                f'font-family:monospace;max-width:300px;overflow:hidden;text-overflow:ellipsis;'
+                f'white-space:nowrap;">{smiles}</td>'
+                f'</tr>'
+            )
+        table_html = (
+            f'<table style="width:100%;border-collapse:collapse;">'
+            f'{"".join(rows_html)}'
+            f'</table>'
+        )
+        st.markdown(table_html, unsafe_allow_html=True)
+        # Render reuse buttons sequentially (no columns, no loops with columns)
+        for i, entry in enumerate(history):
+            if st.button(f"复用 #{i + 1}", key=f"hist_reuse_{i}"):
+                st.session_state["_pending_history_smiles"] = entry.get("smiles", "")
+                st.session_state["_pending_history_name"] = entry.get("name", "")
                 st.session_state[StateKey.PREDICTED_SMILES] = None
                 st.session_state[StateKey.PREDICTED_LOGS] = None
                 st.session_state[StateKey.PREDICTED_PKA] = None
