@@ -369,6 +369,7 @@ def render_prediction_history():
         return
 
     with st.expander(f"&#128203; 预测历史记录 ({len(history)} 条)", expanded=False):
+        st.write("DEBUG:", [{"name": e.get("name"), "logS": e.get("logS"), "pKa": e.get("pKa"), "ts": e.get("timestamp")} for e in history])
         for i, entry in enumerate(history):
             ts = entry.get("timestamp", "")
             smiles = entry.get("smiles", "")
