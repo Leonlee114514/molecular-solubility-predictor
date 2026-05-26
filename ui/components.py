@@ -369,7 +369,10 @@ def render_prediction_history():
         return
 
     with st.expander(f"&#128203; 预测历史记录 ({len(history)} 条)", expanded=False):
-        st.write("DEBUG:", [{"name": e.get("name"), "logS": e.get("logS"), "pKa": e.get("pKa"), "ts": e.get("timestamp")} for e in history])
+        # Create ALL column pairs before the loop to avoid Streamlit rendering
+        # confusion when entry count changes between reruns (st.columns() inside
+        # a loop causes Streamlit's component-keying to mix up displayed data).
+        col_pairs = [st.columns([5, 1]) for _ in range(len(history))]
         for i, entry in enumerate(history):
             ts = entry.get("timestamp", "")
             smiles = entry.get("smiles", "")
@@ -385,7 +388,7 @@ def render_prediction_history():
                 label_parts.append(f"pKa={pka:.2f}")
             label_parts.append(ts)
 
-            cols = st.columns([5, 1])
+            cols = col_pairs[i]
             with cols[0]:
                 st.markdown(
                     f'<div style="font-size:0.85rem;color:var(--ob-text-secondary);'
