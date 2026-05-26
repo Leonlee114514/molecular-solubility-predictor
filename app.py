@@ -180,6 +180,13 @@ if predict_button and model_ready:
                 try:
                     from molecules import MOLECULE_DB
                     mol_name = st.session_state.get(StateKey.CURRENT_MOLECULE_NAME, "")
+                    if mol_name:
+                        # Validate: if name is in DB, its SMILES must match current.
+                        # Otherwise it's stale from a previous molecule.
+                        known_smiles = MOLECULE_DB.get(mol_name)
+                        if known_smiles and known_smiles != current:
+                            mol_name = ""
+                            st.session_state[StateKey.CURRENT_MOLECULE_NAME] = ""
                     if not mol_name:
                         # Fall back to radio selection if it matches current SMILES
                         radio_key = st.session_state.get("molecule_select_radio")

@@ -320,8 +320,8 @@ def render_input_area():
             resolved = _resolve_display_name(smiles_input, "")
             if resolved:
                 st.session_state[StateKey.CURRENT_MOLECULE_NAME] = resolved
-            else:
-                st.session_state[StateKey.CURRENT_MOLECULE_NAME] = ""
+            # If SMILES not in local DB, don't overwrite —
+            # search methods (方式2) or PubChem may have set a correct name
 
 
 def render_file_upload_input():
@@ -369,6 +369,8 @@ def render_prediction_history():
         return
 
     with st.expander(f"&#128203; 预测历史记录 ({len(history)} 条)", expanded=False):
+        with st.container():
+            st.write("DEBUG history:", [{k: v for k, v in e.items() if k != "smiles"} for e in history])
         for i, entry in enumerate(history):
             ts = entry.get("timestamp", "")
             smiles = entry.get("smiles", "")
