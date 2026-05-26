@@ -190,10 +190,13 @@ def render_input_area():
         if query:
             if query in SEARCH_INDEX:
                 found_smiles = SEARCH_INDEX[query]
-                st.success(f"本地精确匹配：`{search_name}` -> `{found_smiles}`")
-                _set_current_smiles(found_smiles)
-                st.info("点击下方的 **Predict** 按钮查看结果")
-                st.session_state[StateKey.SEARCH_STATE] = "exact"
+                # Only process on fresh search transition — NOT on every rerun.
+                # Otherwise this overwrites SMILES_INPUT set by radio / direct typing.
+                if st.session_state[StateKey.SEARCH_STATE] != "exact":
+                    st.success(f"本地精确匹配：`{search_name}` -> `{found_smiles}`")
+                    _set_current_smiles(found_smiles)
+                    st.info("点击下方的 **Predict** 按钮查看结果")
+                    st.session_state[StateKey.SEARCH_STATE] = "exact"
             else:
                 matches = [k for k in SEARCH_INDEX.keys() if query in k or k in query]
                 if matches:
@@ -270,13 +273,15 @@ def render_input_area():
                         if found_smiles:
                             st.session_state[StateKey.SEARCH_STATE] = "pubchem_done"
                             st.session_state[StateKey.FUZZY_SMILES] = found_smiles
+                            _set_current_smiles(found_smiles, name=search_name.strip())
+                            st.rerun()
                         else:
                             st.session_state[StateKey.SEARCH_STATE] = "no_match"
+                            st.rerun()
 
                     if st.session_state[StateKey.SEARCH_STATE] == "pubchem_done":
                         found_smiles = st.session_state[StateKey.FUZZY_SMILES]
                         st.success(f"PubChem 匹配：`{search_name}` -> `{found_smiles}`")
-                        _set_current_smiles(found_smiles, name=search_name.strip())
                         st.info("点击下方的 **Predict** 按钮查看结果")
                     elif st.session_state[StateKey.SEARCH_STATE] == "no_match":
                         st.error(f"未找到：`{search_name}`")
@@ -310,11 +315,16 @@ def render_input_area():
             label_visibility="collapsed"
         )
 
-        if smiles_input != st.session_state.get(StateKey.SMILES_INPUT, ""):
+        # Detect SMILES changes from direct user typing in the text_input.
+        # Compare against a tracked previous value instead of SMILES_INPUT
+        # (which shares the same widget key and is therefore always equal).
+        prev_smiles = st.session_state.get("_prev_smiles_input", "")
+        if smiles_input != prev_smiles and prev_smiles != "":
             st.session_state[StateKey.PREDICTED_SMILES] = None
             st.session_state[StateKey.PREDICTED_LOGS] = None
             st.session_state[StateKey.PREDICTED_PKA] = None
             st.session_state[StateKey.AI_EXPLANATION] = None
+        st.session_state["_prev_smiles_input"] = smiles_input
         # Keep molecule name in sync with the current SMILES
         if smiles_input:
             resolved = _resolve_display_name(smiles_input, "")

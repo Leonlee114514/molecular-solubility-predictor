@@ -202,12 +202,25 @@ if predict_button and model_ready:
                     mol_name = ""
                 import datetime
                 from copy import deepcopy
+                _logS = float(prediction)
+                _pKa = st.session_state.get(StateKey.PREDICTED_PKA)
                 history_entry = {
                     "smiles": current,
                     "name": mol_name,
-                    "logS": float(prediction),
-                    "pKa": st.session_state.get(StateKey.PREDICTED_PKA),
+                    "logS": _logS,
+                    "pKa": _pKa,
                     "timestamp": datetime.datetime.now().strftime("%H:%M"),
+                }
+                st.toast(f"预测: SMILES={current[:30]}... name={mol_name} logS={_logS:.3f} pKa={_pKa}", icon="🔬")
+                # Persist debug info so it survives the st.rerun() below
+                st.session_state["_last_pred_debug"] = {
+                    "current_smiles": current,
+                    "mol_name": mol_name,
+                    "logS": _logS,
+                    "pKa": _pKa,
+                    "prediction_raw": float(prediction),
+                    "history_len_before": len(history),
+                    "duplicate_skipped": (history and history[0].get("smiles") == current),
                 }
                 if StateKey.PREDICTION_HISTORY not in st.session_state:
                     st.session_state[StateKey.PREDICTION_HISTORY] = []
@@ -223,6 +236,38 @@ if predict_button and model_ready:
 
 # ========== Display results (5 tabs) ==========
 if st.session_state.get(StateKey.PREDICTED_SMILES) and st.session_state.get(StateKey.PREDICTED_LOGS) is not None:
+    # ── Debug panel (REMOVE AFTER BUG IS FIXED) ──
+    debug = st.session_state.get("_last_pred_debug", {})
+    if debug:
+        hist = st.session_state.get(StateKey.PREDICTION_HISTORY, [])
+        with st.expander("DEBUG INFO (click to expand)", expanded=False):
+            st.markdown(f"""
+            **Last prediction input:**
+            - SMILES: `{debug.get('current_smiles', '?')}`
+            - Resolved name: `{debug.get('mol_name', '?')}`
+            - logS (raw prediction): `{debug.get('logS', '?')}`
+            - pKa: `{debug.get('pKa', '?')}`
+            - Duplicate skipped: `{debug.get('duplicate_skipped', '?')}`
+            - History length before add: `{debug.get('history_len_before', '?')}`
+
+            **Current session state:**
+            - SMILES_INPUT: `{st.session_state.get(StateKey.SMILES_INPUT, '')[:60]}...`
+            - CURRENT_MOLECULE_NAME: `{st.session_state.get(StateKey.CURRENT_MOLECULE_NAME, '')}`
+            - PREDICTED_SMILES: `{str(st.session_state.get(StateKey.PREDICTED_SMILES, ''))[:60]}...`
+            - PREDICTED_LOGS: `{st.session_state.get(StateKey.PREDICTED_LOGS, '?')}`
+            - PREDICTED_PKA: `{st.session_state.get(StateKey.PREDICTED_PKA, '?')}`
+
+            **History entries (raw data):**
+            """)
+            for i, e in enumerate(hist):
+                st.markdown(
+                    f"  #{i+1}: smiles=`{e.get('smiles','')[:40]}...` "
+                    f"name=`{e.get('name','')}` "
+                    f"logS=`{e.get('logS','?')}` "
+                    f"pKa=`{e.get('pKa','?')}` "
+                    f"ts=`{e.get('timestamp','')}`"
+                )
+    # ── End debug panel ──
     render_results(model)
 
 
