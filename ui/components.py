@@ -369,10 +369,6 @@ def render_prediction_history():
         return
 
     with st.expander(f"&#128203; 预测历史记录 ({len(history)} 条)", expanded=False):
-        # Create ALL column pairs before the loop to avoid Streamlit rendering
-        # confusion when entry count changes between reruns (st.columns() inside
-        # a loop causes Streamlit's component-keying to mix up displayed data).
-        col_pairs = [st.columns([5, 1]) for _ in range(len(history))]
         for i, entry in enumerate(history):
             ts = entry.get("timestamp", "")
             smiles = entry.get("smiles", "")
@@ -388,24 +384,14 @@ def render_prediction_history():
                 label_parts.append(f"pKa={pka:.2f}")
             label_parts.append(ts)
 
-            cols = col_pairs[i]
-            with cols[0]:
-                st.markdown(
-                    f'<div style="font-size:0.85rem;color:var(--ob-text-secondary);'
-                    f'font-family:monospace;overflow:hidden;text-overflow:ellipsis;">'
-                    f'{" | ".join(label_parts)}<br>'
-                    f'<span style="color:var(--ob-text-tertiary);font-size:0.75rem;">{smiles}</span>'
-                    f'</div>',
-                    unsafe_allow_html=True,
-                )
-            with cols[1]:
-                if st.button("复用", key=f"hist_reuse_{i}", use_container_width=True):
-                    # Can't set widget key directly — widget already rendered this run.
-                    # Store pending value; app.py will apply it before the widget renders.
-                    st.session_state["_pending_history_smiles"] = smiles
-                    st.session_state["_pending_history_name"] = name
-                    st.session_state[StateKey.PREDICTED_SMILES] = None
-                    st.session_state[StateKey.PREDICTED_LOGS] = None
-                    st.session_state[StateKey.PREDICTED_PKA] = None
-                    st.session_state[StateKey.AI_EXPLANATION] = None
-                    st.rerun()
+            row_label = " | ".join(label_parts)
+            st.write(row_label)
+            st.code(smiles, language=None)
+            if st.button("复用", key=f"hist_reuse_{i}"):
+                st.session_state["_pending_history_smiles"] = smiles
+                st.session_state["_pending_history_name"] = name
+                st.session_state[StateKey.PREDICTED_SMILES] = None
+                st.session_state[StateKey.PREDICTED_LOGS] = None
+                st.session_state[StateKey.PREDICTED_PKA] = None
+                st.session_state[StateKey.AI_EXPLANATION] = None
+                st.rerun()
