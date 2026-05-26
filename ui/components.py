@@ -90,6 +90,7 @@ def _set_current_smiles(smiles, name=None):
         st.session_state[StateKey.SMILES_INPUT] = smiles
         st.session_state[StateKey.PREDICTED_SMILES] = None
         st.session_state[StateKey.PREDICTED_LOGS] = None
+        st.session_state[StateKey.PREDICTED_PKA] = None
         st.session_state[StateKey.AI_EXPLANATION] = None
     if name:
         st.session_state[StateKey.CURRENT_MOLECULE_NAME] = name
@@ -109,6 +110,7 @@ def _on_radio_select():
             st.session_state[StateKey.CURRENT_MOLECULE_NAME] = selected
             st.session_state[StateKey.PREDICTED_SMILES] = None
             st.session_state[StateKey.PREDICTED_LOGS] = None
+            st.session_state[StateKey.PREDICTED_PKA] = None
             st.session_state[StateKey.AI_EXPLANATION] = None
 
 
@@ -311,14 +313,15 @@ def render_input_area():
         if smiles_input != st.session_state.get(StateKey.SMILES_INPUT, ""):
             st.session_state[StateKey.PREDICTED_SMILES] = None
             st.session_state[StateKey.PREDICTED_LOGS] = None
+            st.session_state[StateKey.PREDICTED_PKA] = None
             st.session_state[StateKey.AI_EXPLANATION] = None
         # Keep molecule name in sync with the current SMILES
         if smiles_input:
             resolved = _resolve_display_name(smiles_input, "")
             if resolved:
                 st.session_state[StateKey.CURRENT_MOLECULE_NAME] = resolved
-            elif not st.session_state.get(StateKey.CURRENT_MOLECULE_NAME):
-                pass  # keep whatever was set by Method 1 or 2
+            else:
+                st.session_state[StateKey.CURRENT_MOLECULE_NAME] = ""
 
 
 def render_file_upload_input():
@@ -349,6 +352,7 @@ def render_file_upload_input():
                         st.session_state["_pending_history_smiles"] = parsed_smiles
                         st.session_state[StateKey.PREDICTED_SMILES] = None
                         st.session_state[StateKey.PREDICTED_LOGS] = None
+                        st.session_state[StateKey.PREDICTED_PKA] = None
                         st.session_state[StateKey.AI_EXPLANATION] = None
                     st.session_state[_file_upload_key] = uploaded.getvalue()
                     st.info("点击下方的 **Predict** 按钮查看结果")
@@ -372,7 +376,7 @@ def render_prediction_history():
             pka = entry.get("pKa")
             name = entry.get("name", "")
 
-            label_parts = [f"#{len(history) - i}"]
+            label_parts = [f"#{i + 1}"]
             if name:
                 label_parts.append(name)
             label_parts.append(f"logS={logS:.3f}" if logS is not None else "logS=?")
@@ -398,5 +402,6 @@ def render_prediction_history():
                     st.session_state["_pending_history_name"] = name
                     st.session_state[StateKey.PREDICTED_SMILES] = None
                     st.session_state[StateKey.PREDICTED_LOGS] = None
+                    st.session_state[StateKey.PREDICTED_PKA] = None
                     st.session_state[StateKey.AI_EXPLANATION] = None
                     st.rerun()

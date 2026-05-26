@@ -92,6 +92,7 @@ if "_pending_history_smiles" in st.session_state:
     st.session_state[StateKey.CURRENT_MOLECULE_NAME] = st.session_state.pop("_pending_history_name", "")
     st.session_state[StateKey.PREDICTED_SMILES] = None
     st.session_state[StateKey.PREDICTED_LOGS] = None
+    st.session_state[StateKey.PREDICTED_PKA] = None
     st.session_state[StateKey.AI_EXPLANATION] = None
 
 
@@ -192,7 +193,8 @@ if predict_button and model_ready:
                         )
                 except Exception:
                     mol_name = ""
-                import datetime, copy
+                import datetime
+                from copy import deepcopy
                 history_entry = {
                     "smiles": current,
                     "name": mol_name,
@@ -205,11 +207,10 @@ if predict_button and model_ready:
                 history = st.session_state[StateKey.PREDICTION_HISTORY]
                 # Avoid duplicate consecutive entries
                 if not history or history[0].get("smiles") != current:
-                    history.insert(0, copy.deepcopy(history_entry))
-                    if len(history) > 15:
-                        history.pop()
-                    # Explicitly reassign so Streamlit detects the in-place mutation
-                    st.session_state[StateKey.PREDICTION_HISTORY] = history
+                    new_history = [deepcopy(history_entry)] + [deepcopy(e) for e in history]
+                    if len(new_history) > 15:
+                        new_history = new_history[:15]
+                    st.session_state[StateKey.PREDICTION_HISTORY] = new_history
                     st.rerun()
 
 
