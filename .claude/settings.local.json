@@ -31,7 +31,11 @@
       "Bash(python3 *)",
       "Bash(curl -s http://localhost:8501/healthz.json)",
       "Bash(pkill -f \"streamlit run app.py\")",
-      "Bash(pkill -f \"streamlit run app\")"
+      "Bash(pkill -f \"streamlit run app\")",
+      "Bash(conda run *)",
+      "Bash(where pip *)",
+      "Bash(pip --version)",
+      "Bash(C:\\\\Users\\\\Lyonl\\\\AppData\\\\Local\\\\Python\\\\pythoncore-3.14-64\\\\python.exe *)"
     ]
   }
 }
