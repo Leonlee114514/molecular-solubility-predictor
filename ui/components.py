@@ -379,38 +379,23 @@ def render_prediction_history():
         return
 
     with st.expander(f"&#128203; 预测历史记录 ({len(history)} 条)", expanded=False):
-        # Build a single HTML table — one st.markdown call, no per-entry
-        # Streamlit element tracking issues when entry count changes.
-        rows_html = []
+        # Show each entry as raw monospace text — mirrors the debug-panel approach
+        # that the user confirmed shows correct data (no HTML table rendering).
         for i, entry in enumerate(history):
             ts = entry.get("timestamp", "")
             smiles = entry.get("smiles", "")
             logS = entry.get("logS")
             pka = entry.get("pKa")
             name = entry.get("name", "")
-            label = f"<b>#{i + 1}</b>"
+            label_parts = [f"#{i + 1}"]
             if name:
-                label += f" | {name}"
-            label += f" | logS={logS:.3f}" if logS is not None else f" | logS=?"
-            if pka is not None:
-                label += f" | pKa={pka:.2f}"
-            label += f" | {ts}"
-            rows_html.append(
-                f'<tr>'
-                f'<td style="padding:4px 8px;font-size:0.85rem;color:var(--ob-text-secondary);'
-                f'font-family:monospace;white-space:nowrap;">{label}</td>'
-                f'<td style="padding:4px 8px;font-size:0.75rem;color:var(--ob-text-tertiary);'
-                f'font-family:monospace;max-width:300px;overflow:hidden;text-overflow:ellipsis;'
-                f'white-space:nowrap;">{smiles}</td>'
-                f'</tr>'
-            )
-        table_html = (
-            f'<table style="width:100%;border-collapse:collapse;">'
-            f'{"".join(rows_html)}'
-            f'</table>'
-        )
-        st.markdown(table_html, unsafe_allow_html=True)
-        # Render reuse buttons sequentially (no columns, no loops with columns)
+                label_parts.append(f"| {name}")
+            val_logS = f"logS={logS:.3f}" if logS is not None else "logS=?"
+            val_pKa = f" | pKa={pka:.2f}" if pka is not None else ""
+            label_parts.append(f"| {val_logS}{val_pKa} | {ts}")
+            st.code(" ".join(label_parts), language=None)
+            st.code(f"  SMILES: {smiles}", language=None)
+        # Render reuse buttons sequentially
         for i, entry in enumerate(history):
             if st.button(f"复用 #{i + 1}", key=f"hist_reuse_{i}"):
                 st.session_state["_pending_history_smiles"] = entry.get("smiles", "")
