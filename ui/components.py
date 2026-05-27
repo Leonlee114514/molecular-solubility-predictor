@@ -379,23 +379,87 @@ def render_prediction_history():
         return
 
     with st.expander(f"&#128203; 预测历史记录 ({len(history)} 条)", expanded=False):
-        # Show each entry as raw monospace text — mirrors the debug-panel approach
-        # that the user confirmed shows correct data (no HTML table rendering).
+        # Build one HTML string for all entries (single st.markdown call
+        # avoids Streamlit element tracking issues).
+        cards_html = []
         for i, entry in enumerate(history):
             ts = entry.get("timestamp", "")
             smiles = entry.get("smiles", "")
             logS = entry.get("logS")
             pka = entry.get("pKa")
             name = entry.get("name", "")
-            label_parts = [f"#{i + 1}"]
-            if name:
-                label_parts.append(f"| {name}")
+
+            # Solubility level color
+            if logS is not None and logS > 0:
+                logS_color = "#34d399"
+                logS_bg = "rgba(52,211,153,0.15)"
+            elif logS is not None and logS > -2:
+                logS_color = "#fbbf24"
+                logS_bg = "rgba(251,191,36,0.15)"
+            else:
+                logS_color = "#f87171"
+                logS_bg = "rgba(248,113,113,0.15)"
             val_logS = f"logS={logS:.3f}" if logS is not None else "logS=?"
-            val_pKa = f" | pKa={pka:.2f}" if pka is not None else ""
-            label_parts.append(f"| {val_logS}{val_pKa} | {ts}")
-            st.code(" ".join(label_parts), language=None)
-            st.code(f"  SMILES: {smiles}", language=None)
-        # Render reuse buttons sequentially
+
+            # pKa color
+            if pka is not None and pka < 5:
+                pka_color = "#a78bfa"
+                pka_bg = "rgba(167,139,250,0.15)"
+                val_pKa = f"pKa={pka:.2f}"
+            elif pka is not None and pka > 9:
+                pka_color = "#22d3ee"
+                pka_bg = "rgba(34,211,238,0.15)"
+                val_pKa = f"pKa={pka:.2f}"
+            elif pka is not None:
+                pka_color = "#fbbf24"
+                pka_bg = "rgba(251,191,36,0.15)"
+                val_pKa = f"pKa={pka:.2f}"
+            else:
+                pka_color = "var(--ob-text-tertiary)"
+                pka_bg = "transparent"
+                val_pKa = "pKa=?"
+
+            display_name = name if name else "(自定义输入)"
+
+            cards_html.append(f"""
+            <div style="
+                background: linear-gradient(135deg, rgba(35,35,55,0.4), rgba(20,20,35,0.3));
+                border: 1px solid var(--ob-border);
+                border-radius: 12px;
+                padding: 10px 14px;
+                margin-bottom: 8px;
+                font-family: 'Segoe UI', system-ui, sans-serif;">
+                <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+                    <span style="
+                        background: linear-gradient(135deg, #7c3aed, #a78bfa);
+                        color:#fff;font-size:0.75rem;font-weight:700;
+                        padding:2px 10px;border-radius:20px;
+                        flex-shrink:0;">#{i + 1}</span>
+                    <span style="
+                        color:var(--ob-text-primary);font-weight:600;
+                        font-size:0.9rem;flex-shrink:0;">{display_name}</span>
+                    <span style="
+                        background:{logS_bg};color:{logS_color};
+                        font-size:0.75rem;font-weight:600;font-family:monospace;
+                        padding:1px 8px;border-radius:6px;
+                        border:1px solid {logS_color};flex-shrink:0;">{val_logS}</span>
+                    <span style="
+                        background:{pka_bg};color:{pka_color};
+                        font-size:0.75rem;font-weight:600;font-family:monospace;
+                        padding:1px 8px;border-radius:6px;
+                        border:1px solid {pka_color};flex-shrink:0;">{val_pKa}</span>
+                    <span style="color:var(--ob-text-tertiary);font-size:0.75rem;
+                        margin-left:auto;flex-shrink:0;">{ts}</span>
+                </div>
+                <div style="
+                    color:var(--ob-text-tertiary);font-size:0.75rem;font-family:monospace;
+                    margin-top:6px;overflow:hidden;text-overflow:ellipsis;
+                    white-space:nowrap;">SMILES: {smiles}</div>
+            </div>""")
+
+        st.markdown("".join(cards_html), unsafe_allow_html=True)
+
+        # Render reuse buttons
         for i, entry in enumerate(history):
             if st.button(f"复用 #{i + 1}", key=f"hist_reuse_{i}"):
                 st.session_state["_pending_history_smiles"] = entry.get("smiles", "")
