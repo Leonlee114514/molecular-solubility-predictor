@@ -17,6 +17,7 @@ st.set_page_config(
 )
 
 import numpy as np
+import io
 from dotenv import load_dotenv
 
 load_dotenv()
