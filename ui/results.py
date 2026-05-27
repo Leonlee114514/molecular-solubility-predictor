@@ -123,7 +123,7 @@ def render_results(model):
 
 def _tab_preview(features):
     """Tab 0: Molecule Preview (2D structure, formula, 3D model)."""
-    st.markdown("""<div class="card-title">&#128065; Molecule Preview</div>""", unsafe_allow_html=True)
+    st.markdown("""<div class="card-title">Molecule Preview</div>""", unsafe_allow_html=True)
 
     mol = Chem.MolFromSmiles(st.session_state[StateKey.PREDICTED_SMILES])
 
@@ -151,7 +151,7 @@ def _tab_preview(features):
             st.warning("无法解析分子结构")
 
     st.markdown("<br>", unsafe_allow_html=True)
-    st.markdown("""<div class="card-title">&#127919; 3D Ball-and-Stick Model</div>""", unsafe_allow_html=True)
+    st.markdown("""<div class="card-title">3D Ball-and-Stick Model</div>""", unsafe_allow_html=True)
     html_3d = cached_show_3d(st.session_state[StateKey.PREDICTED_SMILES])
     if html_3d:
         render_html(html_3d, height=420)
@@ -161,7 +161,7 @@ def _tab_preview(features):
 
 def _tab_solubility(features, prediction, interp, color, css_class, model):
     """Tab 1: Solubility prediction details + SHAP explainability."""
-    st.markdown("""<div class="card-title">&#128202; Solubility Prediction</div>""", unsafe_allow_html=True)
+    st.markdown("""<div class="card-title">Solubility Prediction</div>""", unsafe_allow_html=True)
 
     col_sol1, col_sol2 = st.columns([1, 1.2])
     with col_sol1:
@@ -175,14 +175,14 @@ def _tab_solubility(features, prediction, interp, color, css_class, model):
         st.markdown("""
         <div style="background: rgba(255, 255, 255, 0.03); border-radius: 14px; padding: 1rem; font-size: 0.85rem; color: var(--ob-text-tertiary); border: 1px solid var(--ob-border); font-family: 'Cascadia Code', 'Consolas', monospace;">
         <b style="color: var(--ob-text-secondary);">Interpretation guide:</b><br>
-        <span style="color: #34d399;">&#9679;</span> logS > 0: Very soluble (like ethanol)<br>
-        <span style="color: #fbbf24;">&#9679;</span> -2 < logS < 0: Moderately soluble<br>
-        <span style="color: #f87171;">&#9679;</span> logS < -2: Poorly soluble (like many drug molecules)
+        <span style="color: #34d399;">&gt;</span> logS > 0: Very soluble (like ethanol)<br>
+        <span style="color: #fbbf24;">&gt;</span> -2 < logS < 0: Moderately soluble<br>
+        <span style="color: #f87171;">&gt;</span> logS < -2: Poorly soluble (like many drug molecules)
         </div>
         """, unsafe_allow_html=True)
 
     st.markdown("<br>", unsafe_allow_html=True)
-    st.markdown("""<div class="card-title">&#128300; Molecular Descriptors</div>""", unsafe_allow_html=True)
+    st.markdown("""<div class="card-title">Molecular Descriptors</div>""", unsafe_allow_html=True)
     with st.container(border=True):
         desc_col1, desc_col2, desc_col3, desc_col4 = st.columns(4)
         with desc_col1:
@@ -206,7 +206,7 @@ def _tab_solubility(features, prediction, interp, color, css_class, model):
     """)
 
     st.markdown("<br>", unsafe_allow_html=True)
-    st.markdown("""<div class="card-title">&#128269; SHAP Explainability</div>""", unsafe_allow_html=True)
+    st.markdown("""<div class="card-title">SHAP Explainability</div>""", unsafe_allow_html=True)
     st.caption("基于 SHAP (SHapley Additive exPlanations) 分析每个特征对预测的贡献")
     if st.session_state.get(StateKey.SHAP_VALUES):
         shap_vals = np.array(st.session_state[StateKey.SHAP_VALUES])
@@ -290,7 +290,7 @@ def _tab_solubility(features, prediction, interp, color, css_class, model):
 def _tab_pka(pka_val, pka_type, pka_label, pka_css, pka_text_color, pka_desc, features):
     """Tab 2: pKa acidity/basicity prediction."""
     if pka_val is not None:
-        st.markdown("""<div class="card-title">&#9889; pKa Prediction</div>""", unsafe_allow_html=True)
+        st.markdown("""<div class="card-title">pKa Prediction</div>""", unsafe_allow_html=True)
         col_pka1, col_pka2 = st.columns(2)
         with col_pka1:
             st.metric("Predicted pKa", f"{pka_val:.2f}")
@@ -303,7 +303,7 @@ def _tab_pka(pka_val, pka_type, pka_label, pka_css, pka_text_color, pka_desc, fe
             """, unsafe_allow_html=True)
 
         st.markdown("<br>", unsafe_allow_html=True)
-        st.markdown("""<div class="card-title">&#129516; Chemical Factor Decomposition</div>""", unsafe_allow_html=True)
+        st.markdown("""<div class="card-title">Chemical Factor Decomposition</div>""", unsafe_allow_html=True)
         chem_factors = cached_pka_analysis(st.session_state[StateKey.PREDICTED_SMILES], pka_val)
         if chem_factors:
             names = list(chem_factors.keys())
@@ -364,7 +364,7 @@ def _tab_pka(pka_val, pka_type, pka_label, pka_css, pka_text_color, pka_desc, fe
 
 def _tab_pharmacology(features, prediction, pka_val, pka_type, pka_label, pka_css, pka_text_color, pka_desc):
     """Tab 3: Pharmacology (Lipinski, ADME/Tox, ionization profile)."""
-    st.markdown("""<div class="card-title">&#128300; Drug-likeness: Lipinski's Rule of Five</div>""", unsafe_allow_html=True)
+    st.markdown("""<div class="card-title">Drug-likeness: Lipinski's Rule of Five</div>""", unsafe_allow_html=True)
     lipinski_result = cached_lipinski(tuple(features.items()))
     rules = lipinski_result["rules"]
     setup_plt_dark()
@@ -427,7 +427,7 @@ def _tab_pharmacology(features, prediction, pka_val, pka_type, pka_label, pka_cs
     """, unsafe_allow_html=True)
 
     st.markdown("<br>", unsafe_allow_html=True)
-    st.markdown("""<div class="card-title">&#128142; Drug-likeness Metrics: QED &middot; SAscore &middot; Fsp&sup3;</div>""", unsafe_allow_html=True)
+    st.markdown("""<div class="card-title">Drug-likeness Metrics: QED &middot; SAscore &middot; Fsp&sup3;</div>""", unsafe_allow_html=True)
     dl = cached_druglikeness(st.session_state[StateKey.PREDICTED_SMILES])
     if dl:
         col_qed, col_sa, col_fsp3 = st.columns(3)
@@ -493,7 +493,7 @@ def _tab_pharmacology(features, prediction, pka_val, pka_type, pka_label, pka_cs
 
     if pka_val is not None:
         st.markdown("<br>", unsafe_allow_html=True)
-        st.markdown("""<div class="card-title">&#9889; Ionization Profile</div>""", unsafe_allow_html=True)
+        st.markdown("""<div class="card-title">Ionization Profile</div>""", unsafe_allow_html=True)
         env_ph = [1.5, 4.5, 6.8, 7.4]
         env_names = ['Stomach\n胃', 'Duodenum\n十二指肠', 'Small Intestine\n小肠', 'Blood/Brain\n血液/脑']
         if pka_type == "acid":
@@ -518,7 +518,7 @@ def _tab_pharmacology(features, prediction, pka_val, pka_type, pka_label, pka_cs
         plt.close(fig)
 
         st.markdown("<br>", unsafe_allow_html=True)
-        st.markdown("""<div class="card-title">&#128138; 药理学分析</div>""", unsafe_allow_html=True)
+        st.markdown("""<div class="card-title">药理学分析</div>""", unsafe_allow_html=True)
         with st.container(border=True):
             if pka_type == "acid":
                 if pka_val < 4:
@@ -534,7 +534,7 @@ def _tab_pharmacology(features, prediction, pka_val, pka_type, pka_label, pka_cs
                 st.info("**两性分子**：在不同 pH 环境下电离行为复杂，吸收部位取决于具体结构。可能需要特殊制剂（如肠溶片）来优化生物利用度。")
 
         st.markdown("<br>", unsafe_allow_html=True)
-        st.markdown("""<div class="card-title">&#128279; 溶解度 x pKa 联动分析</div>""", unsafe_allow_html=True)
+        st.markdown("""<div class="card-title">溶解度 x pKa 联动分析</div>""", unsafe_allow_html=True)
         logS = prediction
         parts = []
         if logS > 0:
@@ -566,7 +566,7 @@ def _tab_pharmacology(features, prediction, pka_val, pka_type, pka_label, pka_cs
         st.info("pKa 模型未加载，药理学分析不可用。")
 
     st.markdown("<br>", unsafe_allow_html=True)
-    st.markdown("""<div class="card-title">&#129514; ADME/Tox 药代动力学概览</div>""", unsafe_allow_html=True)
+    st.markdown("""<div class="card-title">ADME/Tox 药代动力学概览</div>""", unsafe_allow_html=True)
 
     admet = cached_admet(
         st.session_state[StateKey.PREDICTED_SMILES],
@@ -585,7 +585,7 @@ def _tab_pharmacology(features, prediction, pka_val, pka_type, pka_label, pka_cs
     with adme_tabs[0]:
         st.markdown(f"""
         <div style="padding: 1rem; background: rgba(52, 211, 153, 0.06); border-radius: 12px; border: 1px solid rgba(52, 211, 153, 0.15);">
-        <b style="color: #34d399;">&#128270; 吸收分析</b><br><br>
+        <b style="color: #34d399;">吸收分析</b><br><br>
         <span style="color: #c0c0d0; font-size: 0.9rem; line-height: 1.7;">{admet['absorption']}</span>
         </div>
         """, unsafe_allow_html=True)
@@ -630,14 +630,14 @@ def _tab_pharmacology(features, prediction, pka_val, pka_type, pka_label, pka_cs
         with col_m1:
             st.markdown(f"""
             <div style="padding: 1rem; background: rgba(251, 191, 36, 0.06); border-radius: 12px; border: 1px solid rgba(251, 191, 36, 0.15);">
-            <b style="color: #fbbf24;">&#128300; 代谢热点</b><br><br>
+            <b style="color: #fbbf24;">代谢热点</b><br><br>
             <span style="color: #c0c0d0; font-size: 0.9rem; line-height: 1.7;">{m['summary']}</span>
             </div>
             """, unsafe_allow_html=True)
         with col_m2:
             st.markdown(f"""
             <div style="padding: 1rem; background: rgba(251, 191, 36, 0.06); border-radius: 12px; border: 1px solid rgba(251, 191, 36, 0.15);">
-            <b style="color: #fbbf24;">&#127976; 相关代谢酶</b><br><br>
+            <b style="color: #fbbf24;">相关代谢酶</b><br><br>
             <span style="color: #c0c0d0; font-size: 0.9rem;">{m['cyp_enzymes']}</span>
             </div>
             """, unsafe_allow_html=True)
@@ -652,7 +652,7 @@ def _tab_pharmacology(features, prediction, pka_val, pka_type, pka_label, pka_cs
         e = admet["excretion"]
         st.markdown(f"""
         <div style="padding: 1rem; background: rgba(167, 139, 250, 0.06); border-radius: 12px; border: 1px solid rgba(167, 139, 250, 0.15);">
-        <b style="color: #a78bfa;">&#128167; 排泄途径：{e['route']}</b><br><br>
+        <b style="color: #a78bfa;">排泄途径：{e['route']}</b><br><br>
         <span style="color: #c0c0d0; font-size: 0.9rem; line-height: 1.7;">{e['summary']}</span>
         </div>
         """, unsafe_allow_html=True)
@@ -694,7 +694,7 @@ def _tab_pharmacology(features, prediction, pka_val, pka_type, pka_label, pka_cs
 
 def _tab_ai(features, prediction, pka_val, pka_type):
     """Tab 4: AI chemistry explanation."""
-    st.markdown("""<div class="card-title">&#129504; AI Chemistry Explanation</div>""", unsafe_allow_html=True)
+    st.markdown("""<div class="card-title">AI Chemistry Explanation</div>""", unsafe_allow_html=True)
     with st.container(border=True):
         if st.session_state[StateKey.AI_EXPLANATION]:
             st.markdown(st.session_state[StateKey.AI_EXPLANATION])

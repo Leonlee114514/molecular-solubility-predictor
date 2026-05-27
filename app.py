@@ -11,7 +11,7 @@ import streamlit as st
 # and causing CSS/layout/rendering issues.
 st.set_page_config(
     page_title="DisSolve - Molecular Property Predictor",
-    page_icon="🧬",
+    page_icon=None,
     layout="wide",
     initial_sidebar_state="collapsed"
 )
@@ -116,7 +116,7 @@ render_prediction_history()
 st.markdown("<br>", unsafe_allow_html=True)
 btn_col1, btn_col2, btn_col3 = st.columns([1, 2, 1])
 with btn_col2:
-    predict_button = st.button("&#128302; Predict Solubility", use_container_width=True)
+    predict_button = st.button("Predict Solubility", use_container_width=True)
 st.markdown("<br>", unsafe_allow_html=True)
 
 
@@ -214,7 +214,7 @@ if predict_button and model_ready:
                 if StateKey.PREDICTION_HISTORY not in st.session_state:
                     st.session_state[StateKey.PREDICTION_HISTORY] = []
                 history = st.session_state[StateKey.PREDICTION_HISTORY]
-                st.toast(f"预测: name={mol_name} logS={_logS:.3f} pKa={_pKa}", icon="🔬")
+                st.toast(f"预测: name={mol_name} logS={_logS:.3f} pKa={_pKa}")
                 # Avoid duplicate consecutive entries
                 if not history or history[0].get("smiles") != current:
                     new_history = [deepcopy(history_entry)] + [deepcopy(e) for e in history]
@@ -231,7 +231,7 @@ if st.session_state.get(StateKey.PREDICTED_SMILES) and st.session_state.get(Stat
 
 # ========== Batch CSV prediction ==========
 st.markdown("---")
-with st.expander("&#128230; 批量预测（上传 CSV）", expanded=False):
+with st.expander("批量预测（上传 CSV）", expanded=False):
     st.caption("上传包含 SMILES 列的 CSV 文件，批量预测所有分子的溶解度与 pKa")
 
     batch_file = st.file_uploader(
@@ -279,7 +279,7 @@ with st.expander("&#128230; 批量预测（上传 CSV）", expanded=False):
             )
             st.dataframe(df.head(5), use_container_width=True)
 
-            if st.button("&#128302; 开始批量预测", key="batch_predict_btn", use_container_width=True):
+            if st.button("开始批量预测", key="batch_predict_btn", use_container_width=True):
                 # Validate SMILES column content
                 if header[smiles_col] not in df.columns:
                     st.error(f"列 '{header[smiles_col]}' 不存在，请检查文件格式")
@@ -333,7 +333,7 @@ with st.expander("&#128230; 批量预测（上传 CSV）", expanded=False):
                     # Download button
                     csv_out = result_df.to_csv(index=False).encode("utf-8")
                     st.download_button(
-                        "&#128229; 下载结果 CSV",
+                        "下载结果 CSV",
                         data=csv_out,
                         file_name="dissolve_batch_results.csv",
                         mime="text/csv",

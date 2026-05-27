@@ -55,9 +55,9 @@ def render_header():
             Explore 2D & 3D molecular structures, pKa chemistry insights, and AI-generated explanations.
         </p>
         <div style="display: flex; gap: 1rem; margin-top: 1rem; flex-wrap: wrap;">
-            <span class="badge badge-primary"><span style="margin-right:4px;">&#128071;</span> 快速选择</span>
-            <span class="badge badge-success"><span style="margin-right:4px;">&#128269;</span> 名称搜索</span>
-            <span class="badge badge-warn"><span style="margin-right:4px;">&#9997;</span> SMILES 输入</span>
+            <span class="badge badge-primary">快速选择</span>
+            <span class="badge badge-success">名称搜索</span>
+            <span class="badge badge-warn">SMILES 输入</span>
         </div>
     </div>
     """, unsafe_allow_html=True)
@@ -119,7 +119,7 @@ def render_input_area():
 
     # --- 方式1：可搜索单选列表 ---
     with st.container(border=True):
-        st.markdown("""<div class="card-title">&#128071; 方式 1：快速选择常见分子</div>""", unsafe_allow_html=True)
+        st.markdown("""<div class="card-title">方式 1：快速选择常见分子</div>""", unsafe_allow_html=True)
 
         mol_search = st.text_input(
             "搜索分子",
@@ -154,7 +154,7 @@ def render_input_area():
 
     # --- 方式2：三层搜索 ---
     with st.container(border=True):
-        st.markdown("""<div class="card-title">&#128269; 方式 2：名称搜索（本地库 + PubChem API）</div>""", unsafe_allow_html=True)
+        st.markdown("""<div class="card-title">方式 2：名称搜索（本地库 + PubChem API）</div>""", unsafe_allow_html=True)
         st.caption("支持中英文，如 阿司匹林 / Aspirin / Ibuprofen / 咖啡因")
         search_col1, search_col2 = st.columns([4, 1])
         with search_col1:
@@ -165,7 +165,7 @@ def render_input_area():
                 label_visibility="collapsed"
             )
         with search_col2:
-            search_clicked = st.button("&#128269; 搜索", key="search_btn", use_container_width=True)
+            search_clicked = st.button("搜索", key="search_btn", use_container_width=True)
 
         if StateKey.SEARCH_STATE not in st.session_state:
             st.session_state[StateKey.SEARCH_STATE] = None
@@ -226,7 +226,7 @@ def render_input_area():
                         with confirm_col1:
                             use_fuzzy = st.button("✅ 确认使用此结果", key="use_fuzzy_match", use_container_width=True)
                         with confirm_col2:
-                            use_pubchem = st.button("🔍 不是我要的，搜 PubChem", key="skip_to_pubchem", use_container_width=True)
+                            use_pubchem = st.button("不是我要的，搜 PubChem", key="skip_to_pubchem", use_container_width=True)
 
                         if use_fuzzy:
                             st.session_state[StateKey.SEARCH_STATE] = "fuzzy_confirmed"
@@ -306,7 +306,7 @@ def render_input_area():
 
     # --- 方式3：SMILES 直接输入 ---
     with st.container(border=True):
-        st.markdown("""<div class="card-title">&#9997; 方式 3：直接输入 SMILES</div>""", unsafe_allow_html=True)
+        st.markdown("""<div class="card-title">方式 3：直接输入 SMILES</div>""", unsafe_allow_html=True)
         st.caption("可从下拉菜单自动填入，也可手动编辑或粘贴外部 SMILES")
 
         smiles_input = st.text_input(
@@ -337,7 +337,7 @@ def render_input_area():
 def render_file_upload_input():
     """Render the 4th input method: upload .mol/.sdf/.pdb files."""
     with st.container(border=True):
-        st.markdown("""<div class="card-title">&#128196; 方式 4：上传分子文件</div>""", unsafe_allow_html=True)
+        st.markdown("""<div class="card-title">方式 4：上传分子文件</div>""", unsafe_allow_html=True)
         st.caption("支持 .mol .sdf .mol2 .pdb .xyz 格式")
 
         uploaded = st.file_uploader(
@@ -378,7 +378,7 @@ def render_prediction_history():
     if not history:
         return
 
-    with st.expander(f"&#128203; 预测历史记录 ({len(history)} 条)", expanded=False):
+    with st.expander(f"预测历史记录 ({len(history)} 条)", expanded=False):
         for i, entry in enumerate(history):
             ts = entry.get("timestamp", "")
             smiles = entry.get("smiles", "")
@@ -459,7 +459,7 @@ def render_prediction_history():
             with col_card:
                 st.markdown(card, unsafe_allow_html=True)
             with col_btn:
-                if st.button("&#128259; 复用", key=f"hist_reuse_{i}", use_container_width=True):
+                if st.button("复用", key=f"hist_reuse_{i}", use_container_width=True):
                     st.session_state["_pending_history_smiles"] = entry.get("smiles", "")
                     st.session_state["_pending_history_name"] = entry.get("name", "")
                     st.session_state[StateKey.PREDICTED_SMILES] = None
