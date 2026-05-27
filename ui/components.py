@@ -379,9 +379,6 @@ def render_prediction_history():
         return
 
     with st.expander(f"&#128203; 预测历史记录 ({len(history)} 条)", expanded=False):
-        # Build one HTML string for all entries (single st.markdown call
-        # avoids Streamlit element tracking issues).
-        cards_html = []
         for i, entry in enumerate(history):
             ts = entry.get("timestamp", "")
             smiles = entry.get("smiles", "")
@@ -421,51 +418,52 @@ def render_prediction_history():
 
             display_name = name if name else "(自定义输入)"
 
-            cards_html.append(f"""
+            card = f"""
             <div style="
                 background: linear-gradient(135deg, rgba(35,35,55,0.4), rgba(20,20,35,0.3));
                 border: 1px solid var(--ob-border);
                 border-radius: 12px;
-                padding: 10px 14px;
-                margin-bottom: 8px;
-                font-family: 'Segoe UI', system-ui, sans-serif;">
-                <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+                padding: 8px 12px;
+                height:100%;
+                font-family: 'Segoe UI', system-ui, sans-serif;
+                box-sizing:border-box;">
+                <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
                     <span style="
                         background: linear-gradient(135deg, #7c3aed, #a78bfa);
-                        color:#fff;font-size:0.75rem;font-weight:700;
-                        padding:2px 10px;border-radius:20px;
+                        color:#fff;font-size:0.7rem;font-weight:700;
+                        padding:2px 8px;border-radius:20px;
                         flex-shrink:0;">#{i + 1}</span>
                     <span style="
                         color:var(--ob-text-primary);font-weight:600;
-                        font-size:0.9rem;flex-shrink:0;">{display_name}</span>
+                        font-size:0.85rem;flex-shrink:0;">{display_name}</span>
                     <span style="
                         background:{logS_bg};color:{logS_color};
-                        font-size:0.75rem;font-weight:600;font-family:monospace;
-                        padding:1px 8px;border-radius:6px;
+                        font-size:0.7rem;font-weight:600;font-family:monospace;
+                        padding:1px 6px;border-radius:6px;
                         border:1px solid {logS_color};flex-shrink:0;">{val_logS}</span>
                     <span style="
                         background:{pka_bg};color:{pka_color};
-                        font-size:0.75rem;font-weight:600;font-family:monospace;
-                        padding:1px 8px;border-radius:6px;
+                        font-size:0.7rem;font-weight:600;font-family:monospace;
+                        padding:1px 6px;border-radius:6px;
                         border:1px solid {pka_color};flex-shrink:0;">{val_pKa}</span>
-                    <span style="color:var(--ob-text-tertiary);font-size:0.75rem;
+                    <span style="color:var(--ob-text-tertiary);font-size:0.7rem;
                         margin-left:auto;flex-shrink:0;">{ts}</span>
                 </div>
                 <div style="
-                    color:var(--ob-text-tertiary);font-size:0.75rem;font-family:monospace;
-                    margin-top:6px;overflow:hidden;text-overflow:ellipsis;
+                    color:var(--ob-text-tertiary);font-size:0.7rem;font-family:monospace;
+                    margin-top:4px;overflow:hidden;text-overflow:ellipsis;
                     white-space:nowrap;">SMILES: {smiles}</div>
-            </div>""")
+            </div>"""
 
-        st.markdown("".join(cards_html), unsafe_allow_html=True)
-
-        # Render reuse buttons
-        for i, entry in enumerate(history):
-            if st.button(f"复用 #{i + 1}", key=f"hist_reuse_{i}"):
-                st.session_state["_pending_history_smiles"] = entry.get("smiles", "")
-                st.session_state["_pending_history_name"] = entry.get("name", "")
-                st.session_state[StateKey.PREDICTED_SMILES] = None
-                st.session_state[StateKey.PREDICTED_LOGS] = None
-                st.session_state[StateKey.PREDICTED_PKA] = None
-                st.session_state[StateKey.AI_EXPLANATION] = None
-                st.rerun()
+            col_card, col_btn = st.columns([5, 1])
+            with col_card:
+                st.markdown(card, unsafe_allow_html=True)
+            with col_btn:
+                if st.button("&#128259; 复用", key=f"hist_reuse_{i}", use_container_width=True):
+                    st.session_state["_pending_history_smiles"] = entry.get("smiles", "")
+                    st.session_state["_pending_history_name"] = entry.get("name", "")
+                    st.session_state[StateKey.PREDICTED_SMILES] = None
+                    st.session_state[StateKey.PREDICTED_LOGS] = None
+                    st.session_state[StateKey.PREDICTED_PKA] = None
+                    st.session_state[StateKey.AI_EXPLANATION] = None
+                    st.rerun()
