@@ -43,7 +43,16 @@
       "Bash(echo \"PID=$!\")",
       "Bash(npx --yes chromium-cli --version)",
       "Bash(~/.kimi-webbridge/bin/kimi-webbridge status *)",
-      "Bash(~/.kimi-webbridge/bin/kimi-webbridge start *)"
+      "Bash(~/.kimi-webbridge/bin/kimi-webbridge start *)",
+      "Bash(./venv/Scripts/python -c \"import shap; print\\(shap.__version__\\)\")",
+      "Bash(./venv/Scripts/pip install *)",
+      "Bash(curl *)",
+      "Bash(conda --version)",
+      "Bash(pip install *)",
+      "Bash(./venv/Scripts/python --version)",
+      "Bash(bash *)",
+      "Bash(./venv/Scripts/pip list *)",
+      "Bash(./venv/Scripts/pip check *)"
     ]
   }
 }
