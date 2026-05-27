@@ -35,7 +35,15 @@
       "Bash(conda run *)",
       "Bash(where pip *)",
       "Bash(pip --version)",
-      "Bash(C:\\\\Users\\\\Lyonl\\\\AppData\\\\Local\\\\Python\\\\pythoncore-3.14-64\\\\python.exe *)"
+      "Bash(C:\\\\Users\\\\Lyonl\\\\AppData\\\\Local\\\\Python\\\\pythoncore-3.14-64\\\\python.exe *)",
+      "Bash(ls -la venv/ .venv/ env/)",
+      "Bash(which conda *)",
+      "Bash(py --list)",
+      "Bash(./venv/Scripts/python -m streamlit run app.py --server.port 8501)",
+      "Bash(echo \"PID=$!\")",
+      "Bash(npx --yes chromium-cli --version)",
+      "Bash(~/.kimi-webbridge/bin/kimi-webbridge status *)",
+      "Bash(~/.kimi-webbridge/bin/kimi-webbridge start *)"
     ]
   }
 }
