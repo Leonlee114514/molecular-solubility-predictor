@@ -303,9 +303,9 @@ def analyze_admet(smiles, features, pka_val=None):
         absorption_factors.append("TPSA > 140 Å²，极性表面积较大，可能限制被动跨膜吸收")
 
     if pka_val is not None:
-        if pka_val < 4:
+        if pka_val < 6:
             absorption_factors.append(f"pKa = {pka_val:.1f}（酸性），胃中(pH 1.5)以分子态为主，胃吸收良好")
-        elif pka_val > 9:
+        elif pka_val > 8:
             absorption_factors.append(f"pKa = {pka_val:.1f}（碱性），胃中离子化，主要在小肠(pH 6.8)吸收")
         else:
             absorption_factors.append(f"pKa = {pka_val:.1f}（近中性），全肠道均有吸收")

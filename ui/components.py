@@ -15,23 +15,56 @@ def render_html(html_content, height=1):
 def get_cjk_font():
     """Detect and cache a CJK-capable matplotlib font. Returns font name or None."""
     import glob
+    import platform
     import matplotlib.font_manager as fm
-    font_paths = (
-        glob.glob('/usr/share/fonts/opentype/noto/*.ttc') +
-        glob.glob('/usr/share/fonts/truetype/noto/*.ttc') +
-        glob.glob('/usr/share/fonts/noto-cjk/*.ttc') +
-        glob.glob('/usr/share/fonts/truetype/wqy/*.ttf') +
-        glob.glob('/usr/share/fonts/opentype/source-han-sans/*.otf')
-    )
+
+    patterns = []
+    if platform.system() == "Windows":
+        patterns = [
+            r"C:\Windows\Fonts\msyh*.ttc",
+            r"C:\Windows\Fonts\msyh*.ttf",
+            r"C:\Windows\Fonts\simhei.ttf",
+            r"C:\Windows\Fonts\simsun.ttc",
+        ]
+    elif platform.system() == "Darwin":
+        patterns = [
+            "/System/Library/Fonts/PingFang.ttc",
+            "/System/Library/Fonts/Hiragino Sans GB.ttc",
+            "/Library/Fonts/Arial Unicode.ttf",
+        ]
+    else:
+        patterns = [
+            "/usr/share/fonts/opentype/noto/*.ttc",
+            "/usr/share/fonts/truetype/noto/*.ttc",
+            "/usr/share/fonts/noto-cjk/*.ttc",
+            "/usr/share/fonts/truetype/wqy/*.ttf",
+            "/usr/share/fonts/opentype/source-han-sans/*.otf",
+        ]
+
+    font_paths = []
+    for p in patterns:
+        font_paths.extend(glob.glob(p))
     for fp in font_paths:
         try:
             fm.fontManager.addfont(fp)
         except Exception:
             pass
+
+    cjk_names = (
+        "Microsoft YaHei", "SimHei", "SimSun",
+        "PingFang SC", "PingFang HK", "Heiti SC",
+        "Noto Sans CJK SC", "Noto Sans CJK",
+        "Hiragino Sans GB", "Arial Unicode MS",
+    )
     for font in fm.fontManager.ttflist:
-        if font.name in ('Noto Sans CJK SC', 'Noto Sans CJK'):
+        if font.name in cjk_names:
             return font.name
-        if 'WenQuanYi' in font.name or 'Source Han Sans SC' in font.name:
+        if "WenQuanYi" in font.name or "Source Han Sans SC" in font.name:
+            return font.name
+
+    # Fallback: try any font with "CJK" or "Han" in the name
+    for font in fm.fontManager.ttflist:
+        if "CJK" in font.name or "Han" in font.name:
             return font.name
     return None
 

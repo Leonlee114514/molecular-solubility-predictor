@@ -18,6 +18,8 @@ st.set_page_config(
 
 import numpy as np
 import io
+import os
+import json
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -69,12 +71,16 @@ try:
 except Exception:
     pass
 
-# Pre-warm SHAP TreeExplainer so first prediction doesn't lag
-if model_ready:
-    try:
-        warmup_shap()
-    except Exception:
-        pass
+# Pre-warm SHAP TreeExplainer in background so first prediction doesn't lag
+if model_ready and not st.session_state.get("_shap_warmed"):
+    import threading
+    def _warmup():
+        try:
+            warmup_shap()
+            st.session_state["_shap_warmed"] = True
+        except Exception:
+            pass
+    threading.Thread(target=_warmup, daemon=True).start()
 
 
 # ========== Session state init ==========
@@ -213,7 +219,15 @@ if predict_button and model_ready:
                     "timestamp": datetime.datetime.now().strftime("%H:%M"),
                 }
                 if StateKey.PREDICTION_HISTORY not in st.session_state:
-                    st.session_state[StateKey.PREDICTION_HISTORY] = []
+                    hist_path = os.path.join(os.path.dirname(__file__), '.prediction_history.json')
+                    loaded_list = []
+                    try:
+                        if os.path.exists(hist_path):
+                            with open(hist_path, 'r', encoding='utf-8') as hf:
+                                loaded_list = json.load(hf)
+                    except Exception:
+                        pass
+                    st.session_state[StateKey.PREDICTION_HISTORY] = loaded_list
                 history = st.session_state[StateKey.PREDICTION_HISTORY]
                 st.toast(f"预测: name={mol_name} logS={_logS:.3f} pKa={_pKa}")
                 # Avoid duplicate consecutive entries
@@ -222,6 +236,13 @@ if predict_button and model_ready:
                     if len(new_history) > 15:
                         new_history = new_history[:15]
                     st.session_state[StateKey.PREDICTION_HISTORY] = new_history
+                    # Persist to disk
+                    try:
+                        hist_path = os.path.join(os.path.dirname(__file__), '.prediction_history.json')
+                        with open(hist_path, 'w', encoding='utf-8') as hf:
+                            json.dump(new_history, hf, ensure_ascii=False)
+                    except Exception:
+                        pass
                     st.rerun()
 
 
@@ -289,22 +310,21 @@ with st.expander("批量预测（上传 CSV）", expanded=False):
                     smiles_list = df[header[smiles_col]].dropna().astype(str).tolist()
                     progress_bar = st.progress(0, text=f"正在预测 0/{len(smiles_list)}...")
 
-                    for idx, smi in enumerate(smiles_list):
-                        progress_bar.progress(
-                            (idx + 1) / len(smiles_list),
-                            text=f"正在预测 {idx+1}/{len(smiles_list)}...",
-                        )
-                        feat_result = cached_compute_features(smi)
+                    # Parallel prediction using joblib
+                    import joblib
+                    from features import compute_features
+
+                    def _predict_one(smi):
+                        feat_result = compute_features(smi)
                         if feat_result is None:
-                            results.append({
+                            return {
                                 "SMILES": smi,
                                 "logS": None,
                                 "Solubility Level": "Invalid SMILES",
                                 "pKa": None,
                                 "MolWt": None,
                                 "LogP": None,
-                            })
-                            continue
+                            }
                         features, fp = feat_result
                         X = np.hstack([list(features.values()), fp]).reshape(1, -1)
                         try:
@@ -314,17 +334,44 @@ with st.expander("批量预测（上传 CSV）", expanded=False):
                         try:
                             pKa_val = float(pka_model.predict(X)[0]) if pka_ready else None
                         except Exception:
-                            pka_val = None
-
+                            pKa_val = None
                         level = get_solubility_level(logS)[0] if logS is not None else "?"
-                        results.append({
+                        return {
                             "SMILES": smi,
                             "logS": f"{logS:.3f}" if logS is not None else "?",
                             "Solubility Level": level,
                             "pKa": f"{pKa_val:.2f}" if pKa_val is not None else "?",
                             "MolWt": f"{features['MolWt']:.1f}",
                             "LogP": f"{features['LogP']:.2f}",
-                        })
+                        }
+
+                    n_jobs = min(joblib.cpu_count(), len(smiles_list))
+                    results = joblib.Parallel(n_jobs=n_jobs, return_as="generator_unordered")(
+                        joblib.delayed(_predict_one)(smi) for smi in smiles_list
+                    )
+                    collected = []
+                    for i, r in enumerate(results):
+                        collected.append(r)
+                        progress_bar.progress(
+                            (i + 1) / len(smiles_list),
+                            text=f"正在预测 {i+1}/{len(smiles_list)}...",
+                        )
+                    # Restore original order
+                    results = []
+                    for smi in smiles_list:
+                        for r in collected:
+                            if r["SMILES"] == smi:
+                                results.append(r)
+                                break
+                        else:
+                            results.append({
+                                "SMILES": smi,
+                                "logS": "?",
+                                "Solubility Level": "Invalid SMILES",
+                                "pKa": "?",
+                                "MolWt": "?",
+                                "LogP": "?",
+                            })
 
                     progress_bar.empty()
                     result_df = pd.DataFrame(results)

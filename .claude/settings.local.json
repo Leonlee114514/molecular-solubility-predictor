@@ -52,7 +52,9 @@
       "Bash(./venv/Scripts/python --version)",
       "Bash(bash *)",
       "Bash(./venv/Scripts/pip list *)",
-      "Bash(./venv/Scripts/pip check *)"
+      "Bash(./venv/Scripts/pip check *)",
+      "Bash(git check-ignore *)",
+      "Bash(echo \"exit: $?\")"
     ]
   }
 }

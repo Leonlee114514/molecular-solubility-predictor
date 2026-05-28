@@ -66,7 +66,7 @@ def smiles_from_file(uploaded_file):
     else:
         # Try each parser in order
         text = raw_bytes.decode("utf-8", errors="replace")
-        for parser in (Chem.MolFromMolBlock, Chem.MolFromPDBBlock, Chem.MolFromMol2Block):
+        for parser in (Chem.MolFromMolBlock, Chem.MolFromPDBBlock, Chem.MolFromMol2Block, Chem.MolFromXYZBlock):
             mol = parser(text)
             if mol is not None:
                 break

@@ -1,5 +1,6 @@
-.env  
-__pycache__/  
-*.pyc  
-pubchem_cache.json  
-*.csv 
+.env
+__pycache__/
+*.pyc
+pubchem_cache.json
+*.csv
+.prediction_history.json

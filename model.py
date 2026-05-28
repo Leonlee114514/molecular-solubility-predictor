@@ -67,10 +67,10 @@ def get_shap_contributions(model, features_dict, fp_array):
 
 def get_pka_type(pka_val):
     """Classify pKa value into acid/base/amphoteric."""
-    if pka_val < 5:
+    if pka_val < 6:
         return "acid", "酸性分子 (Acidic)", "pka-acid", "#a78bfa", \
                "pKa 较低，在酸性环境中以分子态为主，脂溶性高"
-    elif pka_val > 9:
+    elif pka_val > 8:
         return "base", "碱性分子 (Basic)", "pka-base", "#22d3ee", \
                "pKa 较高，在碱性环境中以分子态为主"
     else:
