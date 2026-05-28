@@ -310,67 +310,51 @@ with st.expander("批量预测（上传 CSV）", expanded=False):
                     smiles_list = df[header[smiles_col]].dropna().astype(str).tolist()
                     progress_bar = st.progress(0, text=f"正在预测 0/{len(smiles_list)}...")
 
-                    # Parallel prediction using joblib
-                    import joblib
                     from features import compute_features
 
-                    def _predict_one(smi):
+                    # Step 1: compute features for all molecules (RDKit is fast)
+                    features_list = []
+                    valid_indices = []
+                    for i, smi in enumerate(smiles_list):
                         feat_result = compute_features(smi)
                         if feat_result is None:
-                            return {
+                            results.append({
                                 "SMILES": smi,
                                 "logS": None,
                                 "Solubility Level": "Invalid SMILES",
                                 "pKa": None,
                                 "MolWt": None,
                                 "LogP": None,
-                            }
-                        features, fp = feat_result
-                        X = np.hstack([list(features.values()), fp]).reshape(1, -1)
-                        try:
-                            logS = float(model.predict(X)[0])
-                        except Exception:
-                            logS = None
-                        try:
-                            pKa_val = float(pka_model.predict(X)[0]) if pka_ready else None
-                        except Exception:
-                            pKa_val = None
-                        level = get_solubility_level(logS)[0] if logS is not None else "?"
-                        return {
-                            "SMILES": smi,
-                            "logS": f"{logS:.3f}" if logS is not None else "?",
-                            "Solubility Level": level,
-                            "pKa": f"{pKa_val:.2f}" if pKa_val is not None else "?",
-                            "MolWt": f"{features['MolWt']:.1f}",
-                            "LogP": f"{features['LogP']:.2f}",
-                        }
-
-                    n_jobs = min(joblib.cpu_count(), len(smiles_list))
-                    results = joblib.Parallel(n_jobs=n_jobs, return_as="generator_unordered")(
-                        joblib.delayed(_predict_one)(smi) for smi in smiles_list
-                    )
-                    collected = []
-                    for i, r in enumerate(results):
-                        collected.append(r)
-                        progress_bar.progress(
-                            (i + 1) / len(smiles_list),
-                            text=f"正在预测 {i+1}/{len(smiles_list)}...",
-                        )
-                    # Restore original order
-                    results = []
-                    for smi in smiles_list:
-                        for r in collected:
-                            if r["SMILES"] == smi:
-                                results.append(r)
-                                break
+                            })
                         else:
-                            results.append({
-                                "SMILES": smi,
-                                "logS": "?",
-                                "Solubility Level": "Invalid SMILES",
-                                "pKa": "?",
-                                "MolWt": "?",
-                                "LogP": "?",
+                            features_list.append(feat_result)
+                            valid_indices.append(i)
+                        progress_bar.progress(
+                            (i + 1) / (len(smiles_list) + 1),
+                            text=f"计算特征 {i+1}/{len(smiles_list)}...",
+                        )
+
+                    # Step 2: vectorized batch prediction for all valid molecules
+                    if features_list:
+                        X_batch = np.vstack([
+                            np.hstack([list(f.values()), fp])
+                            for f, fp in features_list
+                        ])
+                        logS_batch = model.predict(X_batch)
+                        pKa_batch = pka_model.predict(X_batch) if pka_ready else [None] * len(features_list)
+
+                        for j, idx in enumerate(valid_indices):
+                            features, _ = features_list[j]
+                            logS = float(logS_batch[j])
+                            pKa_val = float(pKa_batch[j]) if pka_ready else None
+                            level = get_solubility_level(logS)[0]
+                            results.insert(idx, {
+                                "SMILES": smiles_list[idx],
+                                "logS": f"{logS:.3f}",
+                                "Solubility Level": level,
+                                "pKa": f"{pKa_val:.2f}" if pKa_val is not None else "?",
+                                "MolWt": f"{features['MolWt']:.1f}",
+                                "LogP": f"{features['LogP']:.2f}",
                             })
 
                     progress_bar.empty()
