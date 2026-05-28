@@ -14,7 +14,12 @@ from ood_detector import OODDetector, load_ood_detector as _load_ood_from_disk
 @st.cache_resource
 def load_solubility_model():
     """Load the Random Forest solubility prediction model (V2)."""
-    model = joblib.load("output_v2/solubility_model_v2.pkl")
+    import os
+    v3_path = "output_v2/solubility_model_v3.pkl"
+    if os.path.exists(v3_path):
+        model = joblib.load(v3_path)
+    else:
+        model = joblib.load("output_v2/solubility_model_v2.pkl")
     desc_names = joblib.load("output_v2/descriptor_names_v2.pkl")
     return model, desc_names
 
@@ -116,7 +121,10 @@ def load_gnn_model():
     from gnn_model import SolubilityGNN, MoleculeGraphEncoder, ATOM_FEATURE_DIM
     import torch
 
-    model_path = os.path.join("output_v2", "gnn_solubility_model.pt")
+    import os
+    model_path = os.path.join("output_v2", "gnn_solubility_model_v3.pt")
+    if not os.path.exists(model_path):
+        model_path = os.path.join("output_v2", "gnn_solubility_model.pt")
     if not os.path.exists(model_path):
         return None, None
 

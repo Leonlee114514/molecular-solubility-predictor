@@ -200,3 +200,16 @@ def load_gnn_model(path, device="cpu"):
     model.to(device)
     model.eval()
     return model
+
+
+def transfer_backbone(model, pretrained_dict):
+    """Load pre-trained backbone weights, skipping incompatible head layers."""
+    model_dict = model.state_dict()
+    pretrained_dict = {k: v for k, v in pretrained_dict.items()
+                       if k in model_dict and v.shape == model_dict[k].shape
+                       and not k.startswith("head.")}
+    model_dict.update(pretrained_dict)
+    model.load_state_dict(model_dict)
+    n_loaded = len(pretrained_dict)
+    n_total = len([k for k in model_dict if not k.startswith("head.")])
+    return n_loaded, n_total
