@@ -6,6 +6,8 @@ Uses Streamlit caching for efficient model serving.
 import streamlit as st
 import joblib
 import shap
+import numpy as np
+import os
 from ood_detector import OODDetector, load_ood_detector as _load_ood_from_disk
 
 
@@ -104,3 +106,45 @@ def run_ood_check(features_dict, fp_array):
         return "UNKNOWN", None
     result = detector.check(features_dict, fp_array)
     return result.risk_level, result
+
+
+# ── GNN model loading & inference ──
+
+@st.cache_resource
+def load_gnn_model():
+    """Load the trained GNN solubility model and encoder."""
+    from gnn_model import SolubilityGNN, MoleculeGraphEncoder, ATOM_FEATURE_DIM
+    import torch
+
+    model_path = os.path.join("output_v2", "gnn_solubility_model.pt")
+    if not os.path.exists(model_path):
+        return None, None
+
+    encoder = MoleculeGraphEncoder()
+    model = SolubilityGNN(atom_dim=ATOM_FEATURE_DIM, hidden_dim=128, num_layers=3)
+    model.load_state_dict(torch.load(model_path, map_location="cpu", weights_only=True))
+    model.eval()
+    return model, encoder
+
+
+def predict_solubility_gnn(model, encoder, smiles):
+    """Run GNN prediction for a single SMILES."""
+    from rdkit import Chem
+    import torch
+
+    mol = Chem.MolFromSmiles(smiles)
+    if mol is None:
+        return None
+    graph = encoder.mol_to_graph(mol)
+    if graph is None:
+        return None
+
+    with torch.no_grad():
+        pred = model(graph)
+    return float(pred.item())
+
+
+def predict_solubility_ensemble(rf_pred, gnn_pred):
+    """Return (ensemble_pred, rf_pred, gnn_pred). Simple unweighted average."""
+    ensemble = (rf_pred + gnn_pred) / 2.0
+    return ensemble, rf_pred, gnn_pred

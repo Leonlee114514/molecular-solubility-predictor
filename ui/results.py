@@ -163,6 +163,17 @@ def _tab_solubility(features, prediction, interp, color, css_class, model):
     """Tab 1: Solubility prediction details + SHAP explainability."""
     st.markdown("""<div class="card-title">Solubility Prediction</div>""", unsafe_allow_html=True)
 
+    model_type = st.session_state.get(StateKey.SELECTED_MODEL, "RF")
+    model_colors = {"RF": "#34d399", "GNN": "#a78bfa", "Ensemble": "#fbbf24"}
+    model_badge = {
+        "RF": "Random Forest", "GNN": "Graph Neural Network", "Ensemble": "Ensemble (RF+GNN)"
+    }[model_type]
+    st.markdown(f"""
+    <div style="display:inline-block;padding:0.15rem 0.7rem;background:rgba({model_colors[model_type].lstrip('#')},0.15);border:1px solid {model_colors[model_type]};border-radius:20px;font-size:0.78rem;color:{model_colors[model_type]};margin-bottom:0.6rem;">
+        Model: {model_badge}
+    </div>
+    """, unsafe_allow_html=True)
+
     col_sol1, col_sol2 = st.columns([1, 1.2])
     with col_sol1:
         st.metric(label="Predicted Solubility (logS)", value=f"{prediction:.3f}")
@@ -171,6 +182,23 @@ def _tab_solubility(features, prediction, interp, color, css_class, model):
             <div style="font-size: 1.1rem; font-weight: 700; color: {color};">-> {interp}</div>
         </div>
         """, unsafe_allow_html=True)
+
+        # ── Ensemble component display ──
+        if model_type == "Ensemble":
+            rf_val = st.session_state.get(StateKey.PREDICTED_LOGS_RF)
+            gnn_val = st.session_state.get(StateKey.PREDICTED_LOGS_GNN)
+            if rf_val is not None and gnn_val is not None:
+                diff = abs(rf_val - gnn_val)
+                st.markdown(f"""
+                <div style="margin-top:0.8rem;padding:0.7rem 0.9rem;background:rgba(251,191,36,0.08);border-radius:10px;border:1px solid rgba(251,191,36,0.2);font-size:0.82rem;">
+                    <b style="color:#fbbf24;">Ensemble Components:</b><br>
+                    <span style="color:#34d399;">RF:</span> {rf_val:.3f} &nbsp;|&nbsp;
+                    <span style="color:#a78bfa;">GNN:</span> {gnn_val:.3f}<br>
+                    <span style="color:#fbbf24;">Disagreement |RF−GNN|:</span> {diff:.3f}
+                    <span style="color:#8b8b9b;font-size:0.75rem;">{' (good agreement)' if diff < 0.5 else ' (notable disagreement)' if diff < 1.0 else ' (large divergence — treat prediction with caution)'}</span>
+                </div>
+                """, unsafe_allow_html=True)
+
     with col_sol2:
         st.markdown("""
         <div style="background: rgba(255, 255, 255, 0.03); border-radius: 14px; padding: 1rem; font-size: 0.85rem; color: var(--ob-text-tertiary); border: 1px solid var(--ob-border); font-family: 'Cascadia Code', 'Consolas', monospace;">
@@ -207,7 +235,22 @@ def _tab_solubility(features, prediction, interp, color, css_class, model):
 
     st.markdown("<br>", unsafe_allow_html=True)
     st.markdown("""<div class="card-title">SHAP Explainability</div>""", unsafe_allow_html=True)
-    st.caption("基于 SHAP (SHapley Additive exPlanations) 分析每个特征对预测的贡献")
+
+    if model_type == "GNN":
+        st.info(
+            "SHAP 可解释性分析基于 Random Forest 特征重要性，"
+            "对 GNN-only 模式不可用。GNN 模型使用图结构学习，"
+            "其可解释性可通过原子/边注意力权重进行分析（GNNExplainer，未来版本支持）。"
+            "如需 SHAP 分析，请切换到 RF 或 Ensemble 模式。"
+        )
+    elif model_type == "Ensemble":
+        st.caption(
+            "基于 SHAP (SHapley Additive exPlanations) 分析 RF 分量中每个特征对预测的贡献。"
+            "GNN 的结构贡献体现在 Ensemble 的差值中。"
+        )
+    else:
+        st.caption("基于 SHAP (SHapley Additive exPlanations) 分析每个特征对预测的贡献")
+
     if st.session_state.get(StateKey.SHAP_VALUES):
         shap_vals = np.array(st.session_state[StateKey.SHAP_VALUES])
         names = st.session_state[StateKey.SHAP_NAMES]

@@ -10,3 +10,4 @@ python-dotenv>=1.0.0
 shap>=0.42.0
 Pillow>=10.0.0
 matplotlib>=3.7.0
+torch>=2.1.0

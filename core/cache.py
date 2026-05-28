@@ -57,3 +57,13 @@ def cached_admet(smiles, features_tuple, pka_val):
 def cached_druglikeness(smiles):
     """Cached QED, SAscore, Fsp³ drug-likeness metrics."""
     return analyze_druglikeness(smiles)
+
+
+@st.cache_data(show_spinner=False, ttl=3600)
+def cached_gnn_predict(smiles):
+    """Cached GNN prediction. Returns float logS or None."""
+    from model import load_gnn_model, predict_solubility_gnn
+    gnn_model, encoder = load_gnn_model()
+    if gnn_model is None:
+        return None
+    return predict_solubility_gnn(gnn_model, encoder, smiles)

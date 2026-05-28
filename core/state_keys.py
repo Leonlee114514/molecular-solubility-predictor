@@ -34,6 +34,11 @@ class StateKey:
     CLEAR_AI = "clear_ai"
     GEN_AI = "gen_ai"
 
+    # ── Model selection ──
+    SELECTED_MODEL = "selected_model_type"
+    PREDICTED_LOGS_RF = "predicted_logS_rf"
+    PREDICTED_LOGS_GNN = "predicted_logS_gnn"
+
     # ── History ──
     PREDICTION_HISTORY = "prediction_history"
 
