@@ -17,3 +17,4 @@ dependencies:
     - requests>=2.31.0
     - python-dotenv>=1.0.0
     - shap
+    - torch>=2.1.0  # for GNN model
