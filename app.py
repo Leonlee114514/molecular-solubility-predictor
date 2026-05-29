@@ -100,6 +100,8 @@ if StateKey.PREDICTED_LOGS not in st.session_state:
     st.session_state[StateKey.PREDICTED_LOGS] = None
 if StateKey.AI_EXPLANATION not in st.session_state:
     st.session_state[StateKey.AI_EXPLANATION] = None
+if StateKey.SELECTED_MODEL not in st.session_state:
+    st.session_state[StateKey.SELECTED_MODEL] = "RF"
 if StateKey.PREDICTED_LOGS_RF not in st.session_state:
     st.session_state[StateKey.PREDICTED_LOGS_RF] = None
 if StateKey.PREDICTED_LOGS_GNN not in st.session_state:
@@ -130,6 +132,29 @@ render_file_upload_input()
 # ========== Prediction history ==========
 render_prediction_history()
 
+
+# ========== Model selector ==========
+st.markdown("<br>", unsafe_allow_html=True)
+sel_col1, sel_col2, sel_col3 = st.columns([1, 2, 1])
+with sel_col2:
+    model_options = ["RF (Random Forest)", "GNN (Graph Neural Network)", "Ensemble (RF + GNN)"]
+    if not gnn_ready:
+        model_options = ["RF (Random Forest)"]
+        st.caption("GNN 模型未找到，仅 RF 可用。运行 `python scripts/train_gnn.py` 训练 GNN 模型。")
+    model_choice = st.selectbox(
+        "模型选择",
+        model_options,
+        key="model_select_widget",
+        index=0 if st.session_state[StateKey.SELECTED_MODEL] == "RF" or not gnn_ready
+            else (1 if st.session_state[StateKey.SELECTED_MODEL] == "GNN" else 2),
+    )
+    if model_choice.startswith("RF"):
+        st.session_state[StateKey.SELECTED_MODEL] = "RF"
+    elif model_choice.startswith("GNN"):
+        st.session_state[StateKey.SELECTED_MODEL] = "GNN"
+    else:
+        st.session_state[StateKey.SELECTED_MODEL] = "Ensemble"
+st.markdown("<br>", unsafe_allow_html=True)
 
 # ========== Predict button ==========
 btn_col1, btn_col2, btn_col3 = st.columns([1, 2, 1])
@@ -163,10 +188,11 @@ if predict_button and model_ready:
                 st.session_state[StateKey.CACHED_FEATURES] = features
                 X_input = np.hstack([list(features.values()), fp_array]).reshape(1, -1)
 
+                model_type = st.session_state[StateKey.SELECTED_MODEL]
                 rf_pred = None
                 gnn_pred = None
 
-                # ── RF prediction (always needed for Ensemble + pKa) ──
+                # ── RF prediction (always needed, even for Ensemble) ──
                 status.update(label="Step 2/5: Random Forest 预测溶解度...")
                 rf_pred = float(model.predict(X_input)[0])
                 st.session_state[StateKey.PREDICTED_SMILES] = current
@@ -177,29 +203,38 @@ if predict_button and model_ready:
                     pka_pred = pka_model.predict(X_input)[0]
                     st.session_state[StateKey.PREDICTED_PKA] = float(pka_pred)
 
-                # ── GNN prediction (for Ensemble) ──
-                if gnn_ready:
+                # ── GNN prediction (for GNN and Ensemble modes) ──
+                if model_type in ("GNN", "Ensemble") and gnn_ready:
                     status.update(label="Step 4/5: GNN 预测溶解度...")
                     gnn_pred = cached_gnn_predict(current)
                     st.session_state[StateKey.PREDICTED_LOGS_GNN] = gnn_pred
 
-                # ── Ensemble prediction ──
-                if gnn_pred is not None:
-                    ensemble, _, _ = predict_solubility_ensemble(rf_pred, gnn_pred)
-                    prediction = ensemble
+                # ── Final prediction ──
+                if model_type == "GNN":
+                    prediction = gnn_pred if gnn_pred is not None else rf_pred
+                elif model_type == "Ensemble":
+                    if gnn_pred is not None:
+                        ensemble, _, _ = predict_solubility_ensemble(rf_pred, gnn_pred)
+                        prediction = ensemble
+                    else:
+                        prediction = rf_pred
                 else:
                     prediction = rf_pred
                 st.session_state[StateKey.PREDICTED_LOGS] = float(prediction)
 
-                # ── SHAP ──
+                # ── SHAP (RF only, skipped for GNN-only mode) ──
                 status.update(label="Step 5/5: SHAP 可解释性分析...")
-                try:
-                    combined_shap, combined_names = cached_shap_contributions(current)
-                    st.session_state[StateKey.SHAP_VALUES] = combined_shap
-                    st.session_state[StateKey.SHAP_NAMES] = combined_names
-                except Exception:
+                if model_type == "GNN":
                     st.session_state[StateKey.SHAP_VALUES] = None
                     st.session_state[StateKey.SHAP_NAMES] = None
+                else:
+                    try:
+                        combined_shap, combined_names = cached_shap_contributions(current)
+                        st.session_state[StateKey.SHAP_VALUES] = combined_shap
+                        st.session_state[StateKey.SHAP_NAMES] = combined_names
+                    except Exception:
+                        st.session_state[StateKey.SHAP_VALUES] = None
+                        st.session_state[StateKey.SHAP_NAMES] = None
                 st.session_state[StateKey.AI_EXPLANATION] = None
 
                 if ood_ready:
@@ -211,8 +246,8 @@ if predict_button and model_ready:
                     st.session_state[StateKey.OOD_RISK] = "UNKNOWN"
                     st.session_state[StateKey.OOD_RESULT] = None
 
-                model_label = "Ensemble"
-                status.update(label=f"分析完成！[Ensemble] 预测 logS = {float(prediction):.3f}", state="complete")
+                model_label = {"RF": "RF", "GNN": "GNN", "Ensemble": "Ensemble"}[model_type]
+                status.update(label=f"分析完成！[{model_label}] 预测 logS = {float(prediction):.3f}", state="complete")
 
                 # ── Save to prediction history ──
                 try:
@@ -371,14 +406,15 @@ with st.expander("批量预测（上传 CSV）", expanded=False):
                             np.hstack([list(f.values()), fp])
                             for f, fp in features_list
                         ])
+                        batch_model_type = st.session_state.get(StateKey.SELECTED_MODEL, "RF")
 
-                        # RF + pKa (always needed)
+                        # RF prediction (always needed)
                         rf_batch = model.predict(X_batch)
                         pKa_batch = pka_model.predict(X_batch) if pka_ready else [None] * len(features_list)
 
-                        # GNN prediction (for Ensemble)
+                        # GNN prediction (for GNN and Ensemble modes)
                         gnn_batch = [None] * len(features_list)
-                        if gnn_ready:
+                        if batch_model_type in ("GNN", "Ensemble") and gnn_ready:
                             for j in range(len(features_list)):
                                 smi = smiles_list[valid_indices[j]]
                                 gnn_batch[j] = cached_gnn_predict(smi)
@@ -392,10 +428,14 @@ with st.expander("批量预测（上传 CSV）", expanded=False):
                             rf_val = float(rf_batch[j])
                             gnn_val = gnn_batch[j]
 
-                            # Ensemble prediction
-                            if gnn_val is not None:
-                                ensemble_val, _, _ = predict_solubility_ensemble(rf_val, gnn_val)
-                                logS = ensemble_val
+                            if batch_model_type == "GNN":
+                                logS = gnn_val if gnn_val is not None else rf_val
+                            elif batch_model_type == "Ensemble":
+                                if gnn_val is not None:
+                                    ensemble_val, _, _ = predict_solubility_ensemble(rf_val, gnn_val)
+                                    logS = ensemble_val
+                                else:
+                                    logS = rf_val
                             else:
                                 logS = rf_val
 
@@ -405,15 +445,16 @@ with st.expander("批量预测（上传 CSV）", expanded=False):
                             row = {
                                 "SMILES": smiles_list[idx],
                                 "logS": f"{logS:.3f}",
-                                "Model": "Ensemble",
+                                "Model": batch_model_type,
                                 "Solubility Level": level,
                                 "pKa": f"{pKa_val:.2f}" if pKa_val is not None else "?",
                                 "MolWt": f"{features['MolWt']:.1f}",
                                 "LogP": f"{features['LogP']:.2f}",
-                                "RF_pred": f"{rf_val:.3f}",
-                                "GNN_pred": f"{gnn_val:.3f}" if gnn_val is not None else "?",
-                                "|RF-GNN|": f"{abs(rf_val - gnn_val):.3f}" if gnn_val is not None else "?",
                             }
+                            if batch_model_type == "Ensemble":
+                                row["RF_pred"] = f"{rf_val:.3f}"
+                                row["GNN_pred"] = f"{gnn_val:.3f}" if gnn_val is not None else "?"
+                                row["|RF-GNN|"] = f"{abs(rf_val - gnn_val):.3f}" if gnn_val is not None else "?"
                             results.insert(idx, row)
 
                     progress_bar.empty()
