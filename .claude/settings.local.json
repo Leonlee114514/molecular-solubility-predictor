@@ -54,7 +54,13 @@
       "Bash(./venv/Scripts/pip list *)",
       "Bash(./venv/Scripts/pip check *)",
       "Bash(git check-ignore *)",
-      "Bash(echo \"exit: $?\")"
+      "Bash(echo \"exit: $?\")",
+      "Bash(git lfs *)",
+      "Bash(xxd)",
+      "Bash(git rm *)",
+      "Bash(git reset *)",
+      "Bash(git status *)",
+      "Bash(git remote *)"
     ]
   }
 }
