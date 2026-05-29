@@ -163,11 +163,15 @@ def _tab_solubility(features, prediction, interp, color, css_class, model):
     """Tab 1: Solubility prediction details + SHAP explainability."""
     st.markdown("""<div class="card-title">Solubility Prediction</div>""", unsafe_allow_html=True)
 
-    model_type = st.session_state.get(StateKey.SELECTED_MODEL, "RF")
+    model_type = st.session_state.get(StateKey.SELECTED_MODEL, "Auto")
+    # Resolve Auto → actual model used
+    if model_type == "Auto":
+        gnn_val = st.session_state.get(StateKey.PREDICTED_LOGS_GNN)
+        model_type = "GNN" if gnn_val is not None else "RF"
     model_colors = {"RF": "#34d399", "GNN": "#a78bfa", "Ensemble": "#fbbf24"}
     model_badge = {
         "RF": "Random Forest", "GNN": "Graph Neural Network", "Ensemble": "Ensemble (RF+GNN)"
-    }[model_type]
+    }.get(model_type, model_type)
     st.markdown(f"""
     <div style="display:inline-block;padding:0.15rem 0.7rem;background:rgba({model_colors[model_type].lstrip('#')},0.15);border:1px solid {model_colors[model_type]};border-radius:20px;font-size:0.78rem;color:{model_colors[model_type]};margin-bottom:0.6rem;">
         Model: {model_badge}
@@ -236,7 +240,15 @@ def _tab_solubility(features, prediction, interp, color, css_class, model):
     st.markdown("<br>", unsafe_allow_html=True)
     st.markdown("""<div class="card-title">SHAP Explainability</div>""", unsafe_allow_html=True)
 
-    if model_type == "GNN":
+    # Re-resolve Auto for this section (model_type may have been overridden above)
+    raw_model_type = st.session_state.get(StateKey.SELECTED_MODEL, "Auto")
+    if raw_model_type == "Auto":
+        gnn_check = st.session_state.get(StateKey.PREDICTED_LOGS_GNN)
+        shap_model_type = "GNN" if gnn_check is not None else "RF"
+    else:
+        shap_model_type = raw_model_type
+
+    if shap_model_type == "GNN":
         st.info(
             "SHAP 可解释性分析基于 Random Forest 特征重要性，"
             "对 GNN-only 模式不可用。GNN 模型使用图结构学习，"

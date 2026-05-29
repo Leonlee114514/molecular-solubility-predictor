@@ -13,13 +13,19 @@ from ood_detector import OODDetector, load_ood_detector as _load_ood_from_disk
 
 @st.cache_resource
 def load_solubility_model():
-    """Load the Random Forest solubility prediction model (V2)."""
+    """Load the Random Forest solubility prediction model (V4)."""
     import os
+    v4_path = "output_v2/solubility_model_v4.pkl"
+    if os.path.exists(v4_path):
+        model = joblib.load(v4_path)
+        desc_names = joblib.load("output_v2/descriptor_names_v4.pkl")
+        return model, desc_names
     v3_path = "output_v2/solubility_model_v3.pkl"
     if os.path.exists(v3_path):
         model = joblib.load(v3_path)
-    else:
-        model = joblib.load("output_v2/solubility_model_v2.pkl")
+        desc_names = joblib.load("output_v2/descriptor_names_v2.pkl")  # v3 uses same desc names
+        return model, desc_names
+    model = joblib.load("output_v2/solubility_model_v2.pkl")
     desc_names = joblib.load("output_v2/descriptor_names_v2.pkl")
     return model, desc_names
 
@@ -122,14 +128,20 @@ def load_gnn_model():
     import torch
 
     import os
-    model_path = os.path.join("output_v2", "gnn_solubility_model_v3.pt")
-    if not os.path.exists(model_path):
-        model_path = os.path.join("output_v2", "gnn_solubility_model.pt")
+    # Try V4 first, then V3, then V2
+    for model_file, hidden_dim in [
+        ("gnn_solubility_model_v4.pt", 256),
+        ("gnn_solubility_model_v3.pt", 128),
+        ("gnn_solubility_model.pt", 128),
+    ]:
+        model_path = os.path.join("output_v2", model_file)
+        if os.path.exists(model_path):
+            break
     if not os.path.exists(model_path):
         return None, None
 
     encoder = MoleculeGraphEncoder()
-    model = SolubilityGNN(atom_dim=ATOM_FEATURE_DIM, hidden_dim=128, num_layers=3)
+    model = SolubilityGNN(atom_dim=ATOM_FEATURE_DIM, hidden_dim=hidden_dim, num_layers=3)
     model.load_state_dict(torch.load(model_path, map_location="cpu", weights_only=True))
     model.eval()
     return model, encoder
@@ -156,3 +168,38 @@ def predict_solubility_ensemble(rf_pred, gnn_pred):
     """Return (ensemble_pred, rf_pred, gnn_pred). Simple unweighted average."""
     ensemble = (rf_pred + gnn_pred) / 2.0
     return ensemble, rf_pred, gnn_pred
+
+
+def predict_solubility_auto(features_dict, fp_array, rf_model, gnn_model, gnn_encoder, smiles):
+    """Auto-select model based on OOD detection.
+
+    Strategy:
+      - OOD LOW (in-distribution, classic drug-like molecule) → RF
+      - OOD MEDIUM/HIGH (novel or outlier molecule) → GNN
+
+    Returns (prediction_value, model_used_label).
+    """
+    # Always start with OOD check
+    ood_risk, _ = run_ood_check(features_dict, fp_array)
+
+    if ood_risk == "LOW":
+        # Classic drug-like molecules → RF (best on ESOL-like data)
+        pred = predict_solubility(rf_model, features_dict, fp_array)
+        return pred, "RF"
+    else:
+        # Novel/outlier molecules → GNN (better generalization)
+        if gnn_model is not None and gnn_encoder is not None:
+            gnn_pred = predict_solubility_gnn(gnn_model, gnn_encoder, smiles)
+            if gnn_pred is not None:
+                return gnn_pred, "GNN"
+        # Fallback to RF if GNN unavailable or fails
+        pred = predict_solubility(rf_model, features_dict, fp_array)
+        return pred, "RF"
+
+
+def run_ood_check_on_features(features_dict, fp_array):
+    """Run OOD detection and return detailed result."""
+    detector = load_ood_detector()
+    if detector is None:
+        return None
+    return detector.check(features_dict, fp_array)

@@ -62,7 +62,20 @@
       "Bash(git status *)",
       "Bash(git remote *)",
       "Bash(git revert *)",
-      "Bash(/c/Users/Lyonl/AppData/Local/Python/bin/python -c ' *)"
+      "Bash(/c/Users/Lyonl/AppData/Local/Python/bin/python -c ' *)",
+      "Bash(conda info *)",
+      "Read(//c/Users/Lyonl/AppData/Local/miniconda3/**)",
+      "Read(//c/Users/Lyonl/miniconda3/**)",
+      "Read(//c/Users/Lyonl/anaconda3/**)",
+      "Read(//c/ProgramData/miniconda3/**)",
+      "Read(//c/Users/Lyonl/AppData/Local//**)",
+      "Bash(/c/Users/Lyonl/AppData/Local/Python/bin/python.exe --version)",
+      "Bash(/c/Users/Lyonl/AppData/Local/Python/bin/python.exe -c \"import ssl; print\\('ssl ok'\\)\")",
+      "Bash(/c/Users/Lyonl/AppData/Local/Python/bin/python.exe -c \"import requests; print\\('requests ok'\\)\")",
+      "Bash(/c/Users/Lyonl/AppData/Local/Python/bin/python.exe -c \"import sklearn; print\\('sklearn', sklearn.__version__\\)\")",
+      "Bash(/c/Users/Lyonl/AppData/Local/Python/bin/python.exe -c \"import torch; print\\('torch', torch.__version__\\)\")",
+      "Bash(/c/Users/Lyonl/AppData/Local/Python/bin/python.exe -c \"from rdkit import Chem; print\\('rdkit ok'\\)\")",
+      "Bash(/c/Users/Lyonl/AppData/Local/Python/bin/python.exe *)"
     ]
   }
 }
