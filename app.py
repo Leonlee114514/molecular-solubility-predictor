@@ -207,7 +207,14 @@ if predict_button and model_ready:
 
                 if pka_ready:
                     status.update(label="Step 3/5: 预测 pKa 与电离行为...")
-                    pka_pred = pka_model.predict(X_input)[0]
+                    # pKa model was trained on 8 core descriptors + 1024-bit Morgan FP only
+                    pka_feat = np.hstack([
+                        [features[k] for k in ["MolWt", "LogP", "NumHDonors", "NumHAcceptors",
+                                                "TPSA", "NumRotatableBonds", "NumAromaticRings",
+                                                "NumAliphaticRings"]],
+                        fp_array,
+                    ]).reshape(1, -1)
+                    pka_pred = pka_model.predict(pka_feat)[0]
                     st.session_state[StateKey.PREDICTED_PKA] = float(pka_pred)
 
                 # ── Auto+: OOD 动态模型选择 ──
@@ -440,7 +447,21 @@ with st.expander("批量预测（上传 CSV）", expanded=False):
 
                         # RF prediction (always needed)
                         rf_batch = model.predict(X_batch)
-                        pKa_batch = pka_model.predict(X_batch) if pka_ready else [None] * len(features_list)
+
+                        # pKa model was trained on 8 core descriptors + 1024-bit Morgan FP only
+                        if pka_ready:
+                            X_batch_pka = np.vstack([
+                                np.hstack([
+                                    [f[k] for k in ["MolWt", "LogP", "NumHDonors", "NumHAcceptors",
+                                                     "TPSA", "NumRotatableBonds", "NumAromaticRings",
+                                                     "NumAliphaticRings"]],
+                                    fp,
+                                ])
+                                for f, fp in features_list
+                            ])
+                            pKa_batch = pka_model.predict(X_batch_pka)
+                        else:
+                            pKa_batch = [None] * len(features_list)
 
                         # For Auto+ mode: compute OOD for all, GNN only where needed
                         need_gnn = [False] * len(features_list)
