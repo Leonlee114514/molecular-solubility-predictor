@@ -37,6 +37,7 @@ class StateKey:
     # ── Model selection ──
     SELECTED_MODEL = "selected_model_type"
     ACTUAL_MODEL = "actual_model_used"  # resolved model for Auto mode
+    MODEL_DISAGREEMENT = "model_disagreement"  # |RF-GNN| gap
     PREDICTED_LOGS_RF = "predicted_logS_rf"
     PREDICTED_LOGS_GNN = "predicted_logS_gnn"
 

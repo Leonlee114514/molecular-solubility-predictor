@@ -105,6 +105,8 @@ if StateKey.SELECTED_MODEL not in st.session_state:
     st.session_state[StateKey.SELECTED_MODEL] = "Auto"
 if StateKey.ACTUAL_MODEL not in st.session_state:
     st.session_state[StateKey.ACTUAL_MODEL] = None
+if StateKey.MODEL_DISAGREEMENT not in st.session_state:
+    st.session_state[StateKey.MODEL_DISAGREEMENT] = 0.0
 if StateKey.PREDICTED_LOGS_RF not in st.session_state:
     st.session_state[StateKey.PREDICTED_LOGS_RF] = None
 if StateKey.PREDICTED_LOGS_GNN not in st.session_state:
@@ -231,9 +233,10 @@ if predict_button and model_ready:
                         gnn_pred = cached_gnn_predict(current)
                         st.session_state[StateKey.PREDICTED_LOGS_GNN] = gnn_pred
 
-                    prediction, actual_model = predict_solubility_auto(ood_risk, rf_pred, gnn_pred)
+                    prediction, actual_model, disagreement = predict_solubility_auto(ood_risk, rf_pred, gnn_pred)
                     st.session_state[StateKey.PREDICTED_LOGS] = float(prediction)
                     st.session_state[StateKey.ACTUAL_MODEL] = actual_model
+                    st.session_state[StateKey.MODEL_DISAGREEMENT] = disagreement
                     ood_already_done = True
                 else:
                     ood_already_done = False
@@ -256,6 +259,7 @@ if predict_button and model_ready:
                         prediction = rf_pred
                     st.session_state[StateKey.PREDICTED_LOGS] = float(prediction)
                     st.session_state[StateKey.ACTUAL_MODEL] = model_type
+                    st.session_state[StateKey.MODEL_DISAGREEMENT] = abs(rf_pred - gnn_pred) if gnn_pred is not None else 0.0
 
                 # ── SHAP (available for RF and Ensemble(W); skipped for GNN-only) ──
                 status.update(label="Step 5/5: SHAP 可解释性分析...")
@@ -281,6 +285,19 @@ if predict_button and model_ready:
                 elif not ood_already_done:
                     st.session_state[StateKey.OOD_RISK] = "UNKNOWN"
                     st.session_state[StateKey.OOD_RESULT] = None
+
+                # ── Disagreement warning ──
+                disagreement = st.session_state.get(StateKey.MODEL_DISAGREEMENT, 0.0)
+                if disagreement > 1.0:
+                    st.warning(
+                        f"⚠️ **RF 与 GNN 预测严重分歧**（|RF−GNN| = {disagreement:.2f}），"
+                        "已自动降级为 GNN 预测。此分子的预测可靠性较低，请谨慎参考。"
+                    )
+                elif disagreement > 0.5:
+                    st.info(
+                        f"📊 **RF 与 GNN 存在显著分歧**（|RF−GNN| = {disagreement:.2f}），"
+                        "加权集成已偏向 GNN。建议结合分子结构自行判断。"
+                    )
 
                 model_labels = {"RF": "RF", "GNN": "GNN", "Ensemble": "Ensemble", "Auto": f"Auto → {actual_model}"}
                 model_label = model_labels.get(model_type, model_type)

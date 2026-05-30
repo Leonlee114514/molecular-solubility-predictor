@@ -173,7 +173,7 @@ def _tab_solubility(features, prediction, interp, color, css_class, model):
         "RF": "Random Forest",
         "GNN": "Graph Neural Network",
         "Ensemble": "Ensemble (RF+GNN)",
-        "Ensemble(W)": "Weighted Ensemble (0.45RF+0.55GNN)",
+        "Ensemble(W)": "Weighted Ensemble (0.45×RF+0.55×GNN)",
     }.get(model_type, model_type)
     st.markdown(f"""
     <div style="display:inline-block;padding:0.15rem 0.7rem;background:rgba({model_colors.get(model_type, 'a78bfa').lstrip('#')},0.15);border:1px solid {model_colors.get(model_type, '#a78bfa')};border-radius:20px;font-size:0.78rem;color:{model_colors.get(model_type, '#a78bfa')};margin-bottom:0.6rem;">
@@ -190,15 +190,23 @@ def _tab_solubility(features, prediction, interp, color, css_class, model):
         </div>
         """, unsafe_allow_html=True)
 
+        # ── Disagreement warning (all modes) ──
+        rf_val = st.session_state.get(StateKey.PREDICTED_LOGS_RF)
+        gnn_val = st.session_state.get(StateKey.PREDICTED_LOGS_GNN)
+        if rf_val is not None and gnn_val is not None:
+            diff = abs(rf_val - gnn_val)
+            if diff > 1.0:
+                st.error(f"⚠️ RF 与 GNN 严重分歧（|RF−GNN| = {diff:.2f}），预测可靠性较低")
+            elif diff > 0.5:
+                st.warning(f"\U0001f4ca RF 与 GNN 存在显著分歧（|RF−GNN| = {diff:.2f}），请谨慎解读")
+
         # ── Ensemble component display ──
         if model_type in ("Ensemble", "Ensemble(W)"):
-            rf_val = st.session_state.get(StateKey.PREDICTED_LOGS_RF)
-            gnn_val = st.session_state.get(StateKey.PREDICTED_LOGS_GNN)
             if rf_val is not None and gnn_val is not None:
                 diff = abs(rf_val - gnn_val)
                 weighted = 0.45 * rf_val + 0.55 * gnn_val
                 is_weighted = model_type == "Ensemble(W)"
-                title = "Weighted Ensemble (0.45×RF + 0.55×GNN)" if is_weighted else "Ensemble (RF+GNN)/2"
+                title = "Weighted Ensemble (0.45×RF + 0.55×GNN)" if is_weighted else "Weighted Ensemble (0.45×RF + 0.55×GNN)"
                 title_color = "#f97316" if is_weighted else "#fbbf24"
                 st.markdown(f"""
                 <div style="margin-top:0.8rem;padding:0.7rem 0.9rem;background:rgba({251 if is_weighted else 251},191,36,0.08);border-radius:10px;border:1px solid rgba({251 if is_weighted else 251},191,36,0.2);font-size:0.82rem;">

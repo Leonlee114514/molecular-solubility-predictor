@@ -170,8 +170,8 @@ def predict_solubility_gnn(model, encoder, smiles):
 
 
 def predict_solubility_ensemble(rf_pred, gnn_pred):
-    """Return (ensemble_pred, rf_pred, gnn_pred). Simple unweighted average."""
-    ensemble = (rf_pred + gnn_pred) / 2.0
+    """Return (ensemble_pred, rf_pred, gnn_pred). Weighted average (0.45RF+0.55GNN)."""
+    ensemble = 0.45 * rf_pred + 0.55 * gnn_pred
     return ensemble, rf_pred, gnn_pred
 
 
@@ -182,22 +182,33 @@ def predict_solubility_weighted(rf_pred, gnn_pred, rf_weight=0.45):
 
 
 def predict_solubility_auto(ood_risk, rf_pred, gnn_pred):
-    """Auto+ strategy: select model based on OOD risk level.
+    """Auto+ strategy: select model based on OOD risk + model disagreement.
 
     Args:
         ood_risk: "LOW", "MEDIUM", or "HIGH" from OOD detector.
         rf_pred: Random Forest prediction value.
         gnn_pred: GNN prediction value (may be None).
 
-    Returns (prediction_value, actual_model_label):
-      - LOW     → 0.3×RF + 0.7×GNN (weighted ensemble, best of both worlds)
-      - MEDIUM  → pure GNN (RF starts becoming unreliable)
-      - HIGH    → pure GNN (RF is unreliable)
+    Returns (prediction_value, actual_model_label, disagreement):
+      disagreement = abs(rf_pred - gnn_pred) or 0 if gnn is None.
+
+    Strategy:
+      - RF/GNN disagree > 1.0 → pure GNN (models can't agree, GNN is safer)
+      - OOD LOW + agree ≤ 1.0 → 0.45×RF + 0.55×GNN (weighted ensemble)
+      - OOD MEDIUM/HIGH       → pure GNN (RF unreliable on outliers)
     """
     if gnn_pred is None:
-        return rf_pred, "RF"
+        return rf_pred, "RF", 0.0
 
-    if ood_risk == "LOW":
-        return predict_solubility_weighted(rf_pred, gnn_pred), "Ensemble(W)"
-    else:
-        return gnn_pred, "GNN"
+    disagreement = abs(rf_pred - gnn_pred)
+
+    # Severe disagreement: models fundamentally disagree → trust GNN
+    if disagreement > 1.0:
+        return gnn_pred, "GNN", disagreement
+
+    # OOD outlier → GNN is more reliable
+    if ood_risk != "LOW":
+        return gnn_pred, "GNN", disagreement
+
+    # Normal case: weighted ensemble
+    return predict_solubility_weighted(rf_pred, gnn_pred), "Ensemble(W)", disagreement
