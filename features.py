@@ -9,7 +9,7 @@ from rdkit.Chem import Descriptors, AllChem
 
 
 def compute_features(smiles_string):
-    """Extract 8 molecular descriptors + 1024-bit Morgan fingerprint from a SMILES string.
+    """Extract 13 molecular descriptors + 1024-bit Morgan fingerprint from a SMILES string.
     Returns (features_dict, fingerprint_array) or None if SMILES is invalid.
     """
     if not smiles_string:
@@ -19,6 +19,7 @@ def compute_features(smiles_string):
         return None
 
     features = {}
+    # ── Core 8 descriptors ──
     features['MolWt'] = Descriptors.MolWt(mol)
     features['LogP'] = Descriptors.MolLogP(mol)
     features['NumHDonors'] = Descriptors.NumHDonors(mol)
@@ -27,6 +28,13 @@ def compute_features(smiles_string):
     features['NumRotatableBonds'] = Descriptors.NumRotatableBonds(mol)
     features['NumAromaticRings'] = Descriptors.NumAromaticRings(mol)
     features['NumAliphaticRings'] = Descriptors.NumAliphaticRings(mol)
+
+    # ── Extended 5 descriptors ──
+    features['FractionCSP3'] = Descriptors.FractionCSP3(mol)       # carbon saturation ratio
+    features['NumSaturatedRings'] = Descriptors.NumSaturatedRings(mol)  # saturated ring count
+    features['HallKierAlpha'] = Descriptors.HallKierAlpha(mol)     # molecular flexibility
+    features['Chi0v'] = Descriptors.Chi0v(mol)                     # connectivity (order 0)
+    features['Chi1v'] = Descriptors.Chi1v(mol)                     # connectivity (order 1)
 
     rdBase.DisableLog("rdApp.warning")
     fp = AllChem.GetMorganFingerprintAsBitVect(mol, radius=2, nBits=1024)

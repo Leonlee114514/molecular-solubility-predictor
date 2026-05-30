@@ -166,14 +166,17 @@ def _tab_solubility(features, prediction, interp, color, css_class, model):
     model_type = st.session_state.get(StateKey.SELECTED_MODEL, "Auto")
     # Resolve Auto → actual model used
     if model_type == "Auto":
-        gnn_val = st.session_state.get(StateKey.PREDICTED_LOGS_GNN)
-        model_type = "GNN" if gnn_val is not None else "RF"
-    model_colors = {"RF": "#34d399", "GNN": "#a78bfa", "Ensemble": "#fbbf24"}
+        actual_model = st.session_state.get(StateKey.ACTUAL_MODEL, "GNN")
+        model_type = actual_model if actual_model in ("RF", "GNN", "Ensemble", "Ensemble(W)") else "GNN"
+    model_colors = {"RF": "#34d399", "GNN": "#a78bfa", "Ensemble": "#fbbf24", "Ensemble(W)": "#f97316"}
     model_badge = {
-        "RF": "Random Forest", "GNN": "Graph Neural Network", "Ensemble": "Ensemble (RF+GNN)"
+        "RF": "Random Forest",
+        "GNN": "Graph Neural Network",
+        "Ensemble": "Ensemble (RF+GNN)",
+        "Ensemble(W)": "Weighted Ensemble (0.45RF+0.55GNN)",
     }.get(model_type, model_type)
     st.markdown(f"""
-    <div style="display:inline-block;padding:0.15rem 0.7rem;background:rgba({model_colors[model_type].lstrip('#')},0.15);border:1px solid {model_colors[model_type]};border-radius:20px;font-size:0.78rem;color:{model_colors[model_type]};margin-bottom:0.6rem;">
+    <div style="display:inline-block;padding:0.15rem 0.7rem;background:rgba({model_colors.get(model_type, 'a78bfa').lstrip('#')},0.15);border:1px solid {model_colors.get(model_type, '#a78bfa')};border-radius:20px;font-size:0.78rem;color:{model_colors.get(model_type, '#a78bfa')};margin-bottom:0.6rem;">
         Model: {model_badge}
     </div>
     """, unsafe_allow_html=True)
@@ -188,14 +191,18 @@ def _tab_solubility(features, prediction, interp, color, css_class, model):
         """, unsafe_allow_html=True)
 
         # ── Ensemble component display ──
-        if model_type == "Ensemble":
+        if model_type in ("Ensemble", "Ensemble(W)"):
             rf_val = st.session_state.get(StateKey.PREDICTED_LOGS_RF)
             gnn_val = st.session_state.get(StateKey.PREDICTED_LOGS_GNN)
             if rf_val is not None and gnn_val is not None:
                 diff = abs(rf_val - gnn_val)
+                weighted = 0.45 * rf_val + 0.55 * gnn_val
+                is_weighted = model_type == "Ensemble(W)"
+                title = "Weighted Ensemble (0.45×RF + 0.55×GNN)" if is_weighted else "Ensemble (RF+GNN)/2"
+                title_color = "#f97316" if is_weighted else "#fbbf24"
                 st.markdown(f"""
-                <div style="margin-top:0.8rem;padding:0.7rem 0.9rem;background:rgba(251,191,36,0.08);border-radius:10px;border:1px solid rgba(251,191,36,0.2);font-size:0.82rem;">
-                    <b style="color:#fbbf24;">Ensemble Components:</b><br>
+                <div style="margin-top:0.8rem;padding:0.7rem 0.9rem;background:rgba({251 if is_weighted else 251},191,36,0.08);border-radius:10px;border:1px solid rgba({251 if is_weighted else 251},191,36,0.2);font-size:0.82rem;">
+                    <b style="color:{title_color};">{title}</b><br>
                     <span style="color:#34d399;">RF:</span> {rf_val:.3f} &nbsp;|&nbsp;
                     <span style="color:#a78bfa;">GNN:</span> {gnn_val:.3f}<br>
                     <span style="color:#fbbf24;">Disagreement |RF−GNN|:</span> {diff:.3f}
@@ -240,22 +247,22 @@ def _tab_solubility(features, prediction, interp, color, css_class, model):
     st.markdown("<br>", unsafe_allow_html=True)
     st.markdown("""<div class="card-title">SHAP Explainability</div>""", unsafe_allow_html=True)
 
-    # Re-resolve Auto for this section (model_type may have been overridden above)
-    raw_model_type = st.session_state.get(StateKey.SELECTED_MODEL, "Auto")
-    if raw_model_type == "Auto":
-        gnn_check = st.session_state.get(StateKey.PREDICTED_LOGS_GNN)
-        shap_model_type = "GNN" if gnn_check is not None else "RF"
+    # Determine which model was actually used for SHAP eligibility
+    raw_sel = st.session_state.get(StateKey.SELECTED_MODEL, "Auto")
+    if raw_sel == "Auto":
+        shap_model_type = st.session_state.get(StateKey.ACTUAL_MODEL, "GNN")
     else:
-        shap_model_type = raw_model_type
+        shap_model_type = raw_sel
 
-    if shap_model_type == "GNN":
+    shap_no_go = {"GNN", "Ensemble(W)"}
+    if shap_model_type in shap_no_go:
         st.info(
             "SHAP 可解释性分析基于 Random Forest 特征重要性，"
             "对 GNN-only 模式不可用。GNN 模型使用图结构学习，"
             "其可解释性可通过原子/边注意力权重进行分析（GNNExplainer，未来版本支持）。"
             "如需 SHAP 分析，请切换到 RF 或 Ensemble 模式。"
         )
-    elif model_type == "Ensemble":
+    elif shap_model_type == "Ensemble":
         st.caption(
             "基于 SHAP (SHapley Additive exPlanations) 分析 RF 分量中每个特征对预测的贡献。"
             "GNN 的结构贡献体现在 Ensemble 的差值中。"

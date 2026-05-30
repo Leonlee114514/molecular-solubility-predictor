@@ -27,11 +27,17 @@ DESCRIPTOR_NAMES_CN = {
     "NumRotatableBonds":  "可旋转键 (Rotatable Bonds)",
     "NumAromaticRings":   "芳香环 (Aromatic Rings)",
     "NumAliphaticRings":  "脂肪环 (Aliphatic Rings)",
+    "FractionCSP3":       "碳饱和比例 (FractionCSP3)",
+    "NumSaturatedRings":  "饱和环数 (Saturated Rings)",
+    "HallKierAlpha":      "分子柔性 (Hall-Kier α)",
+    "Chi0v":              "连接性指数 χ0v (Chi0)",
+    "Chi1v":              "连接性指数 χ1v (Chi1)",
 }
 
 DESCRIPTOR_ORDER = [
     "MolWt", "LogP", "NumHDonors", "NumHAcceptors",
     "TPSA", "NumRotatableBonds", "NumAromaticRings", "NumAliphaticRings",
+    "FractionCSP3", "NumSaturatedRings", "HallKierAlpha", "Chi0v", "Chi1v",
 ]
 
 

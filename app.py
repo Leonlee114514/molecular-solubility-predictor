@@ -30,6 +30,7 @@ from model import (
     load_ood_detector, run_ood_check,
     warmup_shap, get_solubility_level,
     load_gnn_model, predict_solubility_gnn, predict_solubility_ensemble,
+    predict_solubility_auto, predict_solubility_weighted,
 )
 from core.cache import (
     cached_compute_features, cached_show_3d, cached_pka_analysis,
@@ -102,6 +103,8 @@ if StateKey.AI_EXPLANATION not in st.session_state:
     st.session_state[StateKey.AI_EXPLANATION] = None
 if StateKey.SELECTED_MODEL not in st.session_state:
     st.session_state[StateKey.SELECTED_MODEL] = "Auto"
+if StateKey.ACTUAL_MODEL not in st.session_state:
+    st.session_state[StateKey.ACTUAL_MODEL] = None
 if StateKey.PREDICTED_LOGS_RF not in st.session_state:
     st.session_state[StateKey.PREDICTED_LOGS_RF] = None
 if StateKey.PREDICTED_LOGS_GNN not in st.session_state:
@@ -207,27 +210,23 @@ if predict_button and model_ready:
                     pka_pred = pka_model.predict(X_input)[0]
                     st.session_state[StateKey.PREDICTED_PKA] = float(pka_pred)
 
-                # ── OOD check (needed for Auto mode) ──
+                # ── Auto+: OOD 动态模型选择 ──
                 actual_model = model_type
                 if model_type == "Auto":
                     status.update(label="Step 3+/5: OOD 分布检测，智能选择模型...")
                     ood_risk, ood_result = run_ood_check(features, fp_array)
                     st.session_state[StateKey.OOD_RISK] = ood_risk
                     st.session_state[StateKey.OOD_RESULT] = ood_result
-                    if ood_risk == "LOW":
-                        actual_model = "RF"
-                        prediction = rf_pred
-                        st.session_state[StateKey.PREDICTED_LOGS_GNN] = None
-                    else:
-                        actual_model = "GNN"
-                        if gnn_ready:
-                            status.update(label="Step 4/5: GNN 预测溶解度 (OOD 分子)...")
-                            gnn_pred = cached_gnn_predict(current)
-                            st.session_state[StateKey.PREDICTED_LOGS_GNN] = gnn_pred
-                            prediction = gnn_pred if gnn_pred is not None else rf_pred
-                        else:
-                            prediction = rf_pred
+
+                    # Always need GNN for Auto+ (both weighted ensemble and pure GNN use it)
+                    if gnn_ready:
+                        status.update(label="Step 4/5: GNN 预测溶解度...")
+                        gnn_pred = cached_gnn_predict(current)
+                        st.session_state[StateKey.PREDICTED_LOGS_GNN] = gnn_pred
+
+                    prediction, actual_model = predict_solubility_auto(ood_risk, rf_pred, gnn_pred)
                     st.session_state[StateKey.PREDICTED_LOGS] = float(prediction)
+                    st.session_state[StateKey.ACTUAL_MODEL] = actual_model
                     ood_already_done = True
                 else:
                     ood_already_done = False
@@ -249,10 +248,12 @@ if predict_button and model_ready:
                     else:
                         prediction = rf_pred
                     st.session_state[StateKey.PREDICTED_LOGS] = float(prediction)
+                    st.session_state[StateKey.ACTUAL_MODEL] = model_type
 
-                # ── SHAP (RF only, skipped for GNN-only mode) ──
+                # ── SHAP (available for RF and Ensemble(W); skipped for GNN-only) ──
                 status.update(label="Step 5/5: SHAP 可解释性分析...")
-                if model_type == "GNN" or (model_type == "Auto" and actual_model == "GNN"):
+                shap_disabled_models = {"GNN", "Ensemble(W)"}
+                if actual_model in shap_disabled_models:
                     st.session_state[StateKey.SHAP_VALUES] = None
                     st.session_state[StateKey.SHAP_NAMES] = None
                 else:
@@ -441,19 +442,20 @@ with st.expander("批量预测（上传 CSV）", expanded=False):
                         rf_batch = model.predict(X_batch)
                         pKa_batch = pka_model.predict(X_batch) if pka_ready else [None] * len(features_list)
 
-                        # For Auto mode: compute OOD first, only use GNN where needed
-                        # For other modes: compute GNN as needed
+                        # For Auto+ mode: compute OOD for all, GNN only where needed
                         need_gnn = [False] * len(features_list)
+                        ood_risks = [None] * len(features_list)
                         if batch_model_type == "Auto" and gnn_ready:
                             for j in range(len(features_list)):
                                 features, fp = features_list[j]
                                 ood_risk, _ = run_ood_check(features, fp)
-                                if ood_risk != "LOW":
-                                    need_gnn[j] = True
+                                ood_risks[j] = ood_risk
+                                # Auto+: LOW→weighted (needs GNN), MEDIUM/HIGH→pure GNN
+                                need_gnn[j] = True  # always need GNN for Auto+ weighting
                         elif batch_model_type in ("GNN", "Ensemble") and gnn_ready:
                             need_gnn = [True] * len(features_list)
 
-                        # GNN prediction (only for molecules that need it)
+                        # GNN prediction
                         gnn_batch = [None] * len(features_list)
                         if any(need_gnn) and gnn_ready:
                             for j in range(len(features_list)):
@@ -463,7 +465,7 @@ with st.expander("批量预测（上传 CSV）", expanded=False):
                                 gnn_batch[j] = cached_gnn_predict(smi)
                                 progress_bar.progress(
                                     (len(smiles_list) + j + 1) / (len(smiles_list) + len(features_list) + 1),
-                                    text=f"GNN 预测 {j+1}/{sum(need_gnn)} (OOD 分子)...",
+                                    text=f"GNN 预测 {j+1}/{sum(need_gnn)}...",
                                 )
 
                         for j, idx in enumerate(valid_indices):
@@ -472,9 +474,11 @@ with st.expander("批量预测（上传 CSV）", expanded=False):
                             gnn_val = gnn_batch[j]
 
                             if batch_model_type == "Auto":
-                                # Already decided above based on OOD
-                                if need_gnn[j]:
-                                    logS = gnn_val if gnn_val is not None else rf_val
+                                ood_risk = ood_risks[j]
+                                if ood_risk == "LOW" and gnn_val is not None:
+                                    logS = predict_solubility_weighted(rf_val, gnn_val)
+                                elif gnn_val is not None:
+                                    logS = gnn_val
                                 else:
                                     logS = rf_val
                             elif batch_model_type == "GNN":
@@ -492,7 +496,8 @@ with st.expander("批量预测（上传 CSV）", expanded=False):
                             level = get_solubility_level(logS)[0]
 
                             if batch_model_type == "Auto":
-                                actual_m = "GNN" if need_gnn[j] else "RF"
+                                ood_risk = ood_risks[j]
+                                actual_m = "Ensemble(W)" if ood_risk == "LOW" else "GNN"
                                 row = {
                                     "SMILES": smiles_list[idx],
                                     "logS": f"{logS:.3f}",

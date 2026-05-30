@@ -13,8 +13,13 @@ from ood_detector import OODDetector, load_ood_detector as _load_ood_from_disk
 
 @st.cache_resource
 def load_solubility_model():
-    """Load the Random Forest solubility prediction model (V4)."""
+    """Load the Random Forest solubility prediction model (V5+)."""
     import os
+    v5_path = "output_v2/solubility_model_v5.pkl"
+    if os.path.exists(v5_path):
+        model = joblib.load(v5_path)
+        desc_names = joblib.load("output_v2/descriptor_names_v5.pkl")
+        return model, desc_names
     v4_path = "output_v2/solubility_model_v4.pkl"
     if os.path.exists(v4_path):
         model = joblib.load(v4_path)
@@ -67,14 +72,14 @@ def get_shap_contributions(model, features_dict, fp_array):
     explainer = get_shap_explainer(model)
     shap_values = explainer.shap_values(X)[0]
 
-    desc_shap = shap_values[:8]
-    fp_shap_sum = shap_values[8:].sum()
+    n_desc = len(features_dict)  # auto-detect: 8 (legacy) or 13 (V5)
+    desc_shap = shap_values[:n_desc]
+    fp_shap_sum = shap_values[n_desc:].sum()
     combined_shap = list(desc_shap) + [fp_shap_sum]
-    combined_names = [
-        "分子量 (MolWt)", "脂水分配系数 (LogP)", "氢键供体 (H-Donors)",
-        "氢键受体 (H-Acceptors)", "极性表面积 (TPSA)", "可旋转键 (Rotatable Bonds)",
-        "芳香环 (Aromatic Rings)", "脂肪环 (Aliphatic Rings)", "摩根指纹 (Morgan FP)"
-    ]
+    combined_names = list(features_dict.keys()) + ["摩根指纹 (Morgan FP)"]
+    # Translate to Chinese for display
+    from ood_detector import DESCRIPTOR_NAMES_CN
+    combined_names = [DESCRIPTOR_NAMES_CN.get(n, n) for n in combined_names[:-1]] + ["摩根指纹 (Morgan FP)"]
     return combined_shap, combined_names
 
 
@@ -170,36 +175,29 @@ def predict_solubility_ensemble(rf_pred, gnn_pred):
     return ensemble, rf_pred, gnn_pred
 
 
-def predict_solubility_auto(features_dict, fp_array, rf_model, gnn_model, gnn_encoder, smiles):
-    """Auto-select model based on OOD detection.
+def predict_solubility_weighted(rf_pred, gnn_pred, rf_weight=0.45):
+    """Weighted ensemble: rf_weight × RF + (1-rf_weight) × GNN.
+    Optimal weight 0.45:RF + 0.55:GNN (found via grid search on V5)."""
+    return rf_pred * rf_weight + gnn_pred * (1.0 - rf_weight)
 
-    Strategy:
-      - OOD LOW (in-distribution, classic drug-like molecule) → RF
-      - OOD MEDIUM/HIGH (novel or outlier molecule) → GNN
 
-    Returns (prediction_value, model_used_label).
+def predict_solubility_auto(ood_risk, rf_pred, gnn_pred):
+    """Auto+ strategy: select model based on OOD risk level.
+
+    Args:
+        ood_risk: "LOW", "MEDIUM", or "HIGH" from OOD detector.
+        rf_pred: Random Forest prediction value.
+        gnn_pred: GNN prediction value (may be None).
+
+    Returns (prediction_value, actual_model_label):
+      - LOW     → 0.3×RF + 0.7×GNN (weighted ensemble, best of both worlds)
+      - MEDIUM  → pure GNN (RF starts becoming unreliable)
+      - HIGH    → pure GNN (RF is unreliable)
     """
-    # Always start with OOD check
-    ood_risk, _ = run_ood_check(features_dict, fp_array)
+    if gnn_pred is None:
+        return rf_pred, "RF"
 
     if ood_risk == "LOW":
-        # Classic drug-like molecules → RF (best on ESOL-like data)
-        pred = predict_solubility(rf_model, features_dict, fp_array)
-        return pred, "RF"
+        return predict_solubility_weighted(rf_pred, gnn_pred), "Ensemble(W)"
     else:
-        # Novel/outlier molecules → GNN (better generalization)
-        if gnn_model is not None and gnn_encoder is not None:
-            gnn_pred = predict_solubility_gnn(gnn_model, gnn_encoder, smiles)
-            if gnn_pred is not None:
-                return gnn_pred, "GNN"
-        # Fallback to RF if GNN unavailable or fails
-        pred = predict_solubility(rf_model, features_dict, fp_array)
-        return pred, "RF"
-
-
-def run_ood_check_on_features(features_dict, fp_array):
-    """Run OOD detection and return detailed result."""
-    detector = load_ood_detector()
-    if detector is None:
-        return None
-    return detector.check(features_dict, fp_array)
+        return gnn_pred, "GNN"

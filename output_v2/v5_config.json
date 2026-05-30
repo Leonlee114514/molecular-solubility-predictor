@@ -1,0 +1,38 @@
+{
+  "model_version": "v5",
+  "rf_params": {
+    "n_estimators": 800,
+    "max_depth": 30,
+    "min_samples_split": 5,
+    "min_samples_leaf": 2,
+    "max_features": null,
+    "random_state": 42,
+    "n_jobs": -1
+  },
+  "n_features": 1037,
+  "n_desc": 13,
+  "descriptors": [
+    "MolWt",
+    "LogP",
+    "NumHDonors",
+    "NumHAcceptors",
+    "TPSA",
+    "NumRotatableBonds",
+    "NumAromaticRings",
+    "NumAliphaticRings",
+    "FractionCSP3",
+    "NumSaturatedRings",
+    "HallKierAlpha",
+    "Chi0v",
+    "Chi1v"
+  ],
+  "data": {
+    "n_total": 14099,
+    "n_valid": 14097
+  },
+  "metrics": {
+    "val_r2": 0.7910841548322388,
+    "val_rmse": 1.1565668285091637,
+    "val_mae": 0.7823385576429459
+  }
+}
