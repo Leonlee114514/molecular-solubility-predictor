@@ -58,7 +58,7 @@ class OODDetector:
     def __init__(self, desc_stats: dict, fp_samples: np.ndarray):
         self.desc_stats = desc_stats
         self.fp_samples = fp_samples  # (n_ref, 1024) binary array
-        self._fp_popcounts = fp_samples.sum(axis=1)  # precompute for speed
+        self._fp_popcounts = fp_samples.astype(np.int32).sum(axis=1)  # precompute for speed
 
     def check(self, features_dict: dict, fp_array: np.ndarray) -> OODResult:
         desc_z_scores = {}
@@ -111,13 +111,13 @@ class OODDetector:
 
     def _max_tanimoto(self, fp: np.ndarray) -> float:
         """Compute max Tanimoto similarity of fp to the reference set."""
-        fp_flat = fp.ravel()
+        fp_flat = fp.ravel().astype(np.int32)  # avoid int8 overflow in dot product
         fp_pop = int(fp_flat.sum())
         if fp_pop == 0:
             return 0.0
 
         ref_pops = self._fp_popcounts  # (n_ref,)
-        intersection = np.dot(self.fp_samples, fp_flat)  # (n_ref,) integer
+        intersection = np.dot(self.fp_samples.astype(np.int32), fp_flat)  # (n_ref,) integer
         union = ref_pops + fp_pop - intersection
         with np.errstate(divide="ignore", invalid="ignore"):
             tanimotos = np.where(union > 0, intersection / union, 0.0)

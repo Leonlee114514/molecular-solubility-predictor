@@ -2,7 +2,8 @@
 
 Predict aqueous solubility (logS) of organic molecules using Machine Learning.
 
-[![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](YOUR_DEPLOYMENT_LINK_HERE)
+[![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://chem-ml-project.streamlit.app)
+[![Tests](https://github.com/minlangli26-cyber/chem-ml-project/actions/workflows/test.yml/badge.svg)](https://github.com/minlangli26-cyber/chem-ml-project/actions/workflows/test.yml)
 
 ##  Overview
 
@@ -21,11 +22,9 @@ Built as a high school chemistry + machine learning project.
 
 ##  Screenshots
 
-| Input & Search | Prediction Result | AI Explanation |
+| Input & Search | Solubility Prediction | Pharmacology Analysis |
 |:---:|:---:|:---:|
-| ![Input](docs/screenshot1.png) | ![Result](docs/screenshot2.png) | ![AI](docs/screenshot3.png) |
-
-> Add your own screenshots to a `docs/` folder.
+| ![Input](docs/screenshot1.png) | ![Result](docs/screenshot2.png) | ![Pharmacology](docs/screenshot3.png) |
 
 ##  Tech Stack
 
@@ -44,12 +43,36 @@ Built as a high school chemistry + machine learning project.
 ```
 .
 ├── app.py                      # Main Streamlit application
-├── train_model_v2.py           # Model training script (see below)
-├── output_v2/
-│   ├── solubility_model_v2.pkl # Trained Random Forest model
-│   └── descriptor_names_v2.pkl # Feature names for inference
-├── data/                         # Training datasets (CSV)
-├── .env                          # API keys (not tracked by git)
+├── features.py                 # Molecular feature computation
+├── molecules.py                # Local DB + PubChem search
+├── model.py                    # Model loading & inference
+├── gnn_model.py                # Graph Neural Network (GIN)
+├── ood_detector.py             # Out-of-Distribution detection
+│
+├── core/                       # Business logic modules
+│   ├── analysis.py             # pKa, Lipinski, ADME/Tox
+│   ├── ai_client.py            # Kimi AI explanation client
+│   ├── cache.py                # Streamlit caching wrappers
+│   └── state_keys.py           # Session state constants
+│
+├── ui/                         # UI rendering
+│   ├── components.py           # Header, footer, input areas
+│   ├── results.py              # 5-tab results display
+│   └── plots.py                # 2D/3D molecule visualization
+│
+├── assets/                     # CSS theme & JS effects
+│
+├── tests/                      # Unit tests (pytest)
+│   ├── test_features.py
+│   ├── test_analysis.py
+│   ├── test_model.py
+│   ├── test_molecules.py
+│   └── test_ood_detector.py
+│
+├── output_v2/                  # Trained models
+├── data/                       # Training datasets (CSV)
+├── docs/                       # Screenshots
+├── .env                        # API keys (not tracked)
 ├── requirements.txt
 ├── .gitignore
 └── README.md

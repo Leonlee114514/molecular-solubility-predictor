@@ -256,6 +256,7 @@ def detect_functional_groups(smiles):
         "ketone": "[CX3](=O)[CX4]",
         "aldehyde": "[CX3H1](=O)",
         "nitro": "[NX3](=O)=O",
+        "nitro_charged": "[N+X3](=O)[O-]",
         "sulfonamide": "[SX4](=O)(=O)[NX3]",
         "thiol": "[SX2H]",
         "halogen": "[F,Cl,Br,I]",
