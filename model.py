@@ -212,3 +212,43 @@ def predict_solubility_auto(ood_risk, rf_pred, gnn_pred):
 
     # Normal case: weighted ensemble
     return predict_solubility_weighted(rf_pred, gnn_pred), "Ensemble(W)", disagreement
+
+
+# ── GNN Explainability ──
+
+@st.cache_resource(ttl=600)
+def get_gnn_explainer(_model, lr=0.01, epochs=300):
+    """Create a cached GNNExplainer for the given model."""
+    from gnn_explainer import GNNExplainer
+    return GNNExplainer(_model, lr=lr, epochs=epochs)
+
+
+def explain_gnn_prediction(model, encoder, smiles):
+    """Run GNNExplainer on a single SMILES and return bond + feature importance.
+
+    Args:
+        model: Loaded SolubilityGNN instance.
+        encoder: MoleculeGraphEncoder instance.
+        smiles: SMILES string.
+
+    Returns:
+        dict from GNNExplainer.explain(), or None if parsing/encoding fails.
+    """
+    from rdkit import Chem
+    mol = Chem.MolFromSmiles(smiles)
+    if mol is None:
+        return None
+
+    graph = encoder.mol_to_graph(mol)
+    if graph is None:
+        return None
+
+    x = graph["x"]
+    edge_index = graph["edge_index"]
+    if edge_index.size(1) == 0:
+        return None  # single-atom molecule, no bonds to explain
+
+    explainer = get_gnn_explainer(model, lr=0.01, epochs=300)
+    result = explainer.explain(x, edge_index)
+    result["mol"] = mol  # attach RDKit Mol for plotting
+    return result

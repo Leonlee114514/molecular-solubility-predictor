@@ -52,3 +52,9 @@ class StateKey:
 
     # ── Internal ──
     TARGET_TAB = "_target_tab"
+
+    # ── GNN Explanation ──
+    GNN_EXPLANATION = "gnn_explanation"
+    GNN_BOND_IMPORTANCE = "gnn_bond_importance"
+    GNN_FEATURE_IMPORTANCE = "gnn_feature_importance"
+    GNN_EXPL_ELAPSED = "gnn_expl_elapsed"

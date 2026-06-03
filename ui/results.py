@@ -9,12 +9,13 @@ from rdkit.Chem import rdMolDescriptors
 import matplotlib.pyplot as plt
 from matplotlib.patches import Patch
 
-from ui.plots import mol_to_dark_image
+from ui.plots import mol_to_dark_image, mol_to_dark_image_with_importance
 from model import get_pka_type, get_solubility_level, get_shap_explainer
 from core.ai_client import explain_with_kimi
 from core.cache import (
     cached_compute_features, cached_show_3d, cached_pka_analysis,
     cached_shap_contributions, cached_lipinski, cached_admet, cached_druglikeness,
+    cached_gnn_explanation,
 )
 from core.state_keys import StateKey
 from ui.components import render_html
@@ -264,12 +265,15 @@ def _tab_solubility(features, prediction, interp, color, css_class, model):
 
     shap_no_go = {"GNN", "Ensemble(W)"}
     if shap_model_type in shap_no_go:
-        st.info(
-            "SHAP 可解释性分析基于 Random Forest 特征重要性，"
-            "对 GNN-only 模式不可用。GNN 模型使用图结构学习，"
-            "其可解释性可通过原子/边注意力权重进行分析（GNNExplainer，未来版本支持）。"
-            "如需 SHAP 分析，请切换到 RF 或 Ensemble 模式。"
-        )
+        if shap_model_type == "GNN":
+            _display_gnn_explanation()
+        else:
+            st.info(
+                "SHAP 可解释性分析基于 Random Forest 特征重要性，"
+                "对 GNN-only 模式不可用。GNN 模型使用图结构学习，"
+                "其可解释性可通过原子/边注意力权重进行分析（GNNExplainer，未来版本支持）。"
+                "如需 SHAP 分析，请切换到 RF 或 Ensemble 模式。"
+            )
     elif shap_model_type == "Ensemble":
         st.caption(
             "基于 SHAP (SHapley Additive exPlanations) 分析 RF 分量中每个特征对预测的贡献。"
@@ -760,6 +764,201 @@ def _tab_pharmacology(features, prediction, pka_val, pka_type, pka_label, pka_cs
         - 结构警报是药物设计初筛的重要工具，但存在许多假阳性——含警报结构的药物仍可能安全上市
         - 实际毒性需要通过 Ames 试验、hERG 测试、动物实验和临床试验逐级验证
         """)
+
+
+# ════════════════════════════════════════════════════════════════════════════════
+# GNN Explanation (called from _tab_solubility when model is GNN-only)
+# ════════════════════════════════════════════════════════════════════════════════
+
+def _display_gnn_explanation():
+    """Display GNNExplainer bond importance + feature importance in the Solubility tab."""
+
+    st.markdown("""<div class="card-title">GNN Explainability — 原子/边注意力分析</div>""", unsafe_allow_html=True)
+    st.caption(
+        "基于 GNNExplainer (Ying et al., NeurIPS 2019) 学习分子图中每条边和每个原子特征对预测的贡献。"
+        "暖色高亮 = 对预测影响最大的化学键。"
+    )
+
+    smiles = st.session_state.get(StateKey.PREDICTED_SMILES)
+    if not smiles:
+        st.info("无可解释的分子")
+        return
+
+    # Try to load cached explanation
+    explanation = None
+    placeholder = st.empty()
+    with placeholder:
+        with st.spinner("正在运行 GNNExplainer 分析（约 10-30 秒）..."):
+            try:
+                explanation = cached_gnn_explanation(smiles)
+            except Exception as e:
+                st.error(f"GNN 解释生成失败: {e}")
+                return
+
+    if explanation is None:
+        st.warning("GNN 解释生成失败（模型未加载或分子无法解析）")
+        return
+
+    bond_imp = explanation.get("bond_importance", [])
+    feat_imp = explanation.get("feature_importance", [])
+    elapsed = explanation.get("elapsed", 0.0)
+    mol = explanation.get("mol")
+
+    if not bond_imp:
+        st.info("该分子无非氢键，无法进行边重要性分析")
+        return
+
+    # ── Bond importance to RDKit bond weights ──
+    from gnn_explainer import GNNExplainer as GE
+    bond_weights = GE.bond_importance_to_smarts_weights(mol, bond_imp, threshold=0.05)
+    top_bonds = GE.get_top_bonds(bond_imp, top_k=5)
+    atom_imp = GE.get_atom_importance_from_bonds(mol, bond_imp, threshold=0.05)
+
+    # ── Layout: two columns ──
+    col_left, col_right = st.columns([1.2, 1])
+
+    with col_left:
+        # Draw highlighted molecule
+        try:
+            img = mol_to_dark_image_with_importance(mol, bond_weights, size=(500, 400))
+            if img is not None:
+                st.image(img, caption="关键化学键高亮（暖色 = 更重要）", use_container_width=True)
+            else:
+                # fallback
+                from ui.plots import mol_to_dark_image
+                st.image(mol_to_dark_image(mol, (500, 400)), use_container_width=True)
+        except Exception as e:
+            st.warning(f"高亮图生成失败: {e}")
+            # fallback to standard image
+            from ui.plots import mol_to_dark_image
+            try:
+                st.image(mol_to_dark_image(mol, (500, 400)), use_container_width=True)
+            except Exception:
+                pass
+
+    with col_right:
+        st.markdown(f"""
+        <div style="font-size:0.82rem;color:var(--ob-text-tertiary);margin-bottom:0.5rem;">
+            分析耗时：<b style="color:#a78bfa;">{elapsed:.1f}s</b>
+        </div>
+        """, unsafe_allow_html=True)
+
+        # Top-K most important bonds
+        st.markdown("**Top 最重要的化学键**")
+        bond_descriptions = []
+        for rank, (a, b, imp) in enumerate(top_bonds, 1):
+            if mol:
+                atom_a = mol.GetAtomWithIdx(a)
+                atom_b = mol.GetAtomWithIdx(b)
+                symbol_a = atom_a.GetSymbol()
+                symbol_b = atom_b.GetSymbol()
+                bond = mol.GetBondBetweenAtoms(a, b)
+                bond_type = str(bond.GetBondType()) if bond else "?"
+                label = f"{symbol_a}{a}—{symbol_b}{b} ({bond_type})"
+            else:
+                label = f"Atom {a} — Atom {b}"
+            pct = imp * 100
+            bar_color = f"rgba({int(140+115*imp)},{int(60+175*imp)},{int(230-200*imp)},0.6)"
+            st.markdown(f"""
+            <div style="margin-bottom:0.4rem;font-size:0.85rem;">
+                <span style="color:#c0c0d0;">#{rank}</span> <b>{label}</b><br>
+                <div style="height:14px;background:#1e1e30;border-radius:7px;overflow:hidden;">
+                    <div style="height:100%;width:{pct:.0f}%;background:{bar_color};border-radius:7px;"></div>
+                </div>
+                <span style="font-size:0.75rem;color:#8b8b9b;">重要性: {imp:.3f} ({pct:.0f}%)</span>
+            </div>
+            """, unsafe_allow_html=True)
+
+    # ── Atom importance (second row) ──
+    if atom_imp:
+        st.markdown("<br>", unsafe_allow_html=True)
+        col_atom_left, col_atom_right = st.columns([1, 1])
+        with col_atom_left:
+            st.markdown("**原子重要性（基于相连键汇总）**")
+            sorted_atoms = sorted(atom_imp.items(), key=lambda x: x[1], reverse=True)[:8]
+            for idx, imp_val in sorted_atoms:
+                if mol:
+                    atom = mol.GetAtomWithIdx(idx)
+                    symbol = atom.GetSymbol()
+                    label = f"{symbol}{idx}"
+                else:
+                    label = f"Atom {idx}"
+                pct = imp_val * 100
+                st.markdown(f"""
+                <div style="margin-bottom:0.2rem;font-size:0.82rem;">
+                    <span style="color:#c0c0d0;">{label}</span>
+                    <div style="height:10px;background:#1e1e30;border-radius:5px;overflow:hidden;width:80%;display:inline-block;margin-left:0.5rem;">
+                        <div style="height:100%;width:{pct:.0f}%;background:#a78bfa;border-radius:5px;"></div>
+                    </div>
+                    <span style="font-size:0.7rem;color:#8b8b9b;margin-left:0.3rem;">{imp_val:.2f}</span>
+                </div>
+                """, unsafe_allow_html=True)
+
+        with col_atom_right:
+            # Feature importance
+            if feat_imp and len(feat_imp) > 0:
+                st.markdown("**原子特征重要性**")
+                # Feature names for the 37-dim atom feature vector
+                feat_names = [
+                    "AtomicNum_H", "AtomicNum_C", "AtomicNum_N", "AtomicNum_O",
+                    "AtomicNum_F", "AtomicNum_P", "AtomicNum_S", "AtomicNum_Cl",
+                    "AtomicNum_Br", "AtomicNum_I", "AtomicNum_Other",
+                    "Degree_0", "Degree_1", "Degree_2", "Degree_3", "Degree_4", "Degree_5+",
+                    "Charge_n2", "Charge_n1", "Charge_0", "Charge_p1", "Charge_p2",
+                    "Hyb_SP", "Hyb_SP2", "Hyb_SP3", "Hyb_SP3D", "Hyb_Other",
+                    "IsAromatic",
+                    "Hs_0", "Hs_1", "Hs_2", "Hs_3", "Hs_4+",
+                    "Chiral_None", "Chiral_R", "Chiral_S",
+                    "IsInRing",
+                ]
+                # Sort by importance
+                feat_pairs = list(enumerate(feat_imp))
+                feat_pairs.sort(key=lambda x: x[1], reverse=True)
+                top_feats = feat_pairs[:6]
+                for dim_idx, imp_val in top_feats:
+                    name = feat_names[dim_idx] if dim_idx < len(feat_names) else f"Dim_{dim_idx}"
+                    pct = imp_val * 100
+                    st.markdown(f"""
+                    <div style="margin-bottom:0.2rem;font-size:0.78rem;">
+                        <span style="color:#c0c0d0;">{name}</span>
+                        <div style="height:8px;background:#1e1e30;border-radius:4px;overflow:hidden;width:70%;display:inline-block;margin-left:0.3rem;">
+                            <div style="height:100%;width:{pct:.0f}%;background:#22d3ee;border-radius:4px;"></div>
+                        </div>
+                        <span style="font-size:0.65rem;color:#8b8b9b;">{imp_val:.2f}</span>
+                    </div>
+                    """, unsafe_allow_html=True)
+
+    # ── Interpretation ──
+    st.markdown("<br>", unsafe_allow_html=True)
+    with st.expander("如何读懂 GNN 解释", expanded=False):
+        st.markdown("""
+        <div style="font-size:0.85rem;line-height:1.8;color:#a0a0b5;">
+
+        **GNNExplainer** 通过学习每条化学键的"重要性权重"来解释模型预测：
+
+        - **暖色高亮边** = 模型认为这条化学键及其连接的原子对判断溶解度最重要
+        - **冷色/暗淡边** = 该化学键对预测影响较小
+
+        **技术原理**：
+        1. 将每条边（化学键）初始化为一个可学习的参数（0~1 的权重）
+        2. 用带权重的图做前向传播，只保留高权重的边
+        3. 优化目标是"带权重的预测 ≈ 原始预测"，同时尽量保留最少的边
+        4. 最终权重 = 这条边对模型预测的贡献大小
+
+        **原子特征重要性** 显示 37 维原子特征向量中哪些维度最重要：
+        - 原子类型（是 C、N、O 还是其他元素）
+        - 连接度（连了几个原子）
+        - 杂化方式（sp²、sp³）
+        - 芳香性、手性、是否在环上等
+
+        **注意**：
+        - GNNExplainer 是近似方法，不同运行可能有微小差异
+        - 重要性高的边 ≠ 该键在化学反应中更容易断裂
+        - 重要性说明的是该子结构对**模型预测**的贡献，而非真实的物理化学机制
+        - 建议结合 SHAP（RF 模式）和 pKa 化学因素分解共同解读
+
+        </div>
+        """, unsafe_allow_html=True)
 
 
 def _tab_ai(features, prediction, pka_val, pka_type):

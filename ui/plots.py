@@ -112,3 +112,84 @@ def mol_to_dark_image(mol, size=(500, 400)):
     composed = np.clip(composed + glow_arr, 0, 255).astype(np.uint8)
 
     return Image.fromarray(composed, "RGBA")
+
+
+def mol_to_dark_image_with_importance(mol, bond_weights, size=(500, 400)):
+    """Render a 2D molecular structure with bonds highlighted by GNN importance.
+
+    Important bonds are drawn in brighter/warmer colors (purple → yellow).
+    Less important bonds appear dimmer.
+
+    Args:
+        mol: RDKit Mol object.
+        bond_weights: dict mapping bond_idx -> importance (0~1).
+                      Bonds not in the dict get a subtle default colour.
+        size: (width, height) in pixels.
+
+    Returns:
+        PIL Image (RGBA) with highlighted bonds.
+    """
+    from io import BytesIO
+    from PIL import Image, ImageFilter
+    from rdkit.Chem.Draw import rdMolDraw2D
+
+    w, h = size
+    BG = np.array([42, 42, 60], dtype=np.uint8)
+
+    if not bond_weights:
+        # Fall back to standard rendering
+        return mol_to_dark_image(mol, size)
+
+    # Compute highlight colours per bond using a purple→orange→yellow gradient
+    max_w = max(bond_weights.values()) if bond_weights else 1.0
+    # RDKit bond highlight colours: dict bondIdx -> (r, g, b) in 0-1
+    highlight_colours = {}
+    bond_line_widths = {}
+    for bidx, wgt in bond_weights.items():
+        norm = wgt / max_w if max_w > 0 else 0.0
+        # Colour gradient: dim purple (0.3→0.6 intensity) → bright yellow-gold
+        r = 0.55 + 0.45 * norm
+        g = 0.25 + 0.65 * norm
+        b = 0.90 - 0.80 * norm
+        highlight_colours[bidx] = (r, g, b)
+        # Line width: thicker for more important bonds
+        bond_line_widths[bidx] = 3 + 5 * norm
+
+    drawer = rdMolDraw2D.MolDraw2DCairo(w, h)
+    opts = drawer.drawOptions()
+    opts.clearBackground = False
+    opts.bondLineWidth = 3
+    opts.multipleBondOffset = 0.18
+    opts.padding = 0.08
+    opts.legendFontSize = 22
+
+    opts.updateAtomPalette({
+        6:  (0.82, 0.82, 0.92),
+        7:  (0.35, 0.65, 1.00),
+        8:  (1.00, 0.40, 0.40),
+        9:  (0.35, 0.90, 0.55),
+        16: (1.00, 0.85, 0.30),
+        17: (0.35, 0.90, 0.55),
+        15: (1.00, 0.65, 0.20),
+    })
+
+    # Use RDKit's highlight bonds API
+    highlight_bond_list = list(highlight_colours.keys())
+    drawer.DrawMolecule(mol, highlightBonds=highlight_bond_list,
+                        highlightBondColors=highlight_colours)
+    drawer.FinishDrawing()
+
+    png_data = drawer.GetDrawingText()
+    img = Image.open(BytesIO(png_data)).convert("RGBA")
+    arr = np.array(img, dtype=np.float32)
+
+    alpha = arr[:, :, 3:4] / 255.0
+    bg_layer = np.full((h, w, 4), np.append(BG, [255]), dtype=np.float32)
+    composed = arr * alpha + bg_layer * (1 - alpha)
+
+    # Enhance bright bonds with a subtle glow
+    glow = img.filter(ImageFilter.GaussianBlur(radius=2))
+    glow_arr = np.array(glow, dtype=np.float32) * alpha * 0.2
+    composed = np.clip(composed + glow_arr, 0, 255).astype(np.uint8)
+
+    return Image.fromarray(composed, "RGBA")

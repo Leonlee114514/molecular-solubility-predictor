@@ -67,3 +67,13 @@ def cached_gnn_predict(smiles):
     if gnn_model is None:
         return None
     return predict_solubility_gnn(gnn_model, encoder, smiles)
+
+
+@st.cache_data(show_spinner=False, ttl=3600)
+def cached_gnn_explanation(smiles):
+    """Cached GNNExplainer explanation. Returns dict or None."""
+    from model import load_gnn_model, explain_gnn_prediction
+    gnn_model, encoder = load_gnn_model()
+    if gnn_model is None:
+        return None
+    return explain_gnn_prediction(gnn_model, encoder, smiles)
