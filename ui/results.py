@@ -253,112 +253,105 @@ def _tab_solubility(features, prediction, interp, color, css_class, model):
     - **LogP** measures lipophilicity. Lower LogP means the molecule prefers water over oil.
     """)
 
-    st.markdown("<br>", unsafe_allow_html=True)
-    st.markdown("""<div class="card-title">SHAP Explainability</div>""", unsafe_allow_html=True)
-
-    # Determine which model was actually used for SHAP eligibility
+    # ── SHAP / GNN Explainability section ──
     raw_sel = st.session_state.get(StateKey.SELECTED_MODEL, "Auto")
     if raw_sel == "Auto":
         shap_model_type = st.session_state.get(StateKey.ACTUAL_MODEL, "GNN")
     else:
         shap_model_type = raw_sel
 
-    shap_no_go = {"GNN", "Ensemble(W)"}
-    if shap_model_type in shap_no_go:
-        if shap_model_type == "GNN":
-            _display_gnn_explanation()
-        else:
-            st.info(
-                "SHAP 可解释性分析基于 Random Forest 特征重要性，"
-                "对 GNN-only 模式不可用。GNN 模型使用图结构学习，"
-                "其可解释性可通过原子/边注意力权重进行分析（GNNExplainer，未来版本支持）。"
-                "如需 SHAP 分析，请切换到 RF 或 Ensemble 模式。"
-            )
-    elif shap_model_type == "Ensemble":
-        st.caption(
-            "基于 SHAP (SHapley Additive exPlanations) 分析 RF 分量中每个特征对预测的贡献。"
-            "GNN 的结构贡献体现在 Ensemble 的差值中。"
-        )
-    else:
-        st.caption("基于 SHAP (SHapley Additive exPlanations) 分析每个特征对预测的贡献")
+    # GNNExplainer: show whenever GNN is part of the prediction
+    if shap_model_type in ("GNN", "Ensemble", "Ensemble(W)"):
+        _display_gnn_explanation()
 
-    if st.session_state.get(StateKey.SHAP_VALUES):
-        shap_vals = np.array(st.session_state[StateKey.SHAP_VALUES])
-        names = st.session_state[StateKey.SHAP_NAMES]
-        abs_vals = np.abs(shap_vals)
-        sorted_idx = np.argsort(abs_vals)[::-1][:8]
-        top_shap = shap_vals[sorted_idx]
-        top_names = [names[i] for i in sorted_idx]
-        colors = ['#a78bfa' if v > 0 else '#06b6d4' for v in top_shap]
-        setup_plt_dark()
-        fig, ax = plt.subplots(figsize=(8, 4.5))
-        bars = ax.barh(range(len(top_shap)), top_shap, color=colors, edgecolor="white", height=0.6)
-        ax.invert_yaxis()
-        for i, (bar, val) in enumerate(zip(bars, top_shap)):
-            width = bar.get_width()
-            label_x = width * 0.5
-            ax.text(label_x, i, f"{val:+.3f}", va="center", ha="center", fontsize=10, fontweight="bold",
-                    color="#ffffff",
-                    bbox=dict(boxstyle="round,pad=0.3", facecolor=(0, 0, 0, 0.5),
-                              edgecolor=(1, 1, 1, 0.15), linewidth=0.5))
-        ax.set_yticks(range(len(top_names)))
-        ax.set_yticklabels(top_names, fontsize=11)
-        ax.axvline(x=0, color="#f0f0f5", linewidth=1.0, alpha=0.4)
-        ax.set_xlabel("对溶解度的贡献值 (logS)", fontsize=11)
-        ev = get_shap_explainer(model).expected_value
-        if isinstance(ev, (list, tuple, np.ndarray)):
-            base_value = float(np.array(ev).flatten()[0])
+    # SHAP: show whenever RF is part of the prediction (GNN-only has no SHAP data)
+    if shap_model_type != "GNN":
+        st.markdown("<br>", unsafe_allow_html=True)
+        st.markdown("""<div class="card-title">SHAP Explainability</div>""", unsafe_allow_html=True)
+
+        if shap_model_type == "Ensemble":
+            st.caption(
+                "基于 SHAP (SHapley Additive exPlanations) 分析 RF 分量中每个特征对预测的贡献。"
+                "GNN 的结构贡献体现在 Ensemble 的差值中。"
+            )
         else:
-            base_value = float(ev)
-        ax.set_title(f"预测值: {prediction:.3f}  (基准值: {base_value:.3f})", fontsize=12, pad=10)
-        ax.spines["top"].set_visible(False)
-        ax.spines["right"].set_visible(False)
-        ax.spines["left"].set_visible(False)
-        legend_elements = [
-            Patch(facecolor="#a78bfa", label="推动易溶 (正贡献)"),
-            Patch(facecolor="#06b6d4", label="推动难溶 (负贡献)")
-        ]
-        ax.legend(handles=legend_elements, loc="lower right", fontsize=9)
-        plt.tight_layout()
-        st.pyplot(fig, width="stretch")
-        plt.close(fig)
-        if prediction > 0:
-            solubility_level = "易溶于水"
-        elif prediction > -2:
-            solubility_level = "中等溶解"
-        else:
-            solubility_level = "难溶于水"
-        supporting = []
-        resisting = []
-        for i in range(min(3, len(top_names))):
-            name = top_names[i]
-            val = top_shap[i]
-            if prediction <= -2:
-                if val < 0:
-                    supporting.append("**" + name + "**（" + f"{val:.3f}" + "）")
-                else:
-                    resisting.append("**" + name + "**（+" + f"{val:.3f}" + "）")
-            elif prediction >= 0:
-                if val > 0:
-                    supporting.append("**" + name + "**（+" + f"{val:.3f}" + "）")
-                else:
-                    resisting.append("**" + name + "**（" + f"{val:.3f}" + "）")
+            st.caption("基于 SHAP (SHapley Additive exPlanations) 分析每个特征对预测的贡献")
+
+        if st.session_state.get(StateKey.SHAP_VALUES):
+            shap_vals = np.array(st.session_state[StateKey.SHAP_VALUES])
+            names = st.session_state[StateKey.SHAP_NAMES]
+            abs_vals = np.abs(shap_vals)
+            sorted_idx = np.argsort(abs_vals)[::-1][:8]
+            top_shap = shap_vals[sorted_idx]
+            top_names = [names[i] for i in sorted_idx]
+            colors = ['#a78bfa' if v > 0 else '#06b6d4' for v in top_shap]
+            setup_plt_dark()
+            fig, ax = plt.subplots(figsize=(8, 4.5))
+            bars = ax.barh(range(len(top_shap)), top_shap, color=colors, edgecolor="white", height=0.6)
+            ax.invert_yaxis()
+            for i, (bar, val) in enumerate(zip(bars, top_shap)):
+                width = bar.get_width()
+                label_x = width * 0.5
+                ax.text(label_x, i, f"{val:+.3f}", va="center", ha="center", fontsize=10, fontweight="bold",
+                        color="#ffffff",
+                        bbox=dict(boxstyle="round,pad=0.3", facecolor=(0, 0, 0, 0.5),
+                                  edgecolor=(1, 1, 1, 0.15), linewidth=0.5))
+            ax.set_yticks(range(len(top_names)))
+            ax.set_yticklabels(top_names, fontsize=11)
+            ax.axvline(x=0, color="#f0f0f5", linewidth=1.0, alpha=0.4)
+            ax.set_xlabel("对溶解度的贡献值 (logS)", fontsize=11)
+            ev = get_shap_explainer(model).expected_value
+            if isinstance(ev, (list, tuple, np.ndarray)):
+                base_value = float(np.array(ev).flatten()[0])
             else:
-                direction = "推动易溶" if val > 0 else "推动难溶"
-                supporting.append("**" + name + "**（" + f"{val:+.3f}" + "，" + direction + "）")
-        parts = ["**关键分析**：模型预测该分子 **" + solubility_level + "**（logS = " + f"{prediction:.3f}" + "）。"]
-        if supporting:
-            parts.append("推动这一结果的主要因素：" + ", ".join(supporting) + "。")
-        if resisting:
-            target = "更易溶" if prediction <= -2 else "更难溶"
-            parts.append("但以下因素在抵抗这一趋势、试图让分子" + target + "：" + ", ".join(resisting) + "。")
-        shift = abs(prediction - base_value)
-        direction = "向上" if prediction > base_value else "向下"
-        parts.append("相比训练集平均分子（基准值 " + f"{base_value:.3f}" + "），该分子的结构特征将预测值" + direction + "拉动了 " + f"{shift:.3f}" + " 个单位。")
-        insight_text = " ".join(parts)
-        st.info(insight_text)
-    else:
-        st.info("SHAP 可解释性分析暂不可用，但预测结果仍然有效。")
+                base_value = float(ev)
+            ax.set_title(f"预测值: {prediction:.3f}  (基准值: {base_value:.3f})", fontsize=12, pad=10)
+            ax.spines["top"].set_visible(False)
+            ax.spines["right"].set_visible(False)
+            ax.spines["left"].set_visible(False)
+            legend_elements = [
+                Patch(facecolor="#a78bfa", label="推动易溶 (正贡献)"),
+                Patch(facecolor="#06b6d4", label="推动难溶 (负贡献)")
+            ]
+            ax.legend(handles=legend_elements, loc="lower right", fontsize=9)
+            plt.tight_layout()
+            st.pyplot(fig, width="stretch")
+            plt.close(fig)
+            if prediction > 0:
+                solubility_level = "易溶于水"
+            elif prediction > -2:
+                solubility_level = "中等溶解"
+            else:
+                solubility_level = "难溶于水"
+            supporting = []
+            resisting = []
+            for i in range(min(3, len(top_names))):
+                name = top_names[i]
+                val = top_shap[i]
+                if prediction <= -2:
+                    if val < 0:
+                        supporting.append("**" + name + "**（" + f"{val:.3f}" + "）")
+                    else:
+                        resisting.append("**" + name + "**（+" + f"{val:.3f}" + "）")
+                elif prediction >= 0:
+                    if val > 0:
+                        supporting.append("**" + name + "**（+" + f"{val:.3f}" + "）")
+                    else:
+                        resisting.append("**" + name + "**（" + f"{val:.3f}" + "）")
+                else:
+                    direction = "推动易溶" if val > 0 else "推动难溶"
+                    supporting.append("**" + name + "**（" + f"{val:+.3f}" + "，" + direction + "）")
+            parts = ["**关键分析**：模型预测该分子 **" + solubility_level + "**（logS = " + f"{prediction:.3f}" + "）。"]
+            if supporting:
+                parts.append("推动这一结果的主要因素：" + ", ".join(supporting) + "。")
+            if resisting:
+                target = "更易溶" if prediction <= -2 else "更难溶"
+                parts.append("但以下因素在抵抗这一趋势、试图让分子" + target + "：" + ", ".join(resisting) + "。")
+            shift = abs(prediction - base_value)
+            direction = "向上" if prediction > base_value else "向下"
+            parts.append("相比训练集平均分子（基准值 " + f"{base_value:.3f}" + "），该分子的结构特征将预测值" + direction + "拉动了 " + f"{shift:.3f}" + " 个单位。")
+            insight_text = " ".join(parts)
+            st.info(insight_text)
 
 
 def _tab_pka(pka_val, pka_type, pka_label, pka_css, pka_text_color, pka_desc, features):

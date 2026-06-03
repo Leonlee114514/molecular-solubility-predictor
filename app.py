@@ -261,9 +261,9 @@ if predict_button and model_ready:
                     st.session_state[StateKey.ACTUAL_MODEL] = model_type
                     st.session_state[StateKey.MODEL_DISAGREEMENT] = abs(rf_pred - gnn_pred) if gnn_pred is not None else 0.0
 
-                # ── SHAP (available for RF and Ensemble(W); skipped for GNN-only) ──
+                # ── SHAP (available for RF, Ensemble, and Ensemble(W); skipped for GNN-only) ──
                 status.update(label="Step 5/5: SHAP 可解释性分析...")
-                shap_disabled_models = {"GNN", "Ensemble(W)"}
+                shap_disabled_models = {"GNN"}
                 if actual_model in shap_disabled_models:
                     st.session_state[StateKey.SHAP_VALUES] = None
                     st.session_state[StateKey.SHAP_NAMES] = None
