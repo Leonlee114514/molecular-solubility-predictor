@@ -173,10 +173,9 @@ def mol_to_dark_image_with_importance(mol, bond_weights, size=(500, 400)):
         15: (1.00, 0.65, 0.20),
     })
 
-    # Use RDKit's highlight bonds API
+    # Use RDKit's highlight bonds API (positional args for highlight_bonds)
     highlight_bond_list = list(highlight_colours.keys())
-    drawer.DrawMolecule(mol, highlightBonds=highlight_bond_list,
-                        highlightBondColors=highlight_colours)
+    drawer.DrawMolecule(mol, None, highlight_bond_list, None, highlight_colours)
     drawer.FinishDrawing()
 
     png_data = drawer.GetDrawingText()
