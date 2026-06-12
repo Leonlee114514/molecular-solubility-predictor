@@ -37,7 +37,9 @@ def load_solubility_model():
 
 @st.cache_resource
 def load_pka_model():
-    """Load the pKa prediction model."""
+    """Load the pKa prediction model. Returns None if file not found."""
+    if not os.path.exists("output_v2/pka_model.pkl"):
+        return None
     model = joblib.load("output_v2/pka_model.pkl")
     return model
 

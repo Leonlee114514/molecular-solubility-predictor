@@ -20,6 +20,7 @@ import numpy as np
 import io
 import os
 import json
+import concurrent.futures
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -48,13 +49,8 @@ inject_theme_css()
 inject_all_scripts()
 
 
-# ========== Load models ==========
-# Models are cached by @st.cache_resource — first load reads from disk,
-# subsequent runs return instantly from cache. SHAP explainer is pre-warmed
-# so the first prediction is fast.
+# ========== Load models (RF loaded eagerly; others lazy on first prediction) ==========
 model_ready = False
-pka_ready = False
-ood_ready = False
 try:
     model, descriptor_names = load_solubility_model()
     model_ready = True
@@ -62,25 +58,14 @@ except Exception as e:
     st.error(f"模型加载失败: {e}")
     st.info("请先运行 'python train_model_v2.py' 训练模型")
 
-try:
-    pka_model = load_pka_model()
-    pka_ready = True
-except Exception:
-    pass
+# GNN availability: quick file-existence check instead of loading the full model
+_GNN_FILES = [
+    os.path.join("output_v2", f)
+    for f in ["gnn_solubility_model_v4.pt", "gnn_solubility_model_v3.pt", "gnn_solubility_model.pt"]
+]
+gnn_ready = any(os.path.exists(p) for p in _GNN_FILES)
 
-try:
-    gnn_model, gnn_encoder = load_gnn_model()
-    gnn_ready = gnn_model is not None
-except Exception:
-    gnn_ready = False
-
-try:
-    ood_detector = load_ood_detector()
-    ood_ready = ood_detector is not None
-except Exception:
-    pass
-
-# Pre-warm SHAP TreeExplainer in background so first prediction doesn't lag
+# SHAP explainer pre-warmed in background so first prediction is fast
 if model_ready and not st.session_state.get("_shap_warmed"):
     import threading
     def _warmup():
@@ -111,6 +96,18 @@ if StateKey.PREDICTED_LOGS_RF not in st.session_state:
     st.session_state[StateKey.PREDICTED_LOGS_RF] = None
 if StateKey.PREDICTED_LOGS_GNN not in st.session_state:
     st.session_state[StateKey.PREDICTED_LOGS_GNN] = None
+if StateKey.PREDICTION_HISTORY not in st.session_state:
+    hist_path = os.path.join(os.path.dirname(__file__), '.prediction_history.json')
+    loaded = []
+    try:
+        if os.path.exists(hist_path):
+            with open(hist_path, 'r', encoding='utf-8') as hf:
+                loaded = json.load(hf)
+    except Exception:
+        pass
+    st.session_state[StateKey.PREDICTION_HISTORY] = loaded
+if "__history_dirty" not in st.session_state:
+    st.session_state["__history_dirty"] = False
 
 # Apply pending history selection (must happen before widget renders)
 if "_pending_history_smiles" in st.session_state:
@@ -207,17 +204,22 @@ if predict_button and model_ready:
                 st.session_state[StateKey.PREDICTED_SMILES] = current
                 st.session_state[StateKey.PREDICTED_LOGS_RF] = rf_pred
 
-                if pka_ready:
-                    status.update(label="Step 3/5: 预测 pKa 与电离行为...")
-                    # pKa model was trained on 8 core descriptors + 1024-bit Morgan FP only
-                    pka_feat = np.hstack([
-                        [features[k] for k in ["MolWt", "LogP", "NumHDonors", "NumHAcceptors",
-                                                "TPSA", "NumRotatableBonds", "NumAromaticRings",
-                                                "NumAliphaticRings"]],
-                        fp_array,
-                    ]).reshape(1, -1)
-                    pka_pred = pka_model.predict(pka_feat)[0]
-                    st.session_state[StateKey.PREDICTED_PKA] = float(pka_pred)
+                # ── pKa prediction (lazy-loaded on first use) ──
+                try:
+                    _pka_model = load_pka_model()
+                    if _pka_model is not None:
+                        status.update(label="Step 3/5: 预测 pKa 与电离行为...")
+                        # pKa model was trained on 8 core descriptors + 1024-bit Morgan FP only
+                        pka_feat = np.hstack([
+                            [features[k] for k in ["MolWt", "LogP", "NumHDonors", "NumHAcceptors",
+                                                    "TPSA", "NumRotatableBonds", "NumAromaticRings",
+                                                    "NumAliphaticRings"]],
+                            fp_array,
+                        ]).reshape(1, -1)
+                        pka_pred = _pka_model.predict(pka_feat)[0]
+                        st.session_state[StateKey.PREDICTED_PKA] = float(pka_pred)
+                except Exception:
+                    st.session_state[StateKey.PREDICTED_PKA] = None
 
                 # ── Auto+: OOD 动态模型选择 ──
                 actual_model = model_type
@@ -277,14 +279,14 @@ if predict_button and model_ready:
                         st.session_state[StateKey.SHAP_NAMES] = None
                 st.session_state[StateKey.AI_EXPLANATION] = None
 
-                if ood_ready and not ood_already_done:
+                if not ood_already_done:
                     status.update(label="Step 5+/5: OOD 分布检测...")
-                    ood_risk, ood_result = run_ood_check(features, fp_array)
+                    try:
+                        ood_risk, ood_result = run_ood_check(features, fp_array)
+                    except Exception:
+                        ood_risk, ood_result = "UNKNOWN", None
                     st.session_state[StateKey.OOD_RISK] = ood_risk
                     st.session_state[StateKey.OOD_RESULT] = ood_result
-                elif not ood_already_done:
-                    st.session_state[StateKey.OOD_RISK] = "UNKNOWN"
-                    st.session_state[StateKey.OOD_RESULT] = None
 
                 # ── Disagreement warning ──
                 disagreement = st.session_state.get(StateKey.MODEL_DISAGREEMENT, 0.0)
@@ -303,24 +305,20 @@ if predict_button and model_ready:
                 model_label = model_labels.get(model_type, model_type)
                 status.update(label=f"分析完成！[{model_label}] 预测 logS = {float(prediction):.3f}", state="complete")
 
-                # ── Save to prediction history ──
+                # ── Save to prediction history (in-memory, persisted lazily) ──
                 try:
                     from molecules import MOLECULE_DB
                     mol_name = st.session_state.get(StateKey.CURRENT_MOLECULE_NAME, "")
                     if mol_name:
-                        # Validate: if name is in DB, its SMILES must match current.
-                        # Otherwise it's stale from a previous molecule.
                         known_smiles = MOLECULE_DB.get(mol_name)
                         if known_smiles and known_smiles != current:
                             mol_name = ""
                             st.session_state[StateKey.CURRENT_MOLECULE_NAME] = ""
                     if not mol_name:
-                        # Fall back to radio selection if it matches current SMILES
                         radio_key = st.session_state.get("molecule_select_radio")
                         if radio_key and radio_key in MOLECULE_DB and MOLECULE_DB[radio_key] == current:
                             mol_name = radio_key
                     if not mol_name:
-                        # Last resort: reverse SMILES lookup
                         mol_name = next(
                             (k for k, v in MOLECULE_DB.items() if v == current and k != "(自定义输入)"),
                             "",
@@ -338,32 +336,12 @@ if predict_button and model_ready:
                     "pKa": _pKa,
                     "timestamp": datetime.datetime.now().strftime("%H:%M"),
                 }
-                if StateKey.PREDICTION_HISTORY not in st.session_state:
-                    hist_path = os.path.join(os.path.dirname(__file__), '.prediction_history.json')
-                    loaded_list = []
-                    try:
-                        if os.path.exists(hist_path):
-                            with open(hist_path, 'r', encoding='utf-8') as hf:
-                                loaded_list = json.load(hf)
-                    except Exception:
-                        pass
-                    st.session_state[StateKey.PREDICTION_HISTORY] = loaded_list
                 history = st.session_state[StateKey.PREDICTION_HISTORY]
                 st.toast(f"预测: name={mol_name} logS={_logS:.3f} pKa={_pKa}")
-                # Avoid duplicate consecutive entries
                 if not history or history[0].get("smiles") != current:
-                    new_history = [deepcopy(history_entry)] + [deepcopy(e) for e in history]
-                    if len(new_history) > 15:
-                        new_history = new_history[:15]
+                    new_history = [deepcopy(history_entry)] + [deepcopy(e) for e in history][:14]  # keep max 15
                     st.session_state[StateKey.PREDICTION_HISTORY] = new_history
-                    # Persist to disk
-                    try:
-                        hist_path = os.path.join(os.path.dirname(__file__), '.prediction_history.json')
-                        with open(hist_path, 'w', encoding='utf-8') as hf:
-                            json.dump(new_history, hf, ensure_ascii=False)
-                    except Exception:
-                        pass
-                    st.rerun()
+                    st.session_state["__history_dirty"] = True
 
 
 # ========== Display results (5 tabs) ==========
@@ -465,8 +443,12 @@ with st.expander("批量预测（上传 CSV）", expanded=False):
                         # RF prediction (always needed)
                         rf_batch = model.predict(X_batch)
 
-                        # pKa model was trained on 8 core descriptors + 1024-bit Morgan FP only
-                        if pka_ready:
+                        # pKa prediction (lazy-loaded, cached after first use)
+                        try:
+                            _pka_model = load_pka_model()
+                        except Exception:
+                            _pka_model = None
+                        if _pka_model is not None:
                             X_batch_pka = np.vstack([
                                 np.hstack([
                                     [f[k] for k in ["MolWt", "LogP", "NumHDonors", "NumHAcceptors",
@@ -476,7 +458,7 @@ with st.expander("批量预测（上传 CSV）", expanded=False):
                                 ])
                                 for f, fp in features_list
                             ])
-                            pKa_batch = pka_model.predict(X_batch_pka)
+                            pKa_batch = _pka_model.predict(X_batch_pka)
                         else:
                             pKa_batch = [None] * len(features_list)
 
@@ -493,18 +475,32 @@ with st.expander("批量预测（上传 CSV）", expanded=False):
                         elif batch_model_type in ("GNN", "Ensemble") and gnn_ready:
                             need_gnn = [True] * len(features_list)
 
-                        # GNN prediction
+                        # GNN prediction (parallelized with ThreadPoolExecutor)
                         gnn_batch = [None] * len(features_list)
                         if any(need_gnn) and gnn_ready:
-                            for j in range(len(features_list)):
-                                if not need_gnn[j]:
-                                    continue
-                                smi = smiles_list[valid_indices[j]]
-                                gnn_batch[j] = cached_gnn_predict(smi)
-                                progress_bar.progress(
-                                    (len(smiles_list) + j + 1) / (len(smiles_list) + len(features_list) + 1),
-                                    text=f"GNN 预测 {j+1}/{sum(need_gnn)}...",
-                                )
+                            indices_to_predict = [
+                                (j, smiles_list[valid_indices[j]])
+                                for j in range(len(features_list))
+                                if need_gnn[j]
+                            ]
+                            total_gnn = len(indices_to_predict)
+                            completed = 0
+                            with concurrent.futures.ThreadPoolExecutor(max_workers=4) as pool:
+                                future_map = {
+                                    pool.submit(cached_gnn_predict, smi): j
+                                    for j, smi in indices_to_predict
+                                }
+                                for future in concurrent.futures.as_completed(future_map):
+                                    j = future_map[future]
+                                    try:
+                                        gnn_batch[j] = future.result()
+                                    except Exception:
+                                        gnn_batch[j] = None
+                                    completed += 1
+                                    progress_bar.progress(
+                                        (len(smiles_list) + completed) / (len(smiles_list) + len(features_list) + 1),
+                                        text=f"GNN 预测 {completed}/{total_gnn}...",
+                                    )
 
                         for j, idx in enumerate(valid_indices):
                             features, _ = features_list[j]
@@ -530,7 +526,7 @@ with st.expander("批量预测（上传 CSV）", expanded=False):
                             else:
                                 logS = rf_val
 
-                            pKa_val = float(pKa_batch[j]) if pka_ready else None
+                            pKa_val = float(pKa_batch[j]) if _pka_model is not None else None
                             level = get_solubility_level(logS)[0]
 
                             if batch_model_type == "Auto":
@@ -591,6 +587,16 @@ with st.expander("批量预测（上传 CSV）", expanded=False):
             st.error(f"批量处理出错: {batch_err}")
             import traceback
             st.code(traceback.format_exc())
+
+# ========== Lazy-persist prediction history (only write when dirty) ==========
+if st.session_state.get("__history_dirty") and StateKey.PREDICTION_HISTORY in st.session_state:
+    try:
+        hist_path = os.path.join(os.path.dirname(__file__), '.prediction_history.json')
+        with open(hist_path, 'w', encoding='utf-8') as hf:
+            json.dump(st.session_state[StateKey.PREDICTION_HISTORY], hf, ensure_ascii=False)
+        st.session_state["__history_dirty"] = False
+    except Exception:
+        pass
 
 # ========== Render footer ==========
 render_footer()

@@ -43,6 +43,7 @@ SEARCH_INDEX = build_search_index()
 
 # ========== PubChem 缓存与搜索 ==========
 CACHE_FILE = "pubchem_cache.json"
+MAX_CACHE_ENTRIES = 5000
 pubchem_cache = {}
 
 _session = None
@@ -95,11 +96,25 @@ def load_cache():
 
 
 def save_cache():
+    """Save cache with LRU eviction if over limit."""
+    _evict_cache_if_needed()
     try:
         with open(CACHE_FILE, "w", encoding="utf-8") as f:
             json.dump(pubchem_cache, f, ensure_ascii=False, indent=2)
     except (OSError, IOError):
         pass
+
+
+def _evict_cache_if_needed():
+    """Remove oldest entries when cache exceeds MAX_CACHE_ENTRIES.
+    Python dict preserves insertion order (3.7+), so oldest entries are first."""
+    global pubchem_cache
+    if len(pubchem_cache) <= MAX_CACHE_ENTRIES:
+        return
+    excess = len(pubchem_cache) - MAX_CACHE_ENTRIES
+    keys_to_remove = list(pubchem_cache.keys())[:excess]
+    for k in keys_to_remove:
+        del pubchem_cache[k]
 
 
 load_cache()
