@@ -1,1 +1,5 @@
-*.pkl filter=lfs diff=lfs merge=lfs -text
+# Models stored as regular files (no LFS) after gzip compression
+# solubility_model_v5.pkl.gz — 83 MB
+# pka_model.pkl — 93 MB
+# ood_detector.pkl.gz — 229 KB
+

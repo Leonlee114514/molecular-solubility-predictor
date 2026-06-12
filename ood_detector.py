@@ -170,9 +170,14 @@ class OODDetector:
         return w
 
 
-def load_ood_detector(path: str = "output_v2/ood_detector.pkl") -> OODDetector:
-    """Load a saved OOD detector from disk."""
-    data = joblib.load(path)
+def load_ood_detector(path: str = "output_v2/ood_detector.pkl.gz") -> OODDetector:
+    """Load a saved OOD detector from disk (supports .gz)."""
+    import gzip
+    if path.endswith(".gz"):
+        with gzip.open(path, "rb") as f:
+            data = joblib.load(f)
+    else:
+        data = joblib.load(path)
     return OODDetector(desc_stats=data["desc_stats"], fp_samples=data["fp_samples"])
 
 

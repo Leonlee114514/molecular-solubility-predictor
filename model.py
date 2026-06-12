@@ -8,31 +8,29 @@ import joblib
 import shap
 import numpy as np
 import os
+import gzip
 from ood_detector import OODDetector, load_ood_detector as _load_ood_from_disk
+
+
+def _load_joblib(path):
+    """Load a joblib file, transparently handling .gz compression."""
+    if path.endswith(".gz"):
+        with gzip.open(path, "rb") as f:
+            return joblib.load(f)
+    return joblib.load(path)
 
 
 @st.cache_resource
 def load_solubility_model():
     """Load the Random Forest solubility prediction model (V5+)."""
-    import os
-    v5_path = "output_v2/solubility_model_v5.pkl"
+    v5_path = "output_v2/solubility_model_v5.pkl.gz"
     if os.path.exists(v5_path):
-        model = joblib.load(v5_path)
+        model = _load_joblib(v5_path)
         desc_names = joblib.load("output_v2/descriptor_names_v5.pkl")
         return model, desc_names
-    v4_path = "output_v2/solubility_model_v4.pkl"
-    if os.path.exists(v4_path):
-        model = joblib.load(v4_path)
-        desc_names = joblib.load("output_v2/descriptor_names_v4.pkl")
-        return model, desc_names
-    v3_path = "output_v2/solubility_model_v3.pkl"
-    if os.path.exists(v3_path):
-        model = joblib.load(v3_path)
-        desc_names = joblib.load("output_v2/descriptor_names_v2.pkl")  # v3 uses same desc names
-        return model, desc_names
-    model = joblib.load("output_v2/solubility_model_v2.pkl")
-    desc_names = joblib.load("output_v2/descriptor_names_v2.pkl")
-    return model, desc_names
+    raise FileNotFoundError(
+        "No solubility model found (expected output_v2/solubility_model_v5.pkl.gz)"
+    )
 
 
 @st.cache_resource
@@ -112,7 +110,7 @@ def get_solubility_level(prediction):
 def load_ood_detector():
     """Load the OOD detector (training-data statistics + fingerprint references)."""
     try:
-        return _load_ood_from_disk("output_v2/ood_detector.pkl")
+        return _load_ood_from_disk("output_v2/ood_detector.pkl.gz")
     except FileNotFoundError:
         return None
 
