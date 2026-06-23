@@ -1,5 +1,6 @@
 """
 DisSolve - Kimi AI chemistry explanation client.
+Optimized prompt with caching, reduced temperature, and cleaner structure.
 """
 
 import os
@@ -7,146 +8,190 @@ import numpy as np
 import openai
 import streamlit as st
 
+
 def _get_api_key():
     """Read Kimi API key from Streamlit Secrets or .env file."""
     return st.secrets.get("KIMI_API_KEY") or os.getenv("KIMI_API_KEY")
 
-def _build_explanation_prompt(smiles, prediction, features, shap_features=None, shap_values=None, pka_value=None, pka_type=None):
-    """Build the Kimi API prompt for chemistry explanation. Returns (prompt_str, solubility_level)."""
 
+_SYSTEM_PROMPT = (
+    "你是一位结构化学与药物化学专家。你的核心能力是从分子的 SMILES 表示、"
+    "理化性质和 SHAP 特征贡献中，解析官能团、骨架特征、电子效应"
+    "与溶解度/电离性质之间的因果链条。回答精准简洁，每段突出核心化学推理，"
+    "不做重复性科普。不确定的结构信息不要编造。"
+)
+
+
+def _build_explanation_prompt(smiles, prediction, features,
+                              shap_features=None, shap_values=None,
+                              pka_value=None, pka_type=None):
+    """Build a concise, structured prompt for chemistry explanation.
+
+    Returns (prompt_str, solubility_level).
+    """
+    # ── Solubility classification ──
     if prediction > 0:
         solubility_level = "易溶于水"
         solubility_desc = "logS > 0，属于高溶解度"
     elif prediction > -2:
         solubility_level = "中等溶解"
-        solubility_desc = "-2 < logS <= 0，属于中等溶解度"
+        solubility_desc = "-2 < logS ≤ 0，属于中等溶解度"
     else:
         solubility_level = "难溶于水"
-        solubility_desc = "logS <= -2，属于低溶解度"
+        solubility_desc = "logS ≤ -2，属于低溶解度"
 
-    shap_text = ""
+    # ── SHAP section ──
+    shap_block = ""
+    shap_instruction = ""
     if shap_features and shap_values and len(shap_features) == len(shap_values):
         abs_vals = np.abs(np.array(shap_values))
-        sorted_idx = np.argsort(abs_vals)[::-1][:5]
+        sorted_idx = np.argsort(abs_vals)[::-1][:3]
         top_features = [shap_features[i] for i in sorted_idx]
         top_vals = [shap_values[i] for i in sorted_idx]
         shap_lines = []
         for name, val in zip(top_features, top_vals):
             direction = "推动易溶" if val > 0 else "推动难溶"
-            shap_lines.append(f"- {name}: 贡献值 {val:+.3f}（{direction}）")
-        shap_text = "\n".join(shap_lines)
+            shap_lines.append(f"- {name}: {val:+.3f}（{direction}）")
+        shap_block = "【SHAP 关键特征】（影响最大的前 3 个）\n" + "\n".join(shap_lines)
+        shap_instruction = (
+            "4. 【SHAP 深入解释】2-3句话：对有最大贡献的特征，解释为什么该特征推动或抑制溶解"
+            "（例如：LogP 贡献大是因为长烷基链 → 疏水 → 推动难溶；"
+            "TPSA 贡献大是因为羟基多 → 氢键 → 推动易溶）。"
+        )
+    else:
+        shap_block = "（SHAP 解释暂不可用，跳过第 4 段）"
+        shap_instruction = ""
 
-    pka_section = ""
-    pka_task = ""
+    # ── pKa section ──
+    pka_block = ""
+    pka_instruction = ""
     if pka_value is not None and pka_type is not None:
         if pka_type == "acid":
-            pka_label = "酸性分子"
-            pka_desc_full = f"pKa = {pka_value:.2f} (< 5)，属于酸性分子。在酸性环境（如胃，pH ~1.5）中主要以分子态存在，脂溶性较高，容易被胃黏膜吸收。"
-            ionization_desc = "在生理 pH 范围内，该分子倾向于释放质子 (H+)，形成共轭碱。"
+            pka_label = "酸性"
+            ionization_desc = (
+                "倾向于释放质子 (H⁺)，在胃 (pH≈1.5) 中以分子态为主易吸收，"
+                "在血液 (pH≈7.4) 中以离子态为主利于排泄。"
+            )
         elif pka_type == "base":
-            pka_label = "碱性分子"
-            pka_desc_full = f"pKa = {pka_value:.2f} (> 9)，属于碱性分子。在碱性环境中主要以分子态存在，在胃中容易电离，主要在小肠吸收。"
-            ionization_desc = "在生理 pH 范围内，该分子倾向于结合质子 (H+)，形成共轭酸。"
+            pka_label = "碱性"
+            ionization_desc = (
+                "倾向于结合质子 (H⁺)，在胃中易电离，主要在小肠 (pH≈6.8) 吸收，"
+                "在血液中以离子态为主。"
+            )
         else:
-            pka_label = "两性/中性分子"
-            pka_desc_full = f"pKa = {pka_value:.2f} (5-9 之间)，属于两性或中性分子。电离行为随环境 pH 变化剧烈，在不同生理部位的存在形态差异大。"
-            ionization_desc = "该分子既可能释放也可能结合质子，具体取决于所处环境的 pH。"
+            pka_label = "两性/中性"
+            ionization_desc = (
+                "在不同 pH 环境下既可释放也可结合质子，吸收行为复杂，"
+                "随给药部位环境 pH 变化。"
+            )
+        pka_block = (
+            f"【pKa 与电离】pKa = {pka_value:.2f}（{pka_label}）\n"
+            f"{ionization_desc}"
+        )
+        pka_instruction = (
+            "5. 【pKa 结构分析】2-3句话：从电子效应解释当前 pKa 值的合理性"
+            "（吸/推电子基团的影响、共轭稳定化、分子内氢键等），"
+            "并简述该分子在不同生理 pH 环境下的电离趋势。"
+        )
 
-        pka_section = f"""【pKa 与电离行为分析】
-- 预测 pKa: {pka_value:.2f}
-- 酸碱性判定: {pka_label}
-- 电离特征: {ionization_desc}
-- 生理意义: {pka_desc_full}
-
-【溶解度 x pKa 联动提示】
-溶解度 (logS) 和 pKa 共同决定药物在体内的吸收行为：
-- 分子态（非电离）脂溶性高，易穿透细胞膜被吸收
-- 离子态水溶性好，有利于在血液中运输和肾脏排泄
-- 当前分子：logS = {prediction:.2f}（{solubility_level}），pKa = {pka_value:.2f}（{pka_label}）"""
-
-        pka_task = f"""5. **pKa 结构化学深度解析**（4-5句话）：
-   - 从 SMILES 识别该分子的**可电离基团**（如 -COOH、脂肪胺、芳香胺、酚羟基、杂环氮等），并指出其直接连接的化学环境。
-   - 用**电子效应**解释该 pKa = {pka_value:.2f} 的合理性：附近是否有吸电子基团（-I, -M）拉低 pKa / 推电子基团（+I, +M）升高 pKa？是否有共轭稳定化/去稳定化？是否存在分子内氢键或空间位阻影响质子转移？
-   - 简要说明该分子在胃 (pH 1.5)、小肠 (pH 6.8)、血液 (pH 7.4) 中的**电离状态趋势**（以分子态比例高低描述即可，不做精确计算）。
-   - 联系溶解度分析：该分子的电离状态如何与其亲水/疏水基团分布共同影响体内吸收与排泄。"""
-
-    prompt = f"""你是一位结构化学专家，擅长从分子的 SMILES 表示和理化性质数据中深度剖析其溶解度与电离行为的结构根源。请围绕**分子骨架、官能团、电子效应、空间构型**展开细致分析，避免泛泛而谈的科普介绍。
-
-分子 SMILES: {smiles}
-模型预测的水溶解度 (logS): {prediction:.2f}
-
-【分子基本性质】
-- 分子量: {features['MolWt']:.1f} g/mol
-- 极性表面积 (TPSA): {features['TPSA']:.1f} A2
-- 氢键供体数: {features['NumHDonors']}
-- 氢键受体数: {features['NumHAcceptors']}
-- 脂水分配系数 (LogP): {features['LogP']:.2f}
-- 可旋转键数: {features['NumRotatableBonds']}
-- 芳香环数: {features['NumAromaticRings']}
-- 脂肪环数: {features['NumAliphaticRings']}
-
-【SHAP 模型可解释性分析 - 影响溶解度预测的关键结构特征】
-{shap_text if shap_text else "（SHAP 分析暂不可用）"}
-
-【已由程序精确判定的溶解度结论（严禁修改或重新判断）】
-该分子的预测溶解度 logS = {prediction:.3f}，判定结果为：**{solubility_level}**。
-判定依据：{solubility_desc}。
-重要：上述结论已由程序精确计算得出，你只需在回答中直接复述，不可重新判断或做数值比较。
-{pka_section}
-
-请用中文回答，严格按以下段落组织，重点放在**结构解析**上：
-
-1. **溶解度结论**（1句话）：直接复述——该分子属于「{solubility_level}」。
-
-2. **分子骨架与官能团识别**（3-4句话）：
-   - 从 SMILES 字符串解析该分子的**核心骨架**（如苯环、甾体、糖类、肽链、脂肪链等）。
-   - 列出分子中存在的**主要官能团**（如羟基 -OH、羧基 -COOH、氨基 -NH2、酰胺 -CONH-、醚键 -O-、酯基 -COOR、卤素、硝基、磺酸基、杂环氮等）。
-   - 指出是否存在**可电离基团**及其直接连接的化学环境。
-   - 描述分子的**整体构型特征**（如线性/分支/稠环/大环、刚性 vs 柔性、亲水面与疏水面的空间分布趋势）。
-
-3. **结构-溶解度深度解析**（4-5句话）：
-   - 结合具体官能团解释：哪些基团**推动水溶**（如羟基、羧基、氨基形成氢键），哪些**阻碍水溶**（如长烷基链、大芳香疏水面）。
-   - 结合 SHAP 分析结果，说明模型最关注的结构特征如何与该分子的实际官能团组成对应。
-   - 若分子同时含有亲水与疏水基团，分析二者的**相对比例与空间布局**如何决定整体溶解度。
-   - 提及**分子间相互作用**：该分子与水之间能形成多少氢键网络，疏水部分是否导致水分子有序化（疏水效应）。
-
-4. **SHAP 关键特征与结构对应**（2-3句话）：
-   - 引用 SHAP 贡献值最高的 1-2 个特征的具体数值。
-   - 明确指出这些特征在分子结构上的**物理对应物**。
-
-{pka_task}
-
-要求:
-- **以结构化学为核心**，避免空泛的科普描述和简单的生活类比。
-- 第2段必须基于 SMILES 识别出**至少2个具体官能团**和**骨架类型**。
-- 第3段必须引用分子性质数据（LogP、TPSA、H-Bond 数目等）和 SHAP 贡献值。
-- 语言准确但不过度学术，适合具备基础有机化学知识的高中生理解。"""
+    # ── Build prompt ──
+    prompt = (
+        f"分子 SMILES: {smiles}\n"
+        f"预测 logS: {prediction:.2f} → {solubility_level}（{solubility_desc}）\n"
+        "\n"
+        "【理化性质】\n"
+        f"分子量: {features['MolWt']:.1f} | LogP: {features['LogP']:.2f} | "
+        f"TPSA: {features['TPSA']:.1f} Å²\n"
+        f"氢键供体: {features['NumHDonors']} | 氢键受体: {features['NumHAcceptors']}\n"
+        f"可旋转键: {features['NumRotatableBonds']} | "
+        f"芳香环: {features['NumAromaticRings']} | 脂肪环: {features['NumAliphaticRings']}\n"
+        "\n"
+        f"{shap_block}\n"
+        "\n"
+        f"{pka_block}\n"
+        "\n"
+        "请按以下结构回答（严格遵守每段长度限制）：\n"
+        "\n"
+        f"1. 【溶解度结论】1句话：该分子属于「{solubility_level}」（logS = {prediction:.2f}），"
+        f"由模型精确计算得出。\n"
+        "\n"
+        "2. 【骨架与官能团】2-3句话：从 SMILES 解析核心骨架类型，"
+        "列举至少2个具体官能团及其连接位置，指出是否存在可电离基团。\n"
+        "\n"
+        "3. 【结构-溶解度解释】2-3句话：哪些基团促进或抑制水溶，"
+        "结合 LogP、TPSA、氢键数目说明。SHAP 关键特征对应到分子的哪些实际结构。\n"
+        "\n"
+        f"{shap_instruction}\n"
+        "\n"
+        f"{pka_instruction}\n"
+        "\n"
+        "要求：\n"
+        "- 以结构化学为核心但不过度学术，适合学过基础有机化学的大学生阅读\n"
+        "- 必须引用至少1个分子性质数据（LogP/TPSA/氢键数等）支持论点\n"
+        "- 每段不超过 3 句话\n"
+        "- 不确定的结构特征不要编造"
+    )
     return prompt, solubility_level
 
-def explain_with_kimi(smiles, prediction, features, shap_features=None, shap_values=None, pka_value=None, pka_type=None):
+
+@st.cache_data(ttl=86400, show_spinner=False)
+def _cached_kimi_explain(smiles, prediction, features_tuple, shap_tuple,
+                         pka_value, pka_type):
+    """Cached Kimi API call, keyed by molecular data. 24h TTL."""
+    # Rebuild mutable structures from hashable tuples
+    features = dict(features_tuple)
+    shap_features = list(shap_tuple[0]) if shap_tuple and shap_tuple[0] else None
+    shap_values = list(shap_tuple[1]) if shap_tuple and shap_tuple[1] else None
+
+    prompt, _ = _build_explanation_prompt(
+        smiles, prediction, features,
+        shap_features=shap_features, shap_values=shap_values,
+        pka_value=pka_value, pka_type=pka_type,
+    )
+
+    api_key = _get_api_key()
+    if not api_key:
+        return "未配置 Kimi API Key。请在 .env 文件中写入：KIMI_API_KEY=sk-你的密钥"
+
+    client = openai.OpenAI(
+        api_key=api_key,
+        base_url="https://api.moonshot.cn/v1",
+    )
+    response = client.chat.completions.create(
+        model="moonshot-v1-8k",
+        messages=[
+            {"role": "system", "content": _SYSTEM_PROMPT},
+            {"role": "user", "content": prompt},
+        ],
+        temperature=0.35,
+        max_tokens=800,
+    )
+    return response.choices[0].message.content
+
+
+def explain_with_kimi(smiles, prediction, features,
+                      shap_features=None, shap_values=None,
+                      pka_value=None, pka_type=None):
     """Generate an AI-powered chemistry explanation using Kimi (Moonshot AI).
 
+    Results are cached for 24 hours per unique molecular input.
     Returns a plain-text explanation string, or an error message on failure.
     """
     api_key = _get_api_key()
     if not api_key:
         return "未配置 Kimi API Key。请在 .env 文件中写入：KIMI_API_KEY=sk-你的密钥"
-    prompt, _ = _build_explanation_prompt(smiles, prediction, features, shap_features, shap_values, pka_value, pka_type)
+
+    # Convert to hashable types for caching
+    features_tuple = tuple(sorted(features.items()))
+    shap_tuple = (
+        tuple(shap_features) if shap_features else None,
+        tuple(shap_values) if shap_values else None,
+    )
 
     try:
-        client = openai.OpenAI(
-            api_key=api_key,
-            base_url="https://api.moonshot.cn/v1"
+        return _cached_kimi_explain(
+            smiles, prediction, features_tuple, shap_tuple,
+            pka_value, pka_type,
         )
-        response = client.chat.completions.create(
-            model="moonshot-v1-8k",
-            messages=[
-                {"role": "system", "content": "你是一位结构化学与药物化学专家。你的核心能力是从分子的 SMILES 表示、理化性质和机器学习特征贡献中，深度解析官能团组成、骨架特征、电子效应与分子性质之间的因果链条。你说话简洁、精准，优先从分子结构切入，避免空泛科普。"},
-                {"role": "user", "content": prompt}
-            ],
-            temperature=0.6,
-            max_tokens=1200
-        )
-        return response.choices[0].message.content
     except Exception as e:
         return f"AI 解释暂时不可用: {e}"
