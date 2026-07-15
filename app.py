@@ -10,7 +10,7 @@ import streamlit as st
 # Streamlit commands at import time, violating the ordering requirement
 # and causing CSS/layout/rendering issues.
 st.set_page_config(
-    page_title="DisSolve - Molecular Property Predictor",
+    page_title=t("app.title"),
     page_icon=None,
     layout="wide",
     initial_sidebar_state="collapsed"
@@ -26,6 +26,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from core.state_keys import StateKey
+from core.i18n import init_language, t, render_language_selector
 from model import (
     load_solubility_model, load_pka_model,
     load_ood_detector, run_ood_check,
@@ -48,6 +49,9 @@ from ui.results import render_results
 inject_theme_css()
 inject_all_scripts()
 
+# ========== Init i18n + language selector ==========
+init_language()
+
 
 # ========== Load models (RF loaded eagerly; others lazy on first prediction) ==========
 model_ready = False
@@ -55,8 +59,8 @@ try:
     model, descriptor_names = load_solubility_model()
     model_ready = True
 except Exception as e:
-    st.error(f"模型加载失败: {e}")
-    st.info("请先运行 'python train_model_v2.py' 训练模型")
+    st.error(t("app.model.load_error", e=e))
+    st.info(t("app.model.load_help"))
 
 # GNN availability: quick file-existence check instead of loading the full model
 _GNN_FILES = [
@@ -122,6 +126,8 @@ if "_pending_history_smiles" in st.session_state:
 # ========== Render header ==========
 render_header()
 
+# Language selector
+render_language_selector()
 
 # ========== Render input area (3 methods) ==========
 render_input_area()
@@ -139,12 +145,12 @@ render_prediction_history()
 st.markdown("<br>", unsafe_allow_html=True)
 sel_col1, sel_col2, sel_col3 = st.columns([1, 2, 1])
 with sel_col2:
-    model_options = ["Auto (智能选择)", "RF (Random Forest)", "GNN (Graph Neural Network)", "Ensemble (RF + GNN)"]
+    model_options = [t("app.model.auto"), t("app.model.rf"), t("app.model.gnn"), t("app.model.ensemble")]
     if not gnn_ready:
-        model_options = ["RF (Random Forest)"]
-        st.caption("GNN 模型未找到，仅 RF 可用。运行 `python scripts/train_gnn.py` 训练 GNN 模型。")
+        model_options = [t("app.model.rf")]
+        st.caption(t("app.model.gnn_missing"))
     model_choice = st.selectbox(
-        "模型选择",
+        t("app.model.label"),
         model_options,
         key="model_select_widget",
         index=0 if not gnn_ready else
@@ -152,11 +158,12 @@ with sel_col2:
                1 if st.session_state[StateKey.SELECTED_MODEL] == "RF" else
                2 if st.session_state[StateKey.SELECTED_MODEL] == "GNN" else 3),
     )
-    if model_choice.startswith("Auto"):
+    choice = st.session_state[StateKey.SELECTED_MODEL]
+    if model_choice == t("app.model.auto"):
         st.session_state[StateKey.SELECTED_MODEL] = "Auto"
-    elif model_choice.startswith("RF"):
+    elif model_choice == t("app.model.rf"):
         st.session_state[StateKey.SELECTED_MODEL] = "RF"
-    elif model_choice.startswith("GNN"):
+    elif model_choice == t("app.model.gnn"):
         st.session_state[StateKey.SELECTED_MODEL] = "GNN"
     else:
         st.session_state[StateKey.SELECTED_MODEL] = "Ensemble"
@@ -165,7 +172,7 @@ st.markdown("<br>", unsafe_allow_html=True)
 # ========== Predict button ==========
 btn_col1, btn_col2, btn_col3 = st.columns([1, 2, 1])
 with btn_col2:
-    predict_button = st.button("Predict Solubility", use_container_width=True)
+    predict_button = st.button(t("app.predict_btn"), use_container_width=True)
 st.markdown("<br>", unsafe_allow_html=True)
 
 
@@ -174,20 +181,20 @@ if predict_button and model_ready:
     current = st.session_state[StateKey.SMILES_INPUT].strip()
 
     if not current:
-        st.warning("请先输入或选择一个分子的 SMILES")
+        st.warning(t("app.predict.empty"))
     else:
-        with st.status("正在分析分子结构...", expanded=False) as status:
-            status.update(label="Step 1/4: 解析分子结构...")
+        with st.status(t("app.predict.status"), expanded=False) as status:
+            status.update(label=t("app.predict.step.parse"))
             result = cached_compute_features(current)
 
             if result is None:
-                status.update(label="解析失败", state="error")
-                st.error(f"Invalid SMILES: `{current}`")
-                st.info("该 SMILES 无法被 RDKit 解析。可能原因：")
-                st.markdown("""
-                - 分子含有金属/配位键，RDKit 不支持
-                - SMILES 语法错误（括号不匹配）
-                - 输入为空或含有非法字符
+                status.update(label=t("app.predict.step.parse_fail"), state="error")
+                st.error(t("app.error.invalid_smiles", smiles=current))
+                st.info(t("app.error.parse_fail_info"))
+                st.markdown(f"""
+- {t('app.error.parse_reason1')}
+- {t('app.error.parse_reason2')}
+- {t('app.error.parse_reason3')}
                 """)
             else:
                 features, fp_array = result
@@ -199,7 +206,7 @@ if predict_button and model_ready:
                 gnn_pred = None
 
                 # ── RF prediction (always needed) ──
-                status.update(label="Step 2/5: Random Forest 预测溶解度...")
+                status.update(label=t("app.predict.step.rf"))
                 rf_pred = float(model.predict(X_input)[0])
                 st.session_state[StateKey.PREDICTED_SMILES] = current
                 st.session_state[StateKey.PREDICTED_LOGS_RF] = rf_pred
@@ -208,7 +215,7 @@ if predict_button and model_ready:
                 try:
                     _pka_model = load_pka_model()
                     if _pka_model is not None:
-                        status.update(label="Step 3/5: 预测 pKa 与电离行为...")
+                        status.update(label=t("app.predict.step.pka"))
                         # pKa model was trained on 8 core descriptors + 1024-bit Morgan FP only
                         pka_feat = np.hstack([
                             [features[k] for k in ["MolWt", "LogP", "NumHDonors", "NumHAcceptors",
@@ -224,14 +231,14 @@ if predict_button and model_ready:
                 # ── Auto+: OOD 动态模型选择 ──
                 actual_model = model_type
                 if model_type == "Auto":
-                    status.update(label="Step 3+/5: OOD 分布检测，智能选择模型...")
+                    status.update(label=t("app.predict.step.ood"))
                     ood_risk, ood_result = run_ood_check(features, fp_array)
                     st.session_state[StateKey.OOD_RISK] = ood_risk
                     st.session_state[StateKey.OOD_RESULT] = ood_result
 
                     # Always need GNN for Auto+ (both weighted ensemble and pure GNN use it)
                     if gnn_ready:
-                        status.update(label="Step 4/5: GNN 预测溶解度...")
+                        status.update(label=t("app.predict.step.gnn"))
                         gnn_pred = cached_gnn_predict(current)
                         st.session_state[StateKey.PREDICTED_LOGS_GNN] = gnn_pred
 
@@ -244,7 +251,7 @@ if predict_button and model_ready:
                     ood_already_done = False
                     # ── GNN prediction (for GNN and Ensemble modes) ──
                     if model_type in ("GNN", "Ensemble") and gnn_ready:
-                        status.update(label="Step 4/5: GNN 预测溶解度...")
+                        status.update(label=t("app.predict.step.gnn"))
                         gnn_pred = cached_gnn_predict(current)
                         st.session_state[StateKey.PREDICTED_LOGS_GNN] = gnn_pred
 
@@ -264,7 +271,7 @@ if predict_button and model_ready:
                     st.session_state[StateKey.MODEL_DISAGREEMENT] = abs(rf_pred - gnn_pred) if gnn_pred is not None else 0.0
 
                 # ── SHAP (available for RF, Ensemble, and Ensemble(W); skipped for GNN-only) ──
-                status.update(label="Step 5/5: SHAP 可解释性分析...")
+                status.update(label=t("app.predict.step.shap"))
                 shap_disabled_models = {"GNN"}
                 if actual_model in shap_disabled_models:
                     st.session_state[StateKey.SHAP_VALUES] = None
@@ -280,7 +287,7 @@ if predict_button and model_ready:
                 st.session_state[StateKey.AI_EXPLANATION] = None
 
                 if not ood_already_done:
-                    status.update(label="Step 5+/5: OOD 分布检测...")
+                    status.update(label=t("app.predict.step.ood_post"))
                     try:
                         ood_risk, ood_result = run_ood_check(features, fp_array)
                     except Exception:
@@ -291,19 +298,19 @@ if predict_button and model_ready:
                 # ── Disagreement warning ──
                 disagreement = st.session_state.get(StateKey.MODEL_DISAGREEMENT, 0.0)
                 if disagreement > 1.0:
-                    st.warning(
-                        f"⚠️ **RF 与 GNN 预测严重分歧**（|RF−GNN| = {disagreement:.2f}），"
-                        "已自动降级为 GNN 预测。此分子的预测可靠性较低，请谨慎参考。"
-                    )
+                    st.warning(t("app.warn.disagreement.severe", diff=disagreement))
                 elif disagreement > 0.5:
-                    st.info(
-                        f"📊 **RF 与 GNN 存在显著分歧**（|RF−GNN| = {disagreement:.2f}），"
-                        "加权集成已偏向 GNN。建议结合分子结构自行判断。"
-                    )
+                    st.info(t("app.warn.disagreement.moderate", diff=disagreement))
 
-                model_labels = {"RF": "RF", "GNN": "GNN", "Ensemble": "Ensemble", "Auto": f"Auto → {actual_model}"}
-                model_label = model_labels.get(model_type, model_type)
-                status.update(label=f"分析完成！[{model_label}] 预测 logS = {float(prediction):.3f}", state="complete")
+                _model_label_map = {
+                    "RF": t("app.model_label.rf"),
+                    "GNN": t("app.model_label.gnn"),
+                    "Ensemble": t("app.model_label.ensemble"),
+                    "Auto": t("app.model_label.auto", actual=actual_model),
+                }
+                model_label = _model_label_map.get(model_type, model_type)
+                status.update(label=t("app.predict.complete", model=model_label, logS=float(prediction)),
+                              state=t("app.predict.complete_state"))
 
                 # ── Save to prediction history (in-memory, persisted lazily) ──
                 try:
@@ -337,7 +344,7 @@ if predict_button and model_ready:
                     "timestamp": datetime.datetime.now().strftime("%H:%M"),
                 }
                 history = st.session_state[StateKey.PREDICTION_HISTORY]
-                st.toast(f"预测: name={mol_name} logS={_logS:.3f} pKa={_pKa}")
+                st.toast(t("app.toast.prediction", name=mol_name, logS=_logS, pKa=_pKa))
                 if not history or history[0].get("smiles") != current:
                     new_history = [deepcopy(history_entry)] + [deepcopy(e) for e in history][:14]  # keep max 15
                     st.session_state[StateKey.PREDICTION_HISTORY] = new_history
@@ -351,11 +358,11 @@ if st.session_state.get(StateKey.PREDICTED_SMILES) and st.session_state.get(Stat
 
 # ========== Batch CSV prediction ==========
 st.markdown("---")
-with st.expander("批量预测（上传 CSV）", expanded=False):
-    st.caption("上传包含 SMILES 列的 CSV 文件，批量预测所有分子的溶解度与 pKa")
+with st.expander(t("app.batch.title"), expanded=False):
+    st.caption(t("app.batch.desc"))
 
     batch_file = st.file_uploader(
-        "选择 CSV 文件",
+        t("app.batch.upload_label"),
         type=["csv"],
         key="batch_csv_uploader",
         label_visibility="collapsed",
@@ -392,21 +399,17 @@ with st.expander("批量预测（上传 CSV）", expanded=False):
                 smiles_col = 0  # default to first column
 
             df = pd.read_csv(io.StringIO(raw))
-            st.info(
-                f"文件: `{batch_file.name}` | "
-                f"{len(df)} 行 | "
-                f"检测到 SMILES 列: **{header[smiles_col]}**"
-            )
+            st.info(t("app.batch.file_info", name=batch_file.name, rows=len(df), col=header[smiles_col]))
             st.dataframe(df.head(5), use_container_width=True)
 
-            if st.button("开始批量预测", key="batch_predict_btn", use_container_width=True):
+            if st.button(t("app.batch.start_btn"), key="batch_predict_btn", use_container_width=True):
                 # Validate SMILES column content
                 if header[smiles_col] not in df.columns:
-                    st.error(f"列 '{header[smiles_col]}' 不存在，请检查文件格式")
+                    st.error(t("app.batch.col_error", col=header[smiles_col]))
                 else:
                     results = []
                     smiles_list = df[header[smiles_col]].dropna().astype(str).tolist()
-                    progress_bar = st.progress(0, text=f"正在预测 0/{len(smiles_list)}...")
+                    progress_bar = st.progress(0, text=t("app.batch.progress_start", total=len(smiles_list)))
 
                     from features import compute_features
 
@@ -429,7 +432,7 @@ with st.expander("批量预测（上传 CSV）", expanded=False):
                             valid_indices.append(i)
                         progress_bar.progress(
                             (i + 1) / (len(smiles_list) + 1),
-                            text=f"计算特征 {i+1}/{len(smiles_list)}...",
+                            text=t("app.batch.progress_feature", i=i+1, total=len(smiles_list)),
                         )
 
                     # Step 2: vectorized batch prediction for all valid molecules
@@ -499,7 +502,7 @@ with st.expander("批量预测（上传 CSV）", expanded=False):
                                     completed += 1
                                     progress_bar.progress(
                                         (len(smiles_list) + completed) / (len(smiles_list) + len(features_list) + 1),
-                                        text=f"GNN 预测 {completed}/{total_gnn}...",
+                                        text=t("app.batch.progress_gnn", i=completed, total=total_gnn),
                                     )
 
                         for j, idx in enumerate(valid_indices):
@@ -571,20 +574,20 @@ with st.expander("批量预测（上传 CSV）", expanded=False):
 
                     progress_bar.empty()
                     result_df = pd.DataFrame(results)
-                    st.success(f"批量预测完成！共 {len(results)} 个分子")
+                    st.success(t("app.batch.complete", n=len(results)))
                     st.dataframe(result_df, use_container_width=True, height=400)
 
                     # Download button
                     csv_out = result_df.to_csv(index=False).encode("utf-8")
                     st.download_button(
-                        "下载结果 CSV",
+                        t("app.batch.download_btn"),
                         data=csv_out,
                         file_name="dissolve_batch_results.csv",
                         mime="text/csv",
                         use_container_width=True,
                     )
         except Exception as batch_err:
-            st.error(f"批量处理出错: {batch_err}")
+            st.error(t("app.batch.error", err=batch_err))
             import traceback
             st.code(traceback.format_exc())
 

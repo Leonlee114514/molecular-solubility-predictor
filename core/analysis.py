@@ -9,6 +9,7 @@ import pickle
 import numpy as np
 from rdkit import Chem
 from rdkit.Chem import Descriptors, rdFingerprintGenerator, rdMolDescriptors
+from core.i18n import t
 
 
 # ========== pKa Chemistry Analysis ==========
@@ -27,12 +28,12 @@ def analyze_pka_chemistry(smiles, pka_val):
     # Inductive effect
     en_atoms = sum(1 for atom in mol.GetAtoms() if atom.GetAtomicNum() in [7, 8, 9, 17, 35])
     inductive = min(en_atoms * 0.4, 3.0)
-    factors['Inductive\n(诱导效应)'] = inductive if is_acidic else -inductive * 0.6
+    factors[t('analysis.pka.inductive')] = inductive if is_acidic else -inductive * 0.6
 
     # Resonance effect
     aromatic = Descriptors.NumAromaticRings(mol)
     resonance = min(aromatic * 1.2, 3.0)
-    factors['Resonance\n(共轭效应)'] = resonance if is_acidic else resonance * 0.5
+    factors[t('analysis.pka.resonance')] = resonance if is_acidic else resonance * 0.5
 
     # Intramolecular H-bond
     hbond_pat1 = Chem.MolFromSmarts('[OH]c1ccccc1C(=O)[OH]')
@@ -43,16 +44,16 @@ def analyze_pka_chemistry(smiles, pka_val):
     if hbond_pat2 and mol.HasSubstructMatch(hbond_pat2):
         has_hbond = True
     hbond_score = 1.5 if has_hbond else 0.0
-    factors['Intra-HB\n(分子内氢键)'] = hbond_score if is_acidic else -hbond_score * 0.5
+    factors[t('analysis.pka.intra_hb')] = hbond_score if is_acidic else -hbond_score * 0.5
 
     # Steric hindrance
     rot_bonds = Descriptors.NumRotatableBonds(mol)
     steric = -min(rot_bonds * 0.25, 2.0)
-    factors['Steric\n(空间位阻)'] = steric if is_acidic else -steric
+    factors[t('analysis.pka.steric')] = steric if is_acidic else -steric
 
     # Hybridization/aromaticity
     sp2_score = 1.0 if aromatic > 0 else -0.5
-    factors['Hybridization\n(杂化/芳香性)'] = sp2_score if is_acidic else -sp2_score
+    factors[t('analysis.pka.hybridization')] = sp2_score if is_acidic else -sp2_score
 
     return factors
 
@@ -85,9 +86,9 @@ def analyze_lipinski(features):
         "violations": violations,
         "is_druglike": passed_count >= 4,
         "interpretation": (
-            "符合 Lipinski 五规则，具有良好口服生物利用度潜力"
+            t("analysis.lipinski.good")
             if passed_count >= 4 else
-            f"违反 {violations} 条规则，口服吸收可能受限，但仍有成为药物的可能（许多成功药物也违反五规则）"
+            t("analysis.lipinski.violated", n=violations)
         ),
     }
 
@@ -185,35 +186,35 @@ def analyze_druglikeness(smiles):
 
     # QED interpretation
     if qed >= 0.67:
-        qed_level = "Attractive (有吸引力)"
+        qed_level = t("analysis.qed.attractive")
         qed_color = "#34d399"
     elif qed >= 0.49:
-        qed_level = "Moderate (中等)"
+        qed_level = t("analysis.qed.moderate")
         qed_color = "#fbbf24"
     else:
-        qed_level = "Low (偏低)"
+        qed_level = t("analysis.qed.low")
         qed_color = "#f87171"
 
     # SAscore interpretation
     if sa <= 3.0:
-        sa_level = "Easy (容易合成)"
+        sa_level = t("analysis.sa.easy")
         sa_color = "#34d399"
     elif sa <= 6.0:
-        sa_level = "Moderate (中等难度)"
+        sa_level = t("analysis.sa.moderate")
         sa_color = "#fbbf24"
     else:
-        sa_level = "Difficult (难以合成)"
+        sa_level = t("analysis.sa.hard")
         sa_color = "#f87171"
 
     # Fsp³ interpretation
     if fsp3 >= 0.45:
-        fsp3_level = "High 3D complexity (高三维复杂度)"
+        fsp3_level = t("analysis.fsp3.high")
         fsp3_color = "#34d399"
     elif fsp3 >= 0.25:
-        fsp3_level = "Moderate (中等)"
+        fsp3_level = t("analysis.fsp3.moderate")
         fsp3_color = "#fbbf24"
     else:
-        fsp3_level = "Mostly planar (偏平面)"
+        fsp3_level = t("analysis.fsp3.planar")
         fsp3_color = "#a78bfa"
 
     return {
@@ -297,122 +298,122 @@ def analyze_admet(smiles, features, pka_val=None):
     # Absorption
     absorption_factors = []
     if tpsa < 60:
-        absorption_factors.append("TPSA < 60 Å²，易于穿过肠道细胞膜")
+        absorption_factors.append(t("analysis.admet.absorption.tpsa_low"))
     elif tpsa < 140:
-        absorption_factors.append("TPSA 中等 (60-140 Å²)，吸收尚可")
+        absorption_factors.append(t("analysis.admet.absorption.tpsa_mid"))
     else:
-        absorption_factors.append("TPSA > 140 Å²，极性表面积较大，可能限制被动跨膜吸收")
+        absorption_factors.append(t("analysis.admet.absorption.tpsa_high"))
 
     if pka_val is not None:
         if pka_val < 6:
-            absorption_factors.append(f"pKa = {pka_val:.1f}（酸性），胃中(pH 1.5)以分子态为主，胃吸收良好")
+            absorption_factors.append(t("analysis.admet.absorption.pka_acid", val=pka_val))
         elif pka_val > 8:
-            absorption_factors.append(f"pKa = {pka_val:.1f}（碱性），胃中离子化，主要在小肠(pH 6.8)吸收")
+            absorption_factors.append(t("analysis.admet.absorption.pka_base", val=pka_val))
         else:
-            absorption_factors.append(f"pKa = {pka_val:.1f}（近中性），全肠道均有吸收")
+            absorption_factors.append(t("analysis.admet.absorption.pka_neutral", val=pka_val))
 
     if hbd > 5:
-        absorption_factors.append("H-Bond Donors > 5，跨膜需要脱溶剂化，可能降低吸收")
+        absorption_factors.append(t("analysis.admet.absorption.hbd_high"))
     if hba > 10:
-        absorption_factors.append("H-Bond Acceptors > 10，过多的氢键受体降低膜通透性")
+        absorption_factors.append(t("analysis.admet.absorption.hba_high"))
 
-    absorption_summary = "；".join(absorption_factors) if absorption_factors else "吸收特性待评估"
+    absorption_summary = "；".join(absorption_factors) if absorption_factors else t("analysis.admet.absorption.fallback")
 
     # Distribution
     distribution_factors = []
-    vd_estimate = "中等"
+    vd_estimate = t("analysis.druglikeness.vd")
     if logp > 3 and mw < 500:
-        vd_estimate = "较高（亲脂性强，易分布至组织）"
-        distribution_factors.append("分子亲脂性强 (LogP > 3)，倾向于分布到脂肪组织和通过血脑屏障")
+        vd_estimate = t("analysis.admet.distribution.vd_high")
+        distribution_factors.append(t("analysis.admet.distribution.lipophilic"))
     elif logp < 0:
-        vd_estimate = "较低（亲水性强，主要留在血浆中）"
-        distribution_factors.append("分子亲水性强 (LogP < 0)，主要分布在血浆和细胞外液")
+        vd_estimate = t("analysis.admet.distribution.vd_low")
+        distribution_factors.append(t("analysis.admet.distribution.hydrophilic"))
     else:
-        distribution_factors.append("LogP 适中，组织分布较均衡")
+        distribution_factors.append(t("analysis.admet.distribution.moderate"))
 
     if tpsa < 70 and logp > 1:
-        distribution_factors.append("低 TPSA + 中等 LogP = 可能通过血脑屏障 (BBB)")
+        distribution_factors.append(t("analysis.admet.distribution.bbb"))
     if mw > 500:
-        distribution_factors.append("分子量 > 500，组织渗透能力下降")
+        distribution_factors.append(t("analysis.admet.distribution.high_mw"))
 
-    ppb = "中等"
+    ppb = t("analysis.druglikeness.ppb")
     if logp > 4:
-        ppb = "较高（亲脂性强，与血浆蛋白结合率高）"
+        ppb = t("analysis.admet.distribution.ppb_high")
     elif logp < 0:
-        ppb = "较低（亲水性强，游离药物比例高）"
+        ppb = t("analysis.admet.distribution.ppb_low")
 
-    distribution_summary = "；".join(distribution_factors) if distribution_factors else "分布特性待评估"
+    distribution_summary = "；".join(distribution_factors) if distribution_factors else t("analysis.admet.distribution.fallback")
 
     # Metabolism
     metabolism_sites = []
     cyp_notes = []
     if fg.get("aromatic_ring"):
-        metabolism_sites.append("芳香环（可能被 CYP450 氧化为环氧化物/酚类）")
+        metabolism_sites.append(t("analysis.admet.metabolism.aromatic"))
         cyp_notes.append("CYP2C9, CYP2E1")
     if fg.get("phenol"):
-        metabolism_sites.append("酚羟基（易被 II 相代谢：葡萄糖醛酸化/硫酸化）")
+        metabolism_sites.append(t("analysis.admet.metabolism.phenol"))
     if fg.get("carboxylic_acid"):
-        metabolism_sites.append("羧基（可能与氨基酸结合或形成酰基葡萄糖醛酸）")
+        metabolism_sites.append(t("analysis.admet.metabolism.carboxylic"))
     if fg.get("ester"):
-        metabolism_sites.append("酯键（被酯酶水解，可能首过效应显著）")
+        metabolism_sites.append(t("analysis.admet.metabolism.ester"))
         cyp_notes.append("酯酶（非 CYP）")
     if fg.get("amide"):
-        metabolism_sites.append("酰胺键（代谢较稳定，但可被酰胺酶水解）")
+        metabolism_sites.append(t("analysis.admet.metabolism.amide"))
     if fg.get("methyl"):
-        metabolism_sites.append("甲基（可被 CYP450 氧化为羟甲基 -> 醛 -> 羧酸）")
+        metabolism_sites.append(t("analysis.admet.metabolism.methyl"))
         cyp_notes.append("CYP3A4")
     if fg.get("primary_amine") or fg.get("secondary_amine"):
-        metabolism_sites.append("伯/仲胺基（可能发生 N-脱烷基或 N-氧化）")
+        metabolism_sites.append(t("analysis.admet.metabolism.amine_sec"))
         cyp_notes.append("CYP2D6, CYP3A4")
     if fg.get("tertiary_amine"):
-        metabolism_sites.append("叔胺基（易发生 N-脱甲基化）")
+        metabolism_sites.append(t("analysis.admet.metabolism.amine_tert"))
         cyp_notes.append("CYP3A4, CYP2D6")
 
     unique_cyps = list(set(cyp_notes))
-    metabolism_summary = "；".join(metabolism_sites) if metabolism_sites else "结构较简单，主要代谢途径待实验验证"
-    cyp_summary = ", ".join(unique_cyps) if unique_cyps else "待实验确定"
+    metabolism_summary = "；".join(metabolism_sites) if metabolism_sites else t("analysis.admet.metabolism.fallback")
+    cyp_summary = ", ".join(unique_cyps) if unique_cyps else t("analysis.admet.metabolism.cyp_fallback")
 
     # Excretion
     excretion_factors = []
     if mw < 350 and logp < 2:
-        excretion_factors.append("分子量小 + 亲水性适中 → 倾向于肾脏排泄（肾小球滤过）")
-        excretion_route = "主要经肾脏排泄"
+        excretion_factors.append(t("analysis.admet.excretion.renal"))
+        excretion_route = t("analysis.admet.excretion.route_renal")
     elif mw > 500:
-        excretion_factors.append("分子量 > 500 → 倾向于肝胆排泄（胆汁）")
-        excretion_route = "倾向于肝胆排泄"
+        excretion_factors.append(t("analysis.admet.excretion.biliary"))
+        excretion_route = t("analysis.admet.excretion.route_biliary")
     elif logp > 3:
-        excretion_factors.append("LogP > 3 → 在肾小管中易被重吸收，肝胆排泄比例增加")
-        excretion_route = "肝肾双途径排泄"
+        excretion_factors.append(t("analysis.admet.excretion.hepato"))
+        excretion_route = t("analysis.admet.excretion.route_dual")
     else:
-        excretion_route = "肝肾双途径排泄"
+        excretion_route = t("analysis.admet.excretion.route_dual")
 
     if tpsa > 100:
-        excretion_factors.append("高 TPSA 有利于肾脏排泄（水溶性代谢物）")
+        excretion_factors.append(t("analysis.admet.excretion.tpsa"))
     if fg.get("carboxylic_acid") or fg.get("phenol"):
-        excretion_factors.append("含羧基/酚羟基 → 易形成 II 相代谢物经肾脏排出")
+        excretion_factors.append(t("analysis.admet.excretion.conjugate"))
 
-    excretion_summary = "；".join(excretion_factors) if excretion_factors else "排泄途径待评估"
+    excretion_summary = "；".join(excretion_factors) if excretion_factors else t("analysis.admet.excretion.fallback")
 
     # Toxicity
     toxicity_alerts = []
     if fg.get("nitro_aromatic"):
-        toxicity_alerts.append(("高", "硝基芳香族 → 可能经 CYP450 还原为有毒的亚硝基/羟胺中间体，有致突变风险"))
+        toxicity_alerts.append((t("analysis.admet.toxicity.level_high"), t("analysis.admet.toxicity.nitro")))
     if fg.get("aniline_alert"):
-        toxicity_alerts.append(("中", "芳香胺 → 可能经 N-氧化生成致癌性 N-羟基代谢物"))
+        toxicity_alerts.append((t("analysis.admet.toxicity.level_medium"), t("analysis.admet.toxicity.aniline")))
     if fg.get("epoxide"):
-        toxicity_alerts.append(("高", "环氧化物 → 高反应活性，可与 DNA/蛋白质共价结合，可能致癌"))
+        toxicity_alerts.append((t("analysis.admet.toxicity.level_high"), t("analysis.admet.toxicity.epoxide")))
     if fg.get("hydrazine"):
-        toxicity_alerts.append(("高", "肼类结构 → 已知的肝毒性警报结构"))
+        toxicity_alerts.append((t("analysis.admet.toxicity.level_high"), t("analysis.admet.toxicity.hydrazine")))
     if fg.get("alkyl_halide"):
-        toxicity_alerts.append(("中", "卤代烷基 → 可能是烷化剂，与谷胱甘肽结合消耗肝脏保护物质"))
+        toxicity_alerts.append((t("analysis.admet.toxicity.level_medium"), t("analysis.admet.toxicity.alkyl_halide")))
     if fg.get("michael_acceptor"):
-        toxicity_alerts.append(("中", "Michael 受体 (α,β-不饱和羰基) → 可与亲核基团非特异性结合，可能引起肝毒性/皮肤致敏"))
+        toxicity_alerts.append((t("analysis.admet.toxicity.level_medium"), t("analysis.admet.toxicity.michael")))
 
     if fg.get("halogen") and not fg.get("alkyl_halide"):
-        toxicity_alerts.append(("低", "含卤素取代基 → 代谢较稳定，但可能生物积累"))
+        toxicity_alerts.append((t("analysis.admet.toxicity.level_low"), t("analysis.admet.toxicity.halogen")))
 
     if not toxicity_alerts:
-        toxicity_alerts.append(("低", "未检出常见结构警报，常规毒性风险较低"))
+        toxicity_alerts.append((t("analysis.admet.toxicity.level_low"), t("analysis.admet.toxicity.none")))
 
     return {
         "absorption": absorption_summary,

@@ -17,6 +17,7 @@ Based on the OOD_TEST_GUIDE.md framework:
 import numpy as np
 import joblib
 from dataclasses import dataclass, field
+from core.i18n import t
 
 DESCRIPTOR_NAMES_CN = {
     "MolWt":              "分子量 (MolWt)",
@@ -33,6 +34,9 @@ DESCRIPTOR_NAMES_CN = {
     "Chi0v":              "连接性指数 χ0v (Chi0)",
     "Chi1v":              "连接性指数 χ1v (Chi1)",
 }
+
+# Build English descriptor name lookup from i18n
+DESCRIPTOR_NAMES_EN = {k: t(f"ood.descriptor.{k}") for k in DESCRIPTOR_NAMES_CN}
 
 DESCRIPTOR_ORDER = [
     "MolWt", "LogP", "NumHDonors", "NumHAcceptors",
@@ -129,43 +133,31 @@ class OODDetector:
             return w
 
         if risk == "HIGH":
-            w.append(
-                "该分子严重偏离训练数据分布，预测值可能极不可靠。"
-                "建议仅用作定性参考，不要依赖具体数值。"
-            )
+            w.append(t("ood.warning.severe"))
         else:
-            w.append(
-                "该分子部分偏离训练数据分布，预测值可能存在较大误差。"
-                "建议谨慎解读结果。"
-            )
+            w.append(t("ood.warning.moderate"))
 
         for name in extreme:
             cn = DESCRIPTOR_NAMES_CN.get(name, name)
             val = features.get(name, "?")
             mean = self.desc_stats[name]["mean"]
             std = self.desc_stats[name]["std"]
-            direction = "高于" if val > mean else "低于"
-            w.append(f"{cn} 为 {val:.1f}，{direction}训练均值 ({mean:.1f} ± {std:.1f}) 超过 3 个标准差")
+            direction = t("ood.warning.desc_above") if val > mean else t("ood.warning.desc_below")
+            w.append(t("ood.warning.desc_zscore", name=cn, val=val, dir=direction, mean=mean, std=std))
 
         for name in out_of_range:
             if name in extreme:
-                continue  # already covered
+                continue
             cn = DESCRIPTOR_NAMES_CN.get(name, name)
             val = features.get(name, "?")
             tmin = self.desc_stats[name]["min"]
             tmax = self.desc_stats[name]["max"]
-            w.append(f"{cn} 为 {val:.1f}，超出训练集范围 [{tmin:.1f}, {tmax:.1f}]")
+            w.append(t("ood.warning.desc_range", name=cn, val=val, min=tmin, max=tmax))
 
         if max_sim < 0.15:
-            w.append(
-                f"分子指纹最大相似度仅 {max_sim:.2f}，"
-                "与训练集中任何分子的结构差异都很大"
-            )
+            w.append(t("ood.warning.fp_low", sim=max_sim))
         elif max_sim < 0.25:
-            w.append(
-                f"分子指纹最大相似度仅 {max_sim:.2f}，"
-                "与训练集分子的结构相似度偏低"
-            )
+            w.append(t("ood.warning.fp_medium", sim=max_sim))
 
         return w
 

@@ -10,6 +10,7 @@ import numpy as np
 import os
 import gzip
 from ood_detector import OODDetector, load_ood_detector as _load_ood_from_disk
+from core.i18n import t
 
 
 def _load_joblib(path):
@@ -79,31 +80,31 @@ def get_shap_contributions(model, features_dict, fp_array):
     combined_names = list(features_dict.keys()) + ["摩根指纹 (Morgan FP)"]
     # Translate to Chinese for display
     from ood_detector import DESCRIPTOR_NAMES_CN
-    combined_names = [DESCRIPTOR_NAMES_CN.get(n, n) for n in combined_names[:-1]] + ["摩根指纹 (Morgan FP)"]
+    combined_names = [DESCRIPTOR_NAMES_CN.get(n, n) for n in combined_names[:-1]] + [t("model.shap.morgan_fp")]
     return combined_shap, combined_names
 
 
 def get_pka_type(pka_val):
     """Classify pKa value into acid/base/amphoteric."""
     if pka_val < 6:
-        return "acid", "酸性分子 (Acidic)", "pka-acid", "#a78bfa", \
-               "pKa 较低，在酸性环境中以分子态为主，脂溶性高"
+        return "acid", t("model.pka.type.acidic_display"), "pka-acid", "#a78bfa", \
+               t("model.pka.type.acidic_desc")
     elif pka_val > 8:
-        return "base", "碱性分子 (Basic)", "pka-base", "#22d3ee", \
-               "pKa 较高，在碱性环境中以分子态为主"
+        return "base", t("model.pka.type.basic_display"), "pka-base", "#22d3ee", \
+               t("model.pka.type.basic_desc")
     else:
-        return "amphoteric", "两性/中性 (Amphoteric/Neutral)", "pka-amphoteric", "#fbbf24", \
-               "pKa 接近中性，电离行为随 pH 变化剧烈"
+        return "amphoteric", t("model.pka.type.amphoteric_display"), "pka-amphoteric", "#fbbf24", \
+               t("model.pka.type.amphoteric_desc")
 
 
 def get_solubility_level(prediction):
     """Classify logS prediction into solubility level."""
     if prediction > 0:
-        return "Highly soluble (易溶于水)", "#34d399", "result-high"
+        return t("model.solubility.high"), "#34d399", "result-high"
     elif prediction > -2:
-        return "Moderately soluble (中等溶解)", "#fbbf24", "result-moderate"
+        return t("model.solubility.moderate"), "#fbbf24", "result-moderate"
     else:
-        return "Poorly soluble (难溶于水)", "#f87171", "result-low"
+        return t("model.solubility.poor"), "#f87171", "result-low"
 
 
 @st.cache_resource

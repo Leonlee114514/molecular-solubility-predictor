@@ -5,6 +5,7 @@ DisSolve - Reusable UI components (header, footer, input area, CJK font).
 import streamlit as st
 from molecules import MOLECULE_DB, SEARCH_INDEX, search_pubchem as search_pubchem_final
 from core.state_keys import StateKey
+from core.i18n import t
 
 
 def render_html(html_content, height=1):
@@ -71,26 +72,23 @@ def get_cjk_font():
 
 def render_header():
     """Render the DisSolve page title and introduction."""
-    st.markdown("""
+    st.markdown(f"""
     <div style="text-align:center; margin-top:1rem; margin-bottom:0.5rem;">
-        <div class="tagline">AI-POWERED MOLECULAR PROPERTY PREDICTION</div>
+        <div class="tagline">{t('header.tagline')}</div>
         <h1 class="gradient-title">DisSolve</h1>
-        <p class="subtitle">Predict Aqueous Solubility, pKa & Pharmacological Profiles from Molecular Structure</p>
+        <p class="subtitle">{t('header.subtitle')}</p>
     </div>
     """, unsafe_allow_html=True)
 
-    st.markdown("""
+    st.markdown(f"""
     <div class="card-container" style="padding: 1.2rem 1.5rem; margin-bottom: 2rem;">
         <p style="margin: 0; color: var(--ob-text-secondary); line-height: 1.7;">
-            <b style="color: var(--ob-text-primary);">Welcome!</b> This app predicts aqueous solubility (logS), acid-base behavior (pKa),
-            and pharmacological profiles from molecular structure using a <b>Machine Learning</b> model
-            trained on <b>11,000+ organic compounds</b>.
-            Explore 2D & 3D molecular structures, pKa chemistry insights, and AI-generated explanations.
+            <b style="color: var(--ob-text-primary);">{t('header.welcome')}</b> {t('header.welcome_text')}
         </p>
         <div style="display: flex; gap: 1rem; margin-top: 1rem; flex-wrap: wrap;">
-            <span class="badge badge-primary">快速选择</span>
-            <span class="badge badge-success">名称搜索</span>
-            <span class="badge badge-warn">SMILES 输入</span>
+            <span class="badge badge-primary">{t('header.badge_select')}</span>
+            <span class="badge badge-success">{t('header.badge_search')}</span>
+            <span class="badge badge-warn">{t('header.badge_smiles')}</span>
         </div>
     </div>
     """, unsafe_allow_html=True)
@@ -98,11 +96,11 @@ def render_header():
 
 def render_footer():
     """Render the page footer."""
-    st.markdown("""
+    st.markdown(f"""
     <div class="footer">
         <div style="font-weight: 600; color: var(--ob-text-secondary); margin-bottom: 0.3rem; font-family: 'Space Grotesk', sans-serif; font-size: 1rem;">DisSolve</div>
-        <div>Built with Streamlit | ML: Random Forest + RDKit | Solubility: 11,000+ molecules | pKa: 410,000+ molecules | AI: Kimi (Moonshot AI) | DB: 100+ local + PubChem API</div>
-        <div style="margin-top: 0.5rem; font-size: 0.75rem; color: #6b6b7b;">溶解度预测 · pKa分析 · 药理学评估 | AI-Powered Chemistry Platform</div>
+        <div>{t('footer.built_with')}</div>
+        <div style="margin-top: 0.5rem; font-size: 0.75rem; color: #6b6b7b;">{t('footer.subtitle')}</div>
     </div>
     """, unsafe_allow_html=True)
 
@@ -150,13 +148,13 @@ def _on_radio_select():
 def render_input_area():
     """Render the three input methods: quick-select, name search, and SMILES input."""
 
-    # --- 方式1：可搜索单选列表 ---
+    # ── Method 1: Quick select ──
     with st.container(border=True):
-        st.markdown("""<div class="card-title">方式 1：快速选择常见分子</div>""", unsafe_allow_html=True)
+        st.markdown(f"""<div class="card-title">{t('input.method1.title')}</div>""", unsafe_allow_html=True)
 
         mol_search = st.text_input(
-            "搜索分子",
-            placeholder="输入中文或英文名称过滤...",
+            t("input.method1.search_label"),
+            placeholder=t("input.method1.search_placeholder"),
             key="mol_search_filter",
             label_visibility="collapsed"
         ).strip().lower()
@@ -165,7 +163,7 @@ def render_input_area():
         if mol_search:
             filtered_mols = [m for m in all_mols if mol_search in m.lower()]
             if not filtered_mols:
-                st.caption("未找到匹配分子，显示全部选项")
+                st.caption(t("input.method1.no_match"))
                 filtered_mols = all_mols
         else:
             filtered_mols = all_mols
@@ -177,7 +175,7 @@ def render_input_area():
             current_idx = 0
 
         selected_molecule = st.radio(
-            "选择分子",
+            t("input.method1.select_label"),
             filtered_mols,
             index=current_idx,
             key="molecule_select_radio",
@@ -185,20 +183,20 @@ def render_input_area():
             on_change=_on_radio_select,
         )
 
-    # --- 方式2：三层搜索 ---
+    # ── Method 2: Name search ──
     with st.container(border=True):
-        st.markdown("""<div class="card-title">方式 2：名称搜索（本地库 + PubChem API）</div>""", unsafe_allow_html=True)
-        st.caption("支持中英文，如 阿司匹林 / Aspirin / Ibuprofen / 咖啡因")
+        st.markdown(f"""<div class="card-title">{t('input.method2.title')}</div>""", unsafe_allow_html=True)
+        st.caption(t("input.method2.desc"))
         search_col1, search_col2 = st.columns([4, 1])
         with search_col1:
             search_name = st.text_input(
-                "输入名称",
-                placeholder="例如 阿司匹林 或 Aspirin",
+                "search_name",
+                placeholder=t("input.method2.placeholder"),
                 key="search_name",
                 label_visibility="collapsed"
             )
         with search_col2:
-            search_clicked = st.button("搜索", key="search_btn", use_container_width=True)
+            search_clicked = st.button(t("input.method2.search_btn"), key="search_btn", use_container_width=True)
 
         if StateKey.SEARCH_STATE not in st.session_state:
             st.session_state[StateKey.SEARCH_STATE] = None
@@ -226,9 +224,9 @@ def render_input_area():
                 # Only process on fresh search transition — NOT on every rerun.
                 # Otherwise this overwrites SMILES_INPUT set by radio / direct typing.
                 if st.session_state[StateKey.SEARCH_STATE] != "exact":
-                    st.success(f"本地精确匹配：`{search_name}` -> `{found_smiles}`")
+                    st.success(t("input.method2.exact_match", name=search_name, smiles=found_smiles))
                     _set_current_smiles(found_smiles)
-                    st.info("点击下方的 **Predict** 按钮查看结果")
+                    st.info(t("input.method2.try_predict"))
                     st.session_state[StateKey.SEARCH_STATE] = "exact"
             else:
                 matches = [k for k in SEARCH_INDEX.keys() if query in k or k in query]
@@ -248,18 +246,18 @@ def render_input_area():
                     found_smiles = st.session_state[StateKey.FUZZY_SMILES]
 
                     if st.session_state[StateKey.SEARCH_STATE] == "fuzzy_pending":
-                        st.info(f"本地模糊匹配：`{search_name}` → `{best_match}`")
+                        st.info(t("input.method2.fuzzy_match", name=search_name, best=best_match))
                         if len(matches) > 1:
-                            with st.expander(f"查看全部 {len(matches)} 个模糊匹配结果", expanded=False):
+                            with st.expander(t("input.method2.fuzzy_see_all", n=len(matches)), expanded=False):
                                 for m in matches[:8]:
                                     st.caption(f"**{m}**")
                                     st.code(SEARCH_INDEX[m], language=None)
 
                         confirm_col1, confirm_col2 = st.columns(2)
                         with confirm_col1:
-                            use_fuzzy = st.button("✅ 确认使用此结果", key="use_fuzzy_match", use_container_width=True)
+                            use_fuzzy = st.button(t("input.method2.confirm_btn"), key="use_fuzzy_match", use_container_width=True)
                         with confirm_col2:
-                            use_pubchem = st.button("不是我要的，搜 PubChem", key="skip_to_pubchem", use_container_width=True)
+                            use_pubchem = st.button(t("input.method2.skip_btn"), key="skip_to_pubchem", use_container_width=True)
 
                         if use_fuzzy:
                             st.session_state[StateKey.SEARCH_STATE] = "fuzzy_confirmed"
@@ -270,16 +268,16 @@ def render_input_area():
                             st.rerun()
 
                     if st.session_state[StateKey.SEARCH_STATE] == "fuzzy_confirmed":
-                        st.success(f"已采用：`{best_match}` → `{found_smiles}`")
-                        st.info("点击下方的 **Predict** 按钮查看结果")
+                        st.success(t("input.method2.confirmed", best=best_match, smiles=found_smiles))
+                        st.info(t("input.method2.try_predict"))
 
                     if st.session_state[StateKey.SEARCH_STATE] == "pubchem_pending":
-                        with st.status("正在查询 PubChem API...", expanded=True) as pub_status:
+                        with st.status(t("input.method2.pubchem_status"), expanded=True) as pub_status:
                             found_smiles, pub_status_str = search_pubchem_final(search_name)
                             if found_smiles:
-                                pub_status.update(label=f"PubChem 匹配成功：{pub_status_str}", state="complete")
+                                pub_status.update(label=t("input.method2.pubchem_success", status=pub_status_str), state="complete")
                             else:
-                                pub_status.update(label=f"PubChem 未找到：{pub_status_str}", state="error")
+                                pub_status.update(label=t("input.method2.pubchem_fail", status=pub_status_str), state="error")
                         if found_smiles:
                             st.session_state[StateKey.SEARCH_STATE] = "pubchem_done"
                             st.session_state[StateKey.FUZZY_SMILES] = found_smiles
@@ -289,15 +287,15 @@ def render_input_area():
                         st.rerun()
 
                     if st.session_state[StateKey.SEARCH_STATE] == "pubchem_done":
-                        st.success(f"PubChem 匹配：`{search_name}` → `{st.session_state[StateKey.FUZZY_SMILES]}`")
-                        st.info("点击下方的 **Predict** 按钮查看结果")
+                        st.success(t("input.method2.pubchem_done", name=search_name, smiles=st.session_state[StateKey.FUZZY_SMILES]))
+                        st.info(t("input.method2.try_predict"))
 
                     if st.session_state[StateKey.SEARCH_STATE] == "no_match":
-                        st.error(f"未找到：`{search_name}`")
+                        st.error(t("input.method2.not_found", name=search_name))
                 else:
                     if st.session_state[StateKey.SEARCH_STATE] not in ("pubchem_done", "no_match"):
                         st.session_state[StateKey.SEARCH_STATE] = "pubchem_pending"
-                        with st.status("本地未找到，正在查询 PubChem API...", expanded=True) as pub_status:
+                        with st.status(t("input.method2.local_not_found"), expanded=True) as pub_status:
                             found_smiles, pub_status_str = search_pubchem_final(search_name)
                             if found_smiles:
                                 pub_status.update(label=f"PubChem 匹配成功：{pub_status_str}", state="complete")
@@ -314,36 +312,36 @@ def render_input_area():
 
                     if st.session_state[StateKey.SEARCH_STATE] == "pubchem_done":
                         found_smiles = st.session_state[StateKey.FUZZY_SMILES]
-                        st.success(f"PubChem 匹配：`{search_name}` -> `{found_smiles}`")
-                        st.info("点击下方的 **Predict** 按钮查看结果")
+                        st.success(t("input.method2.pubchem_done", name=search_name, smiles=found_smiles))
+                        st.info(t("input.method2.try_predict"))
                     elif st.session_state[StateKey.SEARCH_STATE] == "no_match":
-                        st.error(f"未找到：`{search_name}`")
-                        st.info("尝试建议：")
-                        st.markdown("""
-                        - 检查拼写（如 **Aspirin** 而非 **Aspriin**）
-                        - 尝试更常见的名称
-                        - 直接输入 SMILES（方式3）
+                        st.error(t("input.method2.not_found", name=search_name))
+                        st.info(t("input.method2.suggestions_title"))
+                        st.markdown(f"""
+{t('input.method2.suggestion1')}
+{t('input.method2.suggestion2')}
+{t('input.method2.suggestion3')}
                         """)
-                        st.markdown("""
+                        st.markdown(f"""
                         <div style="background: linear-gradient(135deg, rgba(124, 58, 237, 0.08), rgba(124, 58, 237, 0.02)); padding: 18px; border-radius: 16px; border-left: 3px solid #7c3aed;">
-                        <h4 style="color: #a78bfa; margin-top: 0; font-family: 'Space Grotesk', sans-serif;">如何手动获取 SMILES？</h4>
+                        <h4 style="color: #a78bfa; margin-top: 0; font-family: 'Space Grotesk', sans-serif;">{t('input.method2.manual_title')}</h4>
                         <ol style="color: var(--ob-text-secondary); margin-bottom: 0;">
-                            <li>访问 <a href="https://pubchem.ncbi.nlm.nih.gov" target="_blank" style="color: #a78bfa;"><b>https://pubchem.ncbi.nlm.nih.gov</b></a></li>
-                            <li>在搜索框输入分子名称（英文，如 <b>Aspirin</b>）</li>
-                            <li>进入化合物页面，找到 <b>Canonical SMILES</b> 字段</li>
-                            <li>复制 SMILES 字符串（如 <code style="background: rgba(124,58,237,0.1); padding: 2px 6px; border-radius: 4px;">CC(=O)Oc1ccccc1C(=O)O</code>）</li>
-                            <li>粘贴到下方的 "方式 3" 文本框中，点击 Predict</li>
+                            <li>{t('input.method2.manual_step1')}<a href="https://pubchem.ncbi.nlm.nih.gov" target="_blank" style="color: #a78bfa;"><b>https://pubchem.ncbi.nlm.nih.gov</b></a></li>
+                            <li>{t('input.method2.manual_step2')}</li>
+                            <li>{t('input.method2.manual_step3')}</li>
+                            <li>{t('input.method2.manual_step4')}<code style="background: rgba(124,58,237,0.1); padding: 2px 6px; border-radius: 4px;">CC(=O)Oc1ccccc1C(=O)O</code>）</li>
+                            <li>{t('input.method2.manual_step5')}</li>
                         </ol>
                         </div>
                         """, unsafe_allow_html=True)
 
-    # --- 方式3：SMILES 直接输入 ---
+    # ── Method 3: SMILES input ──
     with st.container(border=True):
-        st.markdown("""<div class="card-title">方式 3：直接输入 SMILES</div>""", unsafe_allow_html=True)
-        st.caption("可从下拉菜单自动填入，也可手动编辑或粘贴外部 SMILES")
+        st.markdown(f"""<div class="card-title">{t('input.method3.title')}</div>""", unsafe_allow_html=True)
+        st.caption(t("input.method3.desc"))
 
         smiles_input = st.text_input(
-            "当前 SMILES",
+            t("input.method3.label"),
             key="smiles_input_box",
             label_visibility="collapsed"
         )
@@ -370,11 +368,11 @@ def render_input_area():
 def render_file_upload_input():
     """Render the 4th input method: upload .mol/.sdf/.pdb files."""
     with st.container(border=True):
-        st.markdown("""<div class="card-title">方式 4：上传分子文件</div>""", unsafe_allow_html=True)
-        st.caption("支持 .mol .sdf .mol2 .pdb .xyz 格式")
+        st.markdown(f"""<div class="card-title">{t('input.method4.title')}</div>""", unsafe_allow_html=True)
+        st.caption(t("input.method4.desc"))
 
         uploaded = st.file_uploader(
-            "选择分子文件",
+            t("input.method4.upload_label"),
             type=["mol", "sdf", "mol2", "pdb", "xyz"],
             key="mol_file_uploader",
             label_visibility="collapsed",
@@ -388,21 +386,20 @@ def render_file_upload_input():
                 result = smiles_from_file(uploaded)
                 if result is not None:
                     parsed_smiles, formula, mw = result
-                    st.success(f"解析成功：{uploaded.name} → {formula} ({mw:.1f} Da)")
+                    st.success(t("input.method4.parse_success", name=uploaded.name, formula=formula, mw=mw))
                     st.code(parsed_smiles, language=None)
                     if parsed_smiles != st.session_state.get(StateKey.SMILES_INPUT):
-                        # Widget already rendered — use pending pattern
                         st.session_state["_pending_history_smiles"] = parsed_smiles
                         st.session_state[StateKey.PREDICTED_SMILES] = None
                         st.session_state[StateKey.PREDICTED_LOGS] = None
                         st.session_state[StateKey.PREDICTED_PKA] = None
                         st.session_state[StateKey.AI_EXPLANATION] = None
                     st.session_state[_file_upload_key] = uploaded.getvalue()
-                    st.info("点击下方的 **Predict** 按钮查看结果")
+                    st.info(t("input.method2.try_predict"))
                     st.rerun()
                 else:
-                    st.error(f"文件解析失败：{uploaded.name} 无法被 RDKit 识别")
-                    st.info("请确保文件包含有效的 2D/3D 分子结构")
+                    st.error(t("input.method4.parse_fail", name=uploaded.name))
+                    st.info(t("input.method4.parse_fail_info"))
 
 
 def render_prediction_history():
@@ -411,7 +408,7 @@ def render_prediction_history():
     if not history:
         return
 
-    with st.expander(f"预测历史记录 ({len(history)} 条)", expanded=False):
+    with st.expander(t("history.title", n=len(history)), expanded=False):
         for i, entry in enumerate(history):
             ts = entry.get("timestamp", "")
             smiles = entry.get("smiles", "")
@@ -429,7 +426,7 @@ def render_prediction_history():
             else:
                 logS_color = "#f87171"
                 logS_bg = "rgba(248,113,113,0.15)"
-            val_logS = f"logS={logS:.3f}" if logS is not None else "logS=?"
+            val_logS = t("history.logS_val", val=logS) if logS is not None else t("history.logS_unknown")
 
             # pKa color
             if pka is not None and pka < 5:
@@ -439,17 +436,17 @@ def render_prediction_history():
             elif pka is not None and pka > 9:
                 pka_color = "#22d3ee"
                 pka_bg = "rgba(34,211,238,0.15)"
-                val_pKa = f"pKa={pka:.2f}"
+                val_pKa = t("history.pka_val", val=pka)
             elif pka is not None:
                 pka_color = "#fbbf24"
                 pka_bg = "rgba(251,191,36,0.15)"
-                val_pKa = f"pKa={pka:.2f}"
+                val_pKa = t("history.pka_val", val=pka)
             else:
                 pka_color = "var(--ob-text-tertiary)"
                 pka_bg = "transparent"
-                val_pKa = "pKa=?"
+                val_pKa = t("history.pka_unknown")
 
-            display_name = name if name else "(自定义输入)"
+            display_name = name if name else t("history.custom_input")
 
             card = f"""
             <div style="
@@ -492,7 +489,7 @@ def render_prediction_history():
             with col_card:
                 st.markdown(card, unsafe_allow_html=True)
             with col_btn:
-                if st.button("复用", key=f"hist_reuse_{i}", use_container_width=True):
+                if st.button(t("history.reuse_btn"), key=f"hist_reuse_{i}", use_container_width=True):
                     st.session_state["_pending_history_smiles"] = entry.get("smiles", "")
                     st.session_state["_pending_history_name"] = entry.get("name", "")
                     st.session_state[StateKey.PREDICTED_SMILES] = None

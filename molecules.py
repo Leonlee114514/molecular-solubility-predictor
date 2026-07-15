@@ -9,6 +9,8 @@ import urllib.parse
 
 import requests
 
+from core.i18n import t
+
 # ========== 本地分子库（从 JSON 文件加载）==========
 MOLECULE_DB_PATH = os.path.join(os.path.dirname(__file__), "data", "molecule_db.json")
 
@@ -153,13 +155,13 @@ def _try_pubchem_urls(encoded_name):
 def search_pubchem(name, max_retries=3):
     """Search PubChem PUG REST API for a compound SMILES by name."""
     if not name or not name.strip():
-        return None, "名称不能为空"
+        return None, t("molecule.pubchem.empty_name")
 
     name_clean = name.strip()
     name_lower = name_clean.lower()
 
     if name_lower in pubchem_cache:
-        return pubchem_cache[name_lower], "success (cached)"
+        return pubchem_cache[name_lower], t("molecule.pubchem.cached")
 
     time.sleep(0.5)
     encoded = urllib.parse.quote(name_clean)
@@ -175,7 +177,7 @@ def search_pubchem(name, max_retries=3):
                 if 'Fault' in data:
                     fault = data.get('Fault', {}).get('Message', '')
                     if 'NotFound' in fault or 'not found' in fault.lower():
-                        return None, "PubChem 未找到该化合物"
+                        return None, t("molecule.pubchem.not_found")
                     time.sleep(1.0 * (attempt + 1))
                     continue
                 props = data.get('PropertyTable', {}).get('Properties', [])
@@ -185,13 +187,13 @@ def search_pubchem(name, max_retries=3):
                         result = smiles.strip()
                         pubchem_cache[name_lower] = result
                         save_cache()
-                        return result, "success (PubChem)"
-                return None, "PubChem 返回空数据"
+                        return result, t("molecule.pubchem.success")
+                return None, t("molecule.pubchem.empty_data")
             elif r.status_code == 503:
                 time.sleep(2.0 * (attempt + 1))
                 continue
             elif r.status_code == 404:
-                return None, "PubChem 未找到该化合物 (404)"
+                return None, t("molecule.pubchem.not_found_404")
             else:
                 time.sleep(1.0 * (attempt + 1))
                 continue
@@ -199,12 +201,12 @@ def search_pubchem(name, max_retries=3):
             if attempt < max_retries - 1:
                 time.sleep(1)
                 continue
-            return None, "SSL 连接失败"
+            return None, t("molecule.pubchem.ssl_error")
         except requests.exceptions.Timeout:
             if attempt < max_retries - 1:
                 time.sleep(2)
                 continue
-            return None, "查询超时，PubChem 服务器无响应"
+            return None, t("molecule.pubchem.timeout")
         except requests.exceptions.ConnectionError:
             time.sleep(1.0 * (attempt + 1))
             continue
@@ -212,5 +214,5 @@ def search_pubchem(name, max_retries=3):
             if attempt < max_retries - 1:
                 time.sleep(1)
                 continue
-            return None, f"网络异常: {str(e)}"
-    return None, "PubChem 持续不可用，请稍后重试"
+            return None, t("molecule.pubchem.network_error", err=str(e))
+    return None, t("molecule.pubchem.unavailable")

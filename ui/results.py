@@ -12,6 +12,7 @@ from matplotlib.patches import Patch
 from ui.plots import mol_to_dark_image, mol_to_dark_image_with_importance
 from model import get_pka_type, get_solubility_level, get_shap_explainer
 from core.ai_client import explain_with_kimi
+from core.i18n import t
 from core.cache import (
     cached_compute_features, cached_show_3d, cached_pka_analysis,
     cached_shap_contributions, cached_lipinski, cached_admet, cached_druglikeness,
@@ -31,7 +32,7 @@ def render_results(model):
         if features is None:
             result_display = cached_compute_features(st.session_state[StateKey.PREDICTED_SMILES])
             if result_display is None:
-                st.error("显示时解析失败，请重新输入 SMILES")
+                st.error(t("result.display_error"))
                 st.stop()
             features, _ = result_display
         prediction = st.session_state[StateKey.PREDICTED_LOGS]
@@ -50,40 +51,39 @@ def render_results(model):
         ood_result = st.session_state.get(StateKey.OOD_RESULT)
 
         if ood_risk == "HIGH":
-            st.error(f"**Out-of-Distribution 警告 — 预测可能不可靠**")
+            st.error(t("result.ood.high.title"))
             with st.container(border=True):
-                st.markdown("""
+                st.markdown(f"""
                 <div style="font-size:0.9rem;line-height:1.7;color:#fca5a5;">
-                <strong>该分子严重偏离训练数据分布</strong>，预测值仅供参考，不应作为实验依据。
+                <strong>{t('result.ood.high.desc')}</strong>
                 </div>
                 """, unsafe_allow_html=True)
                 if ood_result and ood_result.warnings:
                     for w in ood_result.warnings:
                         st.markdown(f"- {w}")
         elif ood_risk == "MEDIUM":
-            st.warning(f"**Out-of-Distribution 注意 — 预测可能有一定误差**")
+            st.warning(t("result.ood.medium.title"))
             with st.container(border=True):
-                st.markdown("""
+                st.markdown(f"""
                 <div style="font-size:0.9rem;line-height:1.7;color:#fcd34d;">
-                <strong>该分子部分偏离训练数据分布</strong>，建议谨慎解读预测结果。
+                <strong>{t('result.ood.medium.desc')}</strong>
                 </div>
                 """, unsafe_allow_html=True)
                 if ood_result and ood_result.warnings:
                     for w in ood_result.warnings:
                         st.markdown(f"- {w}")
         elif ood_risk == "LOW":
-            # Show a subtle green badge for in-distribution molecules
-            st.success(f"In-Distribution — 该分子在训练数据化学空间内，预测较为可靠")
+            st.success(t("result.ood.low"))
 
         # ═════════════════════════════════════════
         # TAB 分组
         # ═════════════════════════════════════════
         tab_labels = [
-            "Preview",
-            "Solubility",
-            "pKa",
-            "Pharmacology",
-            "AI Explanation"
+            t("result.tab.preview"),
+            t("result.tab.solubility"),
+            t("result.tab.pka"),
+            t("result.tab.pharmacology"),
+            t("result.tab.ai"),
         ]
         tab_preview, tab_sol, tab_pka, tab_pharm, tab_ai = st.tabs(tab_labels)
 
@@ -124,7 +124,7 @@ def render_results(model):
 
 def _tab_preview(features):
     """Tab 0: Molecule Preview (2D structure, formula, 3D model)."""
-    st.markdown("""<div class="card-title">Molecule Preview</div>""", unsafe_allow_html=True)
+    st.markdown(f"""<div class="card-title">{t('result.preview.card_title')}</div>""", unsafe_allow_html=True)
 
     mol = Chem.MolFromSmiles(st.session_state[StateKey.PREDICTED_SMILES])
 
@@ -134,47 +134,46 @@ def _tab_preview(features):
         try:
             img = mol_to_dark_image(mol, size=(460, 380))
             if img is not None:
-                st.image(img, caption="2D Molecular Structure", use_container_width=True)
+                st.image(img, caption=t("result.preview.img_caption"), use_container_width=True)
             else:
-                st.info("无法显示2D结构图")
+                st.info(t("result.preview.img_fail"))
         except Exception as e:
-            st.warning(f"结构图生成失败: {e}")
+            st.warning(t("result.preview.img_error", err=e))
 
     with col_pv_right:
         if mol is not None:
             formula = rdMolDescriptors.CalcMolFormula(mol)
             mw = features["MolWt"]
-            st.metric("Molecular Formula", formula)
-            st.metric("Molecular Weight", f"{mw:.1f} Da")
-            st.markdown("""<div style="font-size:0.82rem;color:var(--ob-text-tertiary);margin-top:0.5rem;margin-bottom:0.2rem;">SMILES</div>""", unsafe_allow_html=True)
+            st.metric(t("result.preview.formula"), formula)
+            st.metric(t("result.preview.mol_weight"), f"{mw:.1f} Da")
+            st.markdown(f"""<div style="font-size:0.82rem;color:var(--ob-text-tertiary);margin-top:0.5rem;margin-bottom:0.2rem;">{t('result.preview.smiles_label')}</div>""", unsafe_allow_html=True)
             st.code(st.session_state[StateKey.PREDICTED_SMILES], language=None)
         else:
-            st.warning("无法解析分子结构")
+            st.warning(t("result.preview.struct_fail"))
 
     st.markdown("<br>", unsafe_allow_html=True)
-    st.markdown("""<div class="card-title">3D Ball-and-Stick Model</div>""", unsafe_allow_html=True)
+    st.markdown(f"""<div class="card-title">{t('result.preview.model3d')}</div>""", unsafe_allow_html=True)
     html_3d = cached_show_3d(st.session_state[StateKey.PREDICTED_SMILES])
     if html_3d:
         render_html(html_3d, height=420)
     else:
-        st.info("3D 模型生成失败（需安装 py3Dmol）")
+        st.info(t("result.preview.model3d_fail"))
 
 
 def _tab_solubility(features, prediction, interp, color, css_class, model):
     """Tab 1: Solubility prediction details + SHAP explainability."""
-    st.markdown("""<div class="card-title">Solubility Prediction</div>""", unsafe_allow_html=True)
+    st.markdown(f"""<div class="card-title">{t('result.solubility.card_title')}</div>""", unsafe_allow_html=True)
 
     model_type = st.session_state.get(StateKey.SELECTED_MODEL, "Auto")
-    # Resolve Auto → actual model used
     if model_type == "Auto":
         actual_model = st.session_state.get(StateKey.ACTUAL_MODEL, "GNN")
         model_type = actual_model if actual_model in ("RF", "GNN", "Ensemble", "Ensemble(W)") else "GNN"
     model_colors = {"RF": "#34d399", "GNN": "#a78bfa", "Ensemble": "#fbbf24", "Ensemble(W)": "#f97316"}
     model_badge = {
-        "RF": "Random Forest",
-        "GNN": "Graph Neural Network",
-        "Ensemble": "Ensemble (RF+GNN)",
-        "Ensemble(W)": "Weighted Ensemble (0.45×RF+0.55×GNN)",
+        "RF": t("result.solubility.badge_rf"),
+        "GNN": t("result.solubility.badge_gnn"),
+        "Ensemble": t("result.solubility.badge_ensemble"),
+        "Ensemble(W)": t("result.solubility.badge_weighted"),
     }.get(model_type, model_type)
     st.markdown(f"""
     <div style="display:inline-block;padding:0.15rem 0.7rem;background:rgba({model_colors.get(model_type, 'a78bfa').lstrip('#')},0.15);border:1px solid {model_colors.get(model_type, '#a78bfa')};border-radius:20px;font-size:0.78rem;color:{model_colors.get(model_type, '#a78bfa')};margin-bottom:0.6rem;">
@@ -184,7 +183,7 @@ def _tab_solubility(features, prediction, interp, color, css_class, model):
 
     col_sol1, col_sol2 = st.columns([1, 1.2])
     with col_sol1:
-        st.metric(label="Predicted Solubility (logS)", value=f"{prediction:.3f}")
+        st.metric(label=t("result.solubility.metric_logs"), value=f"{prediction:.3f}")
         st.markdown(f"""
         <div class="{css_class}">
             <div style="font-size: 1.1rem; font-weight: 700; color: {color};">-> {interp}</div>
@@ -197,9 +196,9 @@ def _tab_solubility(features, prediction, interp, color, css_class, model):
         if rf_val is not None and gnn_val is not None:
             diff = abs(rf_val - gnn_val)
             if diff > 1.0:
-                st.error(f"⚠️ RF 与 GNN 严重分歧（|RF−GNN| = {diff:.2f}），预测可靠性较低")
+                st.error(t("result.solubility.severe_disagree", diff=diff))
             elif diff > 0.5:
-                st.warning(f"\U0001f4ca RF 与 GNN 存在显著分歧（|RF−GNN| = {diff:.2f}），请谨慎解读")
+                st.error(t("result.solubility.notable_disagree", diff=diff))
 
         # ── Ensemble component display ──
         if model_type in ("Ensemble", "Ensemble(W)"):
@@ -230,21 +229,21 @@ def _tab_solubility(features, prediction, interp, color, css_class, model):
         """, unsafe_allow_html=True)
 
     st.markdown("<br>", unsafe_allow_html=True)
-    st.markdown("""<div class="card-title">Molecular Descriptors</div>""", unsafe_allow_html=True)
+    st.markdown(f"""<div class="card-title">{t('result.solubility.descriptors')}</div>""", unsafe_allow_html=True)
     with st.container(border=True):
         desc_col1, desc_col2, desc_col3, desc_col4 = st.columns(4)
         with desc_col1:
-            st.metric("Molecular Weight", f"{features['MolWt']:.1f}")
-            st.metric("LogP (Hydrophobicity)", f"{features['LogP']:.2f}")
+            st.metric(t("result.solubility.desc_mw"), f"{features['MolWt']:.1f}")
+            st.metric(t("result.solubility.desc_logp"), f"{features['LogP']:.2f}")
         with desc_col2:
-            st.metric("H-Bond Donors", f"{features['NumHDonors']}")
-            st.metric("H-Bond Acceptors", f"{features['NumHAcceptors']}")
+            st.metric(t("result.solubility.desc_hbd"), f"{features['NumHDonors']}")
+            st.metric(t("result.solubility.desc_hba"), f"{features['NumHAcceptors']}")
         with desc_col3:
-            st.metric("TPSA (Å²)", f"{features['TPSA']:.1f}")
-            st.metric("Rotatable Bonds", f"{features['NumRotatableBonds']}")
+            st.metric(t("result.solubility.desc_tpsa"), f"{features['TPSA']:.1f}")
+            st.metric(t("result.solubility.desc_rotb"), f"{features['NumRotatableBonds']}")
         with desc_col4:
-            st.metric("Aromatic Rings", f"{features['NumAromaticRings']}")
-            st.metric("Aliphatic Rings", f"{features['NumAliphaticRings']}")
+            st.metric(t("result.solubility.desc_arom"), f"{features['NumAromaticRings']}")
+            st.metric(t("result.solubility.desc_aliph"), f"{features['NumAliphaticRings']}")
     st.info("""
     **Chemistry Insight:**
     - **TPSA** (Topological Polar Surface Area) measures how much of the molecule is polar.
@@ -267,15 +266,8 @@ def _tab_solubility(features, prediction, interp, color, css_class, model):
     # SHAP: show whenever RF is part of the prediction (GNN-only has no SHAP data)
     if shap_model_type != "GNN":
         st.markdown("<br>", unsafe_allow_html=True)
-        st.markdown("""<div class="card-title">SHAP Explainability</div>""", unsafe_allow_html=True)
-
-        if shap_model_type == "Ensemble":
-            st.caption(
-                "基于 SHAP (SHapley Additive exPlanations) 分析 RF 分量中每个特征对预测的贡献。"
-                "GNN 的结构贡献体现在 Ensemble 的差值中。"
-            )
-        else:
-            st.caption("基于 SHAP (SHapley Additive exPlanations) 分析每个特征对预测的贡献")
+        st.markdown(f"""<div class="card-title">{t('result.solubility.shap_title')}</div>""", unsafe_allow_html=True)
+        st.caption(t("result.solubility.shap_guide"))
 
         if st.session_state.get(StateKey.SHAP_VALUES):
             shap_vals = np.array(st.session_state[StateKey.SHAP_VALUES])
@@ -357,10 +349,10 @@ def _tab_solubility(features, prediction, interp, color, css_class, model):
 def _tab_pka(pka_val, pka_type, pka_label, pka_css, pka_text_color, pka_desc, features):
     """Tab 2: pKa acidity/basicity prediction."""
     if pka_val is not None:
-        st.markdown("""<div class="card-title">pKa Prediction</div>""", unsafe_allow_html=True)
+        st.markdown(f"""<div class="card-title">{t('result.pka.card_title')}</div>""", unsafe_allow_html=True)
         col_pka1, col_pka2 = st.columns(2)
         with col_pka1:
-            st.metric("Predicted pKa", f"{pka_val:.2f}")
+            st.metric(t("result.pka.metric"), f"{pka_val:.2f}")
         with col_pka2:
             st.markdown(f"""
             <div class="{pka_css}" style="margin-top: 0.2rem;">
@@ -431,7 +423,7 @@ def _tab_pka(pka_val, pka_type, pka_label, pka_css, pka_text_color, pka_desc, fe
 
 def _tab_pharmacology(features, prediction, pka_val, pka_type, pka_label, pka_css, pka_text_color, pka_desc):
     """Tab 3: Pharmacology (Lipinski, ADME/Tox, ionization profile)."""
-    st.markdown("""<div class="card-title">Drug-likeness: Lipinski's Rule of Five</div>""", unsafe_allow_html=True)
+    st.markdown(f"""<div class="card-title">{t('result.pharma.lipinski_title')}</div>""", unsafe_allow_html=True)
     lipinski_result = cached_lipinski(tuple(features.items()))
     rules = lipinski_result["rules"]
     setup_plt_dark()
@@ -494,7 +486,7 @@ def _tab_pharmacology(features, prediction, pka_val, pka_type, pka_label, pka_cs
     """, unsafe_allow_html=True)
 
     st.markdown("<br>", unsafe_allow_html=True)
-    st.markdown("""<div class="card-title">Drug-likeness Metrics: QED &middot; SAscore &middot; Fsp&sup3;</div>""", unsafe_allow_html=True)
+    st.markdown(f"""<div class="card-title">{t('result.pharma.druglikeness_title')}</div>""", unsafe_allow_html=True)
     dl = cached_druglikeness(st.session_state[StateKey.PREDICTED_SMILES])
     if dl:
         col_qed, col_sa, col_fsp3 = st.columns(3)
@@ -633,7 +625,7 @@ def _tab_pharmacology(features, prediction, pka_val, pka_type, pka_label, pka_cs
         st.info("pKa 模型未加载，药理学分析不可用。")
 
     st.markdown("<br>", unsafe_allow_html=True)
-    st.markdown("""<div class="card-title">ADME/Tox 药代动力学概览</div>""", unsafe_allow_html=True)
+    st.markdown(f"""<div class="card-title">{t('result.pharma.admet_title')}</div>""", unsafe_allow_html=True)
 
     admet = cached_admet(
         st.session_state[StateKey.PREDICTED_SMILES],
@@ -642,17 +634,17 @@ def _tab_pharmacology(features, prediction, pka_val, pka_type, pka_label, pka_cs
     )
 
     adme_tabs = st.tabs([
-        "Absorption 吸收",
-        "Distribution 分布",
-        "Metabolism 代谢",
-        "Excretion 排泄",
-        "Toxicity 毒性",
+        t("result.pharma.admet_absorption"),
+        t("result.pharma.admet_distribution"),
+        t("result.pharma.admet_metabolism"),
+        t("result.pharma.admet_excretion"),
+        t("result.pharma.admet_toxicity"),
     ])
 
     with adme_tabs[0]:
         st.markdown(f"""
         <div style="padding: 1rem; background: rgba(52, 211, 153, 0.06); border-radius: 12px; border: 1px solid rgba(52, 211, 153, 0.15);">
-        <b style="color: #34d399;">吸收分析</b><br><br>
+        <b style="color: #34d399;">{t('result.pharma.admet_absorption_title')}</b><br><br>
         <span style="color: #c0c0d0; font-size: 0.9rem; line-height: 1.7;">{admet['absorption']}</span>
         </div>
         """, unsafe_allow_html=True)
@@ -668,14 +660,14 @@ def _tab_pharmacology(features, prediction, pka_val, pka_type, pka_label, pka_cs
         with col_d1:
             st.markdown(f"""
             <div style="padding: 0.8rem 1rem; background: rgba(96, 165, 250, 0.08); border-radius: 10px; border: 1px solid rgba(96, 165, 250, 0.15);">
-            <b style="color: #60a5fa;">表观分布容积 (Vd)</b><br>
+            <b style="color: #60a5fa;">{t('result.pharma.admet_vd')}</b><br>
             <span style="color: #c0c0d0; font-size: 0.85rem;">{d['vd_estimate']}</span>
             </div>
             """, unsafe_allow_html=True)
         with col_d2:
             st.markdown(f"""
             <div style="padding: 0.8rem 1rem; background: rgba(96, 165, 250, 0.08); border-radius: 10px; border: 1px solid rgba(96, 165, 250, 0.15);">
-            <b style="color: #60a5fa;">血浆蛋白结合率</b><br>
+            <b style="color: #60a5fa;">{t('result.pharma.admet_ppb')}</b><br>
             <span style="color: #c0c0d0; font-size: 0.85rem;">{d['ppb']}</span>
             </div>
             """, unsafe_allow_html=True)
@@ -697,14 +689,14 @@ def _tab_pharmacology(features, prediction, pka_val, pka_type, pka_label, pka_cs
         with col_m1:
             st.markdown(f"""
             <div style="padding: 1rem; background: rgba(251, 191, 36, 0.06); border-radius: 12px; border: 1px solid rgba(251, 191, 36, 0.15);">
-            <b style="color: #fbbf24;">代谢热点</b><br><br>
+            <b style="color: #fbbf24;">{t('result.pharma.admet_metab_sites')}</b><br><br>
             <span style="color: #c0c0d0; font-size: 0.9rem; line-height: 1.7;">{m['summary']}</span>
             </div>
             """, unsafe_allow_html=True)
         with col_m2:
             st.markdown(f"""
             <div style="padding: 1rem; background: rgba(251, 191, 36, 0.06); border-radius: 12px; border: 1px solid rgba(251, 191, 36, 0.15);">
-            <b style="color: #fbbf24;">相关代谢酶</b><br><br>
+            <b style="color: #fbbf24;">{t('result.pharma.admet_cyp')}</b><br><br>
             <span style="color: #c0c0d0; font-size: 0.9rem;">{m['cyp_enzymes']}</span>
             </div>
             """, unsafe_allow_html=True)
@@ -719,7 +711,7 @@ def _tab_pharmacology(features, prediction, pka_val, pka_type, pka_label, pka_cs
         e = admet["excretion"]
         st.markdown(f"""
         <div style="padding: 1rem; background: rgba(167, 139, 250, 0.06); border-radius: 12px; border: 1px solid rgba(167, 139, 250, 0.15);">
-        <b style="color: #a78bfa;">排泄途径：{e['route']}</b><br><br>
+        <b style="color: #a78bfa;">{t('result.pharma.admet_excretion_route')}：{e['route']}</b><br><br>
         <span style="color: #c0c0d0; font-size: 0.9rem; line-height: 1.7;">{e['summary']}</span>
         </div>
         """, unsafe_allow_html=True)
@@ -766,11 +758,8 @@ def _tab_pharmacology(features, prediction, pka_val, pka_type, pka_label, pka_cs
 def _display_gnn_explanation():
     """Display GNNExplainer bond importance + feature importance in the Solubility tab."""
 
-    st.markdown("""<div class="card-title">GNN Explainability — 原子/边注意力分析</div>""", unsafe_allow_html=True)
-    st.caption(
-        "基于 GNNExplainer (Ying et al., NeurIPS 2019) 学习分子图中每条边和每个原子特征对预测的贡献。"
-        "暖色高亮 = 对预测影响最大的化学键。"
-    )
+    st.markdown(f"""<div class="card-title">{t('result.gnn.title')}</div>""", unsafe_allow_html=True)
+    st.caption(t("result.gnn.desc"))
 
     smiles = st.session_state.get(StateKey.PREDICTED_SMILES)
     if not smiles:
@@ -956,18 +945,18 @@ def _display_gnn_explanation():
 
 def _tab_ai(features, prediction, pka_val, pka_type):
     """Tab 4: AI chemistry explanation."""
-    st.markdown("""<div class="card-title">AI Chemistry Explanation</div>""", unsafe_allow_html=True)
+    st.markdown(f"""<div class="card-title">{t('result.ai.title')}</div>""", unsafe_allow_html=True)
     with st.container(border=True):
         if st.session_state[StateKey.AI_EXPLANATION]:
             st.markdown(st.session_state[StateKey.AI_EXPLANATION])
-            if st.button("清除解释", key="clear_ai"):
+            if st.button(t("result.ai.clear_btn"), key="clear_ai"):
                 st.session_state[StateKey.AI_EXPLANATION] = None
                 st.session_state[StateKey.TARGET_TAB] = "AI Explanation"
                 st.rerun()
         else:
-            st.caption("AI 解释需要手动调用（消耗 API 额度）")
-            if st.button("生成 AI 解释", key="gen_ai", use_container_width=True):
-                with st.spinner("正在分析分子结构..."):
+            st.caption(t("result.ai.need_manual"))
+            if st.button(t("result.ai.generate_btn"), key="gen_ai", use_container_width=True):
+                with st.spinner(t("result.ai.generating")):
                     pka_val_gen = st.session_state.get(StateKey.PREDICTED_PKA)
                     pka_type_gen = None
                     if pka_val_gen is not None:
