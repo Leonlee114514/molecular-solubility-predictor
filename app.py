@@ -5,6 +5,10 @@ Thin orchestrator: imports modules, manages session state, and coordinates rende
 
 import streamlit as st
 
+# Import t() early so it's available for st.set_page_config.
+# Importing core.i18n only defines functions + a dict — no Streamlit commands.
+from core.i18n import t
+
 # CRITICAL: st.set_page_config() MUST be the first Streamlit command.
 # Importing core.cache or other modules with @st.cache_data triggers
 # Streamlit commands at import time, violating the ordering requirement
@@ -26,7 +30,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from core.state_keys import StateKey
-from core.i18n import init_language, t, render_language_selector
+from core.i18n import init_language, render_language_selector
 from model import (
     load_solubility_model, load_pka_model,
     load_ood_detector, run_ood_check,
