@@ -3,9 +3,52 @@ DisSolve - Internationalization (i18n) module.
 Provides t() translation function and language selector widget.
 """
 
+import contextvars
 import streamlit as st
 
 _LANG_KEY = "language"
+
+# ── Request-scoped language override (used by the FastAPI backend) ──
+# When set (via set_request_language / language_context), get_lang() returns
+# this value FIRST, before consulting Streamlit session state. Outside any
+# override the Streamlit behavior is unchanged.
+_request_lang: contextvars.ContextVar[str | None] = contextvars.ContextVar(
+    "disolve_request_lang", default=None
+)
+
+
+def set_request_language(lang: str | None):
+    """Set the request-scoped language override ('zh'/'en', or None to clear).
+
+    Returns the contextvars Token so callers can reset explicitly if needed.
+    """
+    if lang is not None:
+        lang = str(lang).strip().lower()
+        if lang not in ("zh", "en"):
+            lang = "zh"
+    return _request_lang.set(lang)
+
+
+class language_context:
+    """Context manager: run a block under a specific language override.
+
+    Usage (FastAPI backend):
+        with language_context(lang):
+            result = analyze_admet(...)   # t() calls resolve in `lang`
+    """
+
+    def __init__(self, lang: str):
+        self._token = None
+        self._lang = lang
+
+    def __enter__(self):
+        self._token = set_request_language(self._lang)
+        return self
+
+    def __exit__(self, *exc):
+        _request_lang.reset(self._token)
+        return False
+
 
 # ── Engine ──
 
@@ -16,7 +59,15 @@ def init_language():
 
 
 def get_lang():
-    """Get current language code: 'zh' or 'en'."""
+    """Get current language code: 'zh' or 'en'.
+
+    Resolution order: request-scoped override (FastAPI) -> Streamlit session
+    state -> default 'zh'. Streamlit app behavior is unchanged when no
+    override is active.
+    """
+    override = _request_lang.get()
+    if override in ("zh", "en"):
+        return override
     return st.session_state.get(_LANG_KEY, "zh")
 
 
@@ -119,6 +170,10 @@ _ALL: dict[str, dict[str, str]] = {
     "app.error.parse_reason1": {"zh": "- 分子含有金属/配位键，RDKit 不支持", "en": "- Molecule contains metal/coordination bonds not supported by RDKit"},
     "app.error.parse_reason2": {"zh": "- SMILES 语法错误（括号不匹配）", "en": "- SMILES syntax error (unmatched brackets)"},
     "app.error.parse_reason3": {"zh": "- 输入为空或含有非法字符", "en": "- Empty input or illegal characters"},
+    "app.error.network": {
+        "zh": "无法连接后端服务。请先运行：uvicorn backend.main:app --port 8000",
+        "en": "Cannot reach the backend server. Start it first: uvicorn backend.main:app --port 8000",
+    },
 
     # Disagreement
     "app.warn.disagreement.severe": {
@@ -165,6 +220,19 @@ _ALL: dict[str, dict[str, str]] = {
     "app.batch.download_btn": {"zh": "下载结果 CSV", "en": "Download Results CSV"},
     "app.batch.download_filename": {"zh": "dissolve_batch_results.csv", "en": "dissolve_batch_results.csv"},
     "app.batch.error": {"zh": "批量处理出错: {err}", "en": "Batch processing error: {err}"},
+    "app.batch.column_label": {"zh": "SMILES 列", "en": "SMILES column"},
+    "app.batch.preview_rows": {"zh": "预览（前 5 行）", "en": "Preview (first 5 rows)"},
+    "app.batch.running": {"zh": "批量预测进行中 {done}/{total}...", "en": "Batch prediction running {done}/{total}..."},
+    "app.batch.parse_error": {"zh": "CSV 解析失败: {err}", "en": "Could not parse CSV: {err}"},
+    "app.batch.no_rows": {"zh": "所选列没有有效数据行", "en": "No valid data rows in the selected column"},
+    "app.batch.table.index": {"zh": "#", "en": "#"},
+    "app.batch.table.smiles": {"zh": "SMILES", "en": "SMILES"},
+    "app.batch.table.logs": {"zh": "logS", "en": "logS"},
+    "app.batch.table.model": {"zh": "模型", "en": "Model"},
+    "app.batch.table.pka": {"zh": "pKa", "en": "pKa"},
+    "app.batch.table.ood": {"zh": "OOD 风险", "en": "OOD risk"},
+    "app.batch.table.error": {"zh": "错误", "en": "Error"},
+    "app.batch.rows_ok": {"zh": "成功 {ok} / 共 {total}", "en": "{ok} succeeded / {total} total"},
 
     # ============================================================
     # ui/components.py – Header / Footer / Input
@@ -247,6 +315,12 @@ _ALL: dict[str, dict[str, str]] = {
     "history.logS_unknown": {"zh": "logS=?", "en": "logS=?"},
     "history.pka_val": {"zh": "pKa={val:.2f}", "en": "pKa={val:.2f}"},
     "history.pka_unknown": {"zh": "pKa=?", "en": "pKa=?"},
+    "history.clear_btn": {"zh": "清空历史", "en": "Clear history"},
+    "history.clear_confirm": {"zh": "确认清空？", "en": "Confirm clear?"},
+    "history.time.just_now": {"zh": "刚刚", "en": "just now"},
+    "history.time.minutes_ago": {"zh": "{n} 分钟前", "en": "{n} min ago"},
+    "history.time.hours_ago": {"zh": "{n} 小时前", "en": "{n} h ago"},
+    "history.time.days_ago": {"zh": "{n} 天前", "en": "{n} d ago"},
 
     # ============================================================
     # ui/results.py – Results tabs
@@ -312,6 +386,8 @@ _ALL: dict[str, dict[str, str]] = {
     "result.solubility.high": {"zh": "易溶于水", "en": "Highly soluble"},
     "result.solubility.moderate": {"zh": "中等溶解", "en": "Moderately soluble"},
     "result.solubility.poor": {"zh": "难溶于水", "en": "Poorly soluble"},
+    "result.solubility.high_hint": {"zh": "非常易溶（如乙醇）", "en": "Very soluble (like ethanol)"},
+    "result.solubility.poor_hint": {"zh": "难溶（如许多药物分子）", "en": "Poorly soluble (like many drug molecules)"},
 
     "result.solubility.descriptors": {"zh": "Molecular Descriptors", "en": "Molecular Descriptors"},
     "result.solubility.desc_mw": {"zh": "Molecular Weight", "en": "Molecular Weight"},
@@ -820,6 +896,19 @@ _ALL: dict[str, dict[str, str]] = {
         "zh": "**原子特征重要性** 显示 37 维原子特征向量中哪些维度最重要：<br>- 原子类型（是 C、N、O 还是其他元素）<br>- 连接度（连了几个原子）<br>- 杂化方式（sp²、sp³）<br>- 芳香性、手性、是否在环上等",
         "en": "**Atom Feature Importance** shows which dimensions of the 37-dim atom feature vector matter most:<br>- Atom type (C, N, O, or other)<br>- Degree (how many atoms it's connected to)<br>- Hybridization (sp², sp³)<br>- Aromaticity, chirality, ring membership",
     },
+    "result.gnn.run_btn": {"zh": "运行 GNNExplainer 分析", "en": "Run GNNExplainer Analysis"},
+
+    # ── Web UI additions (React frontend, Phase 3) ──
+    "result.preview.spin_start": {"zh": "开始旋转", "en": "Start rotation"},
+    "result.preview.spin_stop": {"zh": "停止旋转", "en": "Stop rotation"},
+    "result.ood.out_of_range_label": {"zh": "超出训练数据范围", "en": "Outside training range"},
+    "result.ood.extreme_label": {"zh": "极端偏离 (|z| > 3)", "en": "Extreme deviation (|z| > 3)"},
+    "result.solubility.ensemble_weights": {"zh": "权重 RF 0.45 · GNN 0.55", "en": "Weights RF 0.45 · GNN 0.55"},
+    "common.loading": {"zh": "加载中...", "en": "Loading..."},
+    "common.retry": {"zh": "重试", "en": "Retry"},
+
+    # ── Web UI additions (React frontend, Phase 4) ──
+    "result.preview.model3d_loading": {"zh": "正在加载 3D 查看器...", "en": "Loading 3D viewer..."},
 }
 
 # Add zh-only entries as copies of en for keys that are English-only

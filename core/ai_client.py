@@ -11,8 +11,19 @@ from core.i18n import t, get_lang
 
 
 def _get_api_key():
-    """Read Kimi API key from Streamlit Secrets or .env file."""
-    return st.secrets.get("KIMI_API_KEY") or os.getenv("KIMI_API_KEY")
+    """Read Kimi API key from Streamlit Secrets or .env file.
+
+    Works without a Streamlit runtime: secrets access is guarded, so in a
+    plain process (e.g. the FastAPI backend) only the environment variable
+    is consulted.
+    """
+    try:
+        key = st.secrets.get("KIMI_API_KEY")
+        if key:
+            return key
+    except Exception:
+        pass
+    return os.getenv("KIMI_API_KEY")
 
 
 def _get_system_prompt():
@@ -199,24 +210,24 @@ def _build_explanation_prompt(smiles, prediction, features,
     return prompt, solubility_level
 
 
-@st.cache_data(ttl=86400, show_spinner=False)
-def _cached_kimi_explain(smiles, prediction, features_tuple, shap_tuple,
-                         pka_value, pka_type):
-    """Cached Kimi API call, keyed by molecular data. 24h TTL."""
-    # Rebuild mutable structures from hashable tuples
-    features = dict(features_tuple)
-    shap_features = list(shap_tuple[0]) if shap_tuple and shap_tuple[0] else None
-    shap_values = list(shap_tuple[1]) if shap_tuple and shap_tuple[1] else None
+def call_kimi_explain(smiles, prediction, features,
+                      shap_features=None, shap_values=None,
+                      pka_value=None, pka_type=None):
+    """Raw, uncached Kimi explanation call.
+
+    Usable without Streamlit (e.g. from the FastAPI backend). Returns the
+    markdown explanation string, or None when no API key is configured.
+    Raises on network/API errors — the caller decides how to present them.
+    """
+    api_key = _get_api_key()
+    if not api_key:
+        return None
 
     prompt, _ = _build_explanation_prompt(
         smiles, prediction, features,
         shap_features=shap_features, shap_values=shap_values,
         pka_value=pka_value, pka_type=pka_type,
     )
-
-    api_key = _get_api_key()
-    if not api_key:
-        return t("ai.error.no_key")
 
     client = openai.OpenAI(
         api_key=api_key,
@@ -232,6 +243,25 @@ def _cached_kimi_explain(smiles, prediction, features_tuple, shap_tuple,
         max_tokens=800,
     )
     return response.choices[0].message.content
+
+
+@st.cache_data(ttl=86400, show_spinner=False)
+def _cached_kimi_explain(smiles, prediction, features_tuple, shap_tuple,
+                         pka_value, pka_type):
+    """Cached Kimi API call, keyed by molecular data. 24h TTL."""
+    # Rebuild mutable structures from hashable tuples
+    features = dict(features_tuple)
+    shap_features = list(shap_tuple[0]) if shap_tuple and shap_tuple[0] else None
+    shap_values = list(shap_tuple[1]) if shap_tuple and shap_tuple[1] else None
+
+    result = call_kimi_explain(
+        smiles, prediction, features,
+        shap_features=shap_features, shap_values=shap_values,
+        pka_value=pka_value, pka_type=pka_type,
+    )
+    if result is None:
+        return t("ai.error.no_key")
+    return result
 
 
 def explain_with_kimi(smiles, prediction, features,

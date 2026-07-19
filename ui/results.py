@@ -220,8 +220,8 @@ def _tab_solubility(features, prediction, interp, color, css_class, model):
                 """, unsafe_allow_html=True)
 
     with col_sol2:
-        _high_str = t("result.solubility.high") if get_lang() == "en" else "Very soluble (like ethanol)"
-        _poor_str = t("result.solubility.poor") if get_lang() == "en" else "Poorly soluble (like many drug molecules)"
+        _high_str = t("result.solubility.high_hint")
+        _poor_str = t("result.solubility.poor_hint")
         st.markdown(f"""
         <div style="background: rgba(255, 255, 255, 0.03); border-radius: 14px; padding: 1rem; font-size: 0.85rem; color: var(--ob-text-tertiary); border: 1px solid var(--ob-border); font-family: 'Cascadia Code', 'Consolas', monospace;">
         <b style="color: var(--ob-text-secondary);">{t('result.solubility.guide')}</b><br>
@@ -701,11 +701,14 @@ def _tab_pharmacology(features, prediction, pka_val, pka_type, pka_label, pka_cs
     with adme_tabs[4]:
         alerts = admet["toxicity"]
         for risk_level, desc in alerts:
-            if risk_level == "高":
+            # risk_level is a translated level word (高/中/低 or High/Medium/Low);
+            # match case-insensitively against both languages so colors work in either UI language.
+            risk_key = str(risk_level).strip().lower()
+            if risk_key in ("高", "high"):
                 bg = "rgba(248, 113, 113, 0.08)"
                 border = "rgba(248, 113, 113, 0.2)"
                 color = "#f87171"
-            elif risk_level == "中":
+            elif risk_key in ("中", "medium"):
                 bg = "rgba(251, 191, 36, 0.08)"
                 border = "rgba(251, 191, 36, 0.2)"
                 color = "#fbbf24"
@@ -902,7 +905,7 @@ def _tab_ai(features, prediction, pka_val, pka_type):
             st.markdown(st.session_state[StateKey.AI_EXPLANATION])
             if st.button(t("result.ai.clear_btn"), key="clear_ai"):
                 st.session_state[StateKey.AI_EXPLANATION] = None
-                st.session_state[StateKey.TARGET_TAB] = "AI Explanation"
+                st.session_state[StateKey.TARGET_TAB] = t("result.tab.ai")
                 st.rerun()
         else:
             st.caption(t("result.ai.need_manual"))
@@ -922,5 +925,5 @@ def _tab_ai(features, prediction, pka_val, pka_type):
                         pka_type=pka_type_gen
                     )
                 st.session_state[StateKey.AI_EXPLANATION] = explanation
-                st.session_state[StateKey.TARGET_TAB] = "AI Explanation"
+                st.session_state[StateKey.TARGET_TAB] = t("result.tab.ai")
                 st.rerun()

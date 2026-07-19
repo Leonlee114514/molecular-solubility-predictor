@@ -1,0 +1,25 @@
+import i18n from "i18next";
+import { initReactI18next } from "react-i18next";
+
+import zh from "./zh.json";
+import en from "./en.json";
+
+i18n.use(initReactI18next).init({
+  resources: {
+    zh: { translation: zh },
+    en: { translation: en },
+  },
+  lng: "zh",
+  fallbackLng: "zh",
+  // Keys are flat dot-keys ("app.title" as a literal key), not nested objects.
+  keySeparator: false,
+  nsSeparator: false,
+  interpolation: {
+    escapeValue: false,
+    // Backend format placeholders use Python style: {name}, {best}
+    prefix: "{",
+    suffix: "}",
+  },
+});
+
+export default i18n;
