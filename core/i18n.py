@@ -688,6 +688,138 @@ _ALL: dict[str, dict[str, str]] = {
     },
     "ai.error.generic": {"zh": "AI 解释暂时不可用: {err}", "en": "AI explanation temporarily unavailable: {err}"},
     "ai.shap.title": {"zh": "【SHAP 关键特征】（影响最大的前 3 个）", "en": "【SHAP Key Features】(Top 3 by importance)"},
+
+    # ============================================================
+    # ADDITIONAL RESULTS TEXT (previously missed)
+    # ============================================================
+
+    # Solubility tab – Chemistry Insight
+    "result.solubility.insight_title": {"zh": "Chemistry Insight", "en": "Chemistry Insight"},
+    "result.solubility.insight_tpsa": {"zh": "**TPSA** (Topological Polar Surface Area) measures how much of the molecule is polar. Higher TPSA usually means better water solubility.", "en": "**TPSA** (Topological Polar Surface Area) measures how much of the molecule is polar. Higher TPSA usually means better water solubility."},
+    "result.solubility.insight_hbond": {"zh": "**H-Bond Donors/Acceptors** tell us how well the molecule can form hydrogen bonds with water.", "en": "**H-Bond Donors/Acceptors** tell us how well the molecule can form hydrogen bonds with water."},
+    "result.solubility.insight_logp": {"zh": "**LogP** measures lipophilicity. Lower LogP means the molecule prefers water over oil.", "en": "**LogP** measures lipophilicity. Lower LogP means the molecule prefers water over oil."},
+
+    # Solubility tab – SHAP chart labels
+    "result.solubility.shap_xlabel": {"zh": "对溶解度的贡献值 (logS)", "en": "SHAP contribution to solubility (logS)"},
+    "result.solubility.shap_title_pred": {"zh": "预测值: {pred:.3f} (基准值: {base:.3f})", "en": "Prediction: {pred:.3f} (Base: {base:.3f})"},
+    "result.solubility.shap_legend_pos": {"zh": "推动易溶 (正贡献)", "en": "Increases solubility (+)"},
+    "result.solubility.shap_legend_neg": {"zh": "推动难溶 (负贡献)", "en": "Decreases solubility (−)"},
+    "result.solubility.shap_insight_leading": {"zh": "**关键分析**：模型预测该分子 **{level}**（logS = {logS:.3f}）。", "en": "**Key Analysis**: The model predicts this molecule is **{level}** (logS = {logS:.3f})."},
+    "result.solubility.shap_supporting": {"zh": "推动这一结果的主要因素：{factors}。", "en": "Main factors driving this result: {factors}."},
+    "result.solubility.shap_resisting": {"zh": "但以下因素在抵抗这一趋势、试图让分子{target}：{factors}。", "en": "However, the following factors resist this trend, pushing the molecule {target}: {factors}."},
+    "result.solubility.shap_target_soluble": {"zh": "更易溶", "en": "more soluble"},
+    "result.solubility.shap_target_insoluble": {"zh": "更难溶", "en": "less soluble"},
+    "result.solubility.shap_shift": {"zh": "相比训练集平均分子（基准值 {base:.3f}），该分子的结构特征将预测值{direction}拉动了 {shift:.3f} 个单位。", "en": "Compared to the training set average (base {base:.3f}), the molecule's structural features shifted the prediction {direction} by {shift:.3f} units."},
+    "result.solubility.shap_dir_up": {"zh": "向上", "en": "upward"},
+    "result.solubility.shap_dir_down": {"zh": "向下", "en": "downward"},
+
+    # pKa tab – chart labels
+    "result.pka.decomp_title": {"zh": "Chemical Factor Decomposition", "en": "Chemical Factor Decomposition"},
+    "result.pka.chart_xlabel": {"zh": "对 {unit} 的贡献", "en": "Contribution to {unit}"},
+    "result.pka.unit_acid": {"zh": "增强酸性", "en": "enhance acidity"},
+    "result.pka.unit_base": {"zh": "增强碱性", "en": "enhance basicity"},
+    "result.pka.legend_enhance": {"zh": "增强{type}", "en": "Enhances {type}"},
+    "result.pka.legend_weaken": {"zh": "减弱{type}", "en": "Weakens {type}"},
+    "result.pka.legend_type_acid": {"zh": "酸性", "en": "acidity"},
+    "result.pka.legend_type_base": {"zh": "碱性", "en": "basicity"},
+    "result.pka.factor_guide": {
+        "zh": "**如何读懂这张图**：紫色条越长 = 该因素越推动分子**释放/结合质子**；青色条越长 = 该因素越**抵抗**质子转移。和 SHAP 不同，这些不是机器学习权重，而是**真实的结构化学效应**。",
+        "en": "**How to read this chart**: Longer purple bars = factor promotes **proton donation/acceptance**; longer cyan bars = factor **resists** proton transfer. Unlike SHAP, these are not ML weights but **real structural chemistry effects**.",
+    },
+    "result.pka.glossary_title": {"zh": "图表术语速查", "en": "Chart Glossary"},
+    "result.pka.glossary_inductive": {"zh": "**诱导效应**（Inductive Effect）— 电负性原子通过 σ 键吸引或排斥电子，从而影响质子的结合与释放", "en": "**Inductive Effect** — electronegative atoms attract or repel electrons through σ bonds, affecting proton binding and release"},
+    "result.pka.glossary_resonance": {"zh": "**共轭效应**（Resonance / Conjugation）— π 电子在共轭体系中离域分布，稳定电离后的离子形式", "en": "**Resonance / Conjugation** — π electrons delocalize in conjugated systems, stabilizing ionized forms"},
+    "result.pka.glossary_intra_hb": {"zh": "**分子内氢键**（Intramolecular H-Bond）— 同一分子内不同基团间形成氢键，屏蔽极性、调节 pKa", "en": "**Intramolecular H-Bond** — H-bond between groups in the same molecule, shielding polarity and modulating pKa"},
+    "result.pka.glossary_steric": {"zh": "**空间位阻**（Steric Hindrance）— 大体积原子或基团阻碍质子的接近与离去，改变反应活性", "en": "**Steric Hindrance** — bulky atoms/groups hinder proton approach and departure, altering reactivity"},
+    "result.pka.glossary_hybrid": {"zh": "**杂化/芳香性**（Hybridization / Aromaticity）— sp² 碳比例与芳香环共轭体系带来的额外稳定性", "en": "**Hybridization / Aromaticity** — additional stability from sp² carbon ratio and aromatic conjugation"},
+    "result.pka.unavailable_short": {"zh": "化学因素分析暂不可用", "en": "Chemical factor analysis unavailable"},
+    "result.pka.model_unavailable_short": {"zh": "pKa 模型未加载，pKa 分析不可用。", "en": "pKa model not loaded. pKa analysis unavailable."},
+
+    # Pharmacology – Lipinski property labels
+    "result.pharma.lipinski_prop_mw": {"zh": "分子量\nMol. Weight", "en": "Mol. Weight"},
+    "result.pharma.lipinski_prop_logp": {"zh": "脂水分配系数\nLogP", "en": "LogP"},
+    "result.pharma.lipinski_prop_hbd": {"zh": "氢键供体数\nH-Bond Donors", "en": "H-Bond Donors"},
+    "result.pharma.lipinski_prop_hba": {"zh": "氢键受体数\nH-Bond Acceptors", "en": "H-Bond Acceptors"},
+    "result.pharma.lipinski_prop_rotb": {"zh": "可旋转键数\nRotatable Bonds", "en": "Rotatable Bonds"},
+    "result.pharma.lipinski_history_html": {
+        "zh": "&bull; <b>Christopher Lipinski (Pfizer, 1997)</b> 分析了 2,245 个进入 II 期临床的药物分子，总结出 5 条口服药物的经验规则<br>&bull; 规则认为分子违反 ≤1 条时，其<b>口服吸收和生物利用度</b>更可能达标<br>&bull; 但这只是筛选规则，<b>不是绝对标准</b>——许多成功药物也违反五规则（如天然产物、抗生素、抗癌药）<br>&bull; 超出规则范围 (bRo5) 的分子仍是现代药物化学的重要方向（如 PROTAC、大环分子）",
+        "en": "&bull; <b>Christopher Lipinski (Pfizer, 1997)</b> analyzed 2,245 drug candidates that reached Phase II clinical trials, summarizing 5 empirical rules for oral drugs<br>&bull; Molecules with ≤1 violation are more likely to have good <b>oral absorption and bioavailability</b><br>&bull; This is a screening guideline, <b>not an absolute rule</b> — many successful drugs violate it (e.g., natural products, antibiotics, anticancer drugs)<br>&bull; Beyond Ro5 (bRo5) molecules are an important direction in modern medicinal chemistry (e.g., PROTACs, macrocycles)",
+    },
+    "result.pharma.lipinski_score_title": {"zh": "Lipinski 五规则评分：{score}/{total} — {text}", "en": "Lipinski Rule of Five: {score}/{total} — {text}"},
+
+    # Pharmacology – Ionization profile
+    "result.pharma.ionization_env_stomach": {"zh": "Stomach\n胃", "en": "Stomach"},
+    "result.pharma.ionization_env_duodenum": {"zh": "Duodenum\n十二指肠", "en": "Duodenum"},
+    "result.pharma.ionization_env_intestine": {"zh": "Small Intestine\n小肠", "en": "Small Intestine"},
+    "result.pharma.ionization_env_blood": {"zh": "Blood/Brain\n血液/脑", "en": "Blood/Brain"},
+    "result.pharma.ionization_ylabel": {"zh": "分子态比例 (Unionized %)", "en": "Unionized fraction (%)"},
+
+    # Pharmacology – Analysis text (pKa-based)
+    "result.pharma.analysis.strong_acid": {"zh": "**胃吸收优势**：pKa < 4，在胃酸（pH 1.5）中大部分以分子态存在，脂溶性高，容易被胃黏膜吸收。代表药物：阿司匹林 (pKa 3.5)、布洛芬 (pKa 4.9)。", "en": "**Gastric absorption advantage**: pKa < 4, mostly unionized in stomach acid (pH 1.5), lipophilic, easily absorbed by gastric mucosa. Examples: Aspirin (pKa 3.5), Ibuprofen (pKa 4.9)."},
+    "result.pharma.analysis.mid_acid": {"zh": "**全肠道吸收**：pKa 中等，在胃和小肠中都有一定比例的分子态，吸收较均匀。注意：分子态比例高时脂溶性强，可能刺激胃黏膜。", "en": "**Whole GI tract absorption**: moderate pKa, unionized fraction in both stomach and intestine. Note: high unionized fraction means strong lipophilicity, may irritate gastric mucosa."},
+    "result.pharma.analysis.strong_base": {"zh": "**肠道吸收为主**：强碱性分子在胃中几乎完全电离，难以吸收；进入小肠（pH 6.8）后分子态增加，主要在小肠吸收。代表药物：二甲双胍 (pKa ~12.4)。", "en": "**Intestinal absorption primary**: strongly basic molecules are fully ionized in the stomach; absorption increases in the small intestine (pH 6.8). Examples: Metformin (pKa ~12.4)."},
+    "result.pharma.analysis.weak_base": {"zh": "**弱碱性分子**：在胃中少量电离，小肠中吸收良好。进入血液（pH 7.4）后可能部分电离，水溶性增加，有利于肾脏排泄。", "en": "**Weak base**: slightly ionized in the stomach, well absorbed in the small intestine. May partially ionize in blood (pH 7.4), increasing water solubility for renal excretion."},
+    "result.pharma.analysis.amphoteric": {"zh": "**两性分子**：在不同 pH 环境下电离行为复杂，吸收部位取决于具体结构。可能需要特殊制剂（如肠溶片）来优化生物利用度。", "en": "**Amphoteric molecule**: complex ionization behavior across pH ranges; absorption site depends on specific structure. May require special formulations (e.g., enteric-coated tablets)."},
+
+    # Pharmacology – Joint analysis
+    "result.pharma.linkage.title": {"zh": "溶解度 x pKa 联动分析", "en": "Solubility × pKa Joint Analysis"},
+    "result.pharma.linkage.soluble": {"zh": "**溶解度**：易溶于水，有利于溶出。", "en": "**Solubility**: Highly soluble, favors dissolution."},
+    "result.pharma.linkage.moderate": {"zh": "**溶解度**：中等，可能需要辅料助溶。", "en": "**Solubility**: Moderate, may require excipients."},
+    "result.pharma.linkage.poor": {"zh": "**溶解度**：较低，生物利用度可能受限。", "en": "**Solubility**: Low, bioavailability may be limited."},
+    "result.pharma.linkage.pka_weak_acid": {"zh": "**pKa**：弱酸性 (pKa={val:.1f})，胃吸收好，**空腹服用**效果更佳。", "en": "**pKa**: Weak acid (pKa={val:.1f}), good gastric absorption, best taken **on an empty stomach**."},
+    "result.pharma.linkage.pka_mid_acid": {"zh": "**pKa**：中等酸性 (pka={val:.1f})，全肠道吸收，对服药时间要求不高。", "en": "**pKa**: Moderate acid (pKa={val:.1f}), absorbed throughout GI tract, no strict timing requirement."},
+    "result.pharma.linkage.pka_strong_base": {"zh": "**pKa**：强碱性 (pKa={val:.1f})，胃吸收差，**餐后服用**可减少胃刺激，主要在小肠吸收。", "en": "**pKa**: Strong base (pKa={val:.1f}), poor gastric absorption, take **after meals**, mainly absorbed in small intestine."},
+    "result.pharma.linkage.pka_weak_base": {"zh": "**pKa**：弱碱性 (pKa={val:.1f})，小肠吸收为主，血液中有利于排泄。", "en": "**pKa**: Weak base (pKa={val:.1f}), mainly absorbed in small intestine, favors excretion in blood."},
+    "result.pharma.linkage.pka_neutral": {"zh": "**pKa**：接近中性 (pKa={val:.1f})，吸收行为较复杂。", "en": "**pKa**: Near neutral (pKa={val:.1f}), absorption behavior is complex."},
+    "result.pharma.linkage.combo_good": {"zh": "**综合**：高溶解度 + 胃吸收优势 = **口服生物利用度极佳**，适合做成普通片剂。", "en": "**Summary**: High solubility + gastric absorption = **excellent oral bioavailability**, suitable for standard tablets."},
+    "result.pharma.linkage.combo_challenging": {"zh": "**综合**：低溶解度 + 强碱性 = **口服吸收双重挑战**，可能需要肠溶片或注射剂型。", "en": "**Summary**: Low solubility + strong base = **dual challenge for oral absorption**, may require enteric coating or injection."},
+    "result.pharma.linkage.combo_acceptable": {"zh": "**综合**：高溶解度弥补了胃吸收劣势，进入小肠后吸收良好，总体生物利用度可接受。", "en": "**Summary**: High solubility compensates for poor gastric absorption, good absorption in small intestine, acceptable bioavailability."},
+    "result.pharma.linkage.not_loaded": {"zh": "pKa 模型未加载，药理学分析不可用。", "en": "pKa model not loaded. Pharmacological analysis unavailable."},
+
+    # ADME/Tox section captions
+    "result.pharma.admet.absorption_caption": {
+        "zh": "**吸收 (Absorption)** 决定了药物从给药部位进入血液循环的效率和程度。主要影响因素包括：分子极性 (TPSA)、脂溶性 (LogP)、电离状态 (pKa vs pH)、氢键能力、分子大小。口服药物的吸收主要发生在小肠（表面积大、血流丰富），部分酸性药物可在胃中开始吸收。",
+        "en": "**Absorption** determines the efficiency of drug entry from the administration site into the bloodstream. Key factors: polarity (TPSA), lipophilicity (LogP), ionization state (pKa vs pH), H-bond capacity, and molecular size. Oral absorption primarily occurs in the small intestine (large surface area, rich blood flow); some acidic drugs begin absorption in the stomach.",
+    },
+    "result.pharma.admet.distribution_caption": {
+        "zh": "**分布 (Distribution)** 描述药物从血液进入组织和器官的过程。\n- **表观分布容积 (Vd)**：Vd 越大，药物越倾向于分布到组织；Vd 小则主要留在血浆中\n- **血浆蛋白结合率**：高结合率 = 药物储备在血液中缓慢释放；低结合率 = 游离药物多、作用快但排泄也快\n- **血脑屏障 (BBB)**：低 TPSA + 适中 LogP 的分子更容易进入中枢神经系统",
+        "en": "**Distribution** describes the movement of drugs from blood into tissues and organs.\n- **Volume of Distribution (Vd)**: Higher Vd = drug favors tissue distribution; lower Vd = mainly stays in plasma\n- **Plasma Protein Binding**: High binding = slow-release drug reservoir; low binding = more free drug, faster action and excretion\n- **Blood-Brain Barrier (BBB)**: Low TPSA + moderate LogP favors CNS penetration",
+    },
+    "result.pharma.admet.metabolism_caption": {
+        "zh": "**代谢 (Metabolism)** 主要在肝脏进行，分为两相：\n- **I 相代谢**（氧化/还原/水解）：主要由 CYP450 酶系催化，引入或暴露极性基团\n- **II 相代谢**（结合反应）：将葡萄糖醛酸、硫酸、氨基酸等连接到分子上，增加水溶性便于排泄\n- CYP3A4 代谢约 50% 的临床药物；CYP2D6 有显著的基因多态性（人群差异大）",
+        "en": "**Metabolism** primarily occurs in the liver in two phases:\n- **Phase I** (oxidation/reduction/hydrolysis): catalyzed mainly by CYP450 enzymes, introducing or exposing polar groups\n- **Phase II** (conjugation): attaches glucuronic acid, sulfate, amino acids, etc. to increase water solubility for excretion\n- CYP3A4 metabolizes ~50% of clinical drugs; CYP2D6 has significant genetic polymorphism",
+    },
+    "result.pharma.admet.excretion_caption": {
+        "zh": "**排泄 (Excretion)** 是药物及其代谢物从体内清除的过程：\n- **肾脏排泄**：分子量 < 350 Da 且极性适中的分子主要通过肾小球滤过进入尿液\n- **肝胆排泄**：分子量 > 500 Da 或高度亲脂的分子倾向于通过胆汁排入肠道\n- 肾小管重吸收会使亲脂性分子重新进入血液，延长药物半衰期",
+        "en": "**Excretion** is the process of eliminating drugs and their metabolites:\n- **Renal excretion**: molecules with MW < 350 Da and moderate polarity are filtered through glomeruli into urine\n- **Hepatobiliary excretion**: molecules with MW > 500 Da or highly lipophilic tend to be excreted via bile\n- Tubular reabsorption can return lipophilic molecules to the blood, prolonging half-life",
+    },
+    "result.pharma.admet.toxicity_caption": {
+        "zh": "**毒性 (Toxicity)** 评估基于结构警报 (Structural Alerts) — 某些官能团或子结构在历史上与毒性事件相关：\n- 以上分析仅基于<b>结构特征</b>，不代表实际毒性——毒性受剂量、代谢、个体差异等多因素影响\n- 结构警报是药物设计初筛的重要工具，但存在许多假阳性——含警报结构的药物仍可能安全上市\n- 实际毒性需要通过 Ames 试验、hERG 测试、动物实验和临床试验逐级验证",
+        "en": "**Toxicity** assessment is based on Structural Alerts — functional groups or substructures historically associated with toxicity:\n- This analysis is based on <b>structural features only</b>, not actual toxicity — toxicity depends on dose, metabolism, individual variation, etc.\n- Structural alerts are important drug design screening tools, but have many false positives — drugs with alert structures can still be safe\n- Actual toxicity requires Ames test, hERG assay, animal studies, and clinical trials for validation",
+    },
+
+    # GNN Explanation
+    "result.gnn.title": {"zh": "GNN Explainability — 原子/边注意力分析", "en": "GNN Explainability — Atom/Bond Attention Analysis"},
+    "result.gnn.top_bonds_title": {"zh": "**Top 最重要的化学键**", "en": "**Top most important bonds**"},
+    "result.gnn.top_bonds_importance": {"zh": "重要性: {imp:.3f} ({pct:.0f}%)", "en": "Importance: {imp:.3f} ({pct:.0f}%)"},
+    "result.gnn.atom_title": {"zh": "**原子重要性（基于相连键汇总）**", "en": "**Atom Importance (aggregated from bond importance)**"},
+    "result.gnn.feature_title": {"zh": "**原子特征重要性**", "en": "**Atom Feature Importance**"},
+    "result.gnn.img_caption": {"zh": "关键化学键高亮（暖色 = 更重要）", "en": "Bond highlighting (warmer = more important)"},
+    "result.gnn.spinner": {"zh": "正在运行 GNNExplainer 分析（约 10-30 秒）...", "en": "Running GNNExplainer analysis (~10-30 seconds)..."},
+    "result.gnn.fail": {"zh": "GNN 解释生成失败: {err}", "en": "GNN explanation failed: {err}"},
+    "result.gnn.model_unavailable": {"zh": "GNN 解释生成失败（模型未加载或分子无法解析）", "en": "GNN explanation failed (model not loaded or molecule invalid)"},
+    "result.gnn.no_bonds": {"zh": "该分子无非氢键，无法进行边重要性分析", "en": "This molecule has no non-hydrogen bonds, cannot analyze bond importance"},
+    "result.gnn.no_mol": {"zh": "无可解释的分子", "en": "No molecule to explain"},
+    "result.gnn.elapsed_text": {"zh": "分析耗时：**{t:.1f}s**", "en": "Analysis time: **{t:.1f}s**"},
+    "result.gnn.how_to_read_title": {"zh": "如何读懂 GNN 解释", "en": "How to read GNN explanations"},
+    "result.gnn.how_to_read_html": {
+        "zh": "<b>GNNExplainer</b> 通过学习每条化学键的\"重要性权重\"来解释模型预测：<br><br>- <b>暖色高亮边</b> = 模型认为这条化学键及其连接的原子对判断溶解度最重要<br>- <b>冷色/暗淡边</b> = 该化学键对预测影响较小<br><br><b>技术原理</b>：<br>1. 将每条边（化学键）初始化为一个可学习的参数（0~1 的权重）<br>2. 用带权重的图做前向传播，只保留高权重的边<br>3. 优化目标是\"带权重的预测 ≈ 原始预测\"，同时尽量保留最少的边<br>4. 最终权重 = 这条边对模型预测的贡献大小<br><br><b>注意</b>：<br>- GNNExplainer 是近似方法，不同运行可能有微小差异<br>- 重要性高的边 ≠ 该键在化学反应中更容易断裂<br>- 建议结合 SHAP（RF 模式）和 pKa 化学因素分解共同解读",
+        "en": "<b>GNNExplainer</b> explains model predictions by learning \"importance weights\" for each chemical bond:<br><br>- <b>Warm-colored edges</b> = the model considers these bonds and their atoms most important for solubility prediction<br>- <b>Cool/dim edges</b> = these bonds have less impact on the prediction<br><br><b>How it works</b>:<br>1. Each edge (bond) starts with a learnable weight (0~1)<br>2. Forward pass uses the weighted graph, keeping only high-weight edges<br>3. Optimization target: \"weighted prediction ≈ original prediction\" while keeping minimal edges<br>4. Final weight = importance of that edge to the model's prediction<br><br><b>Note</b>:<br>- GNNExplainer is an approximation; slight variations across runs are normal<br>- High importance ≠ the bond is more chemically reactive<br>- Combine with SHAP (RF mode) and pKa factor decomposition for full interpretation",
+    },
+    "result.gnn.how_to_read_tech": {
+        "zh": "**原子特征重要性** 显示 37 维原子特征向量中哪些维度最重要：<br>- 原子类型（是 C、N、O 还是其他元素）<br>- 连接度（连了几个原子）<br>- 杂化方式（sp²、sp³）<br>- 芳香性、手性、是否在环上等",
+        "en": "**Atom Feature Importance** shows which dimensions of the 37-dim atom feature vector matter most:<br>- Atom type (C, N, O, or other)<br>- Degree (how many atoms it's connected to)<br>- Hybridization (sp², sp³)<br>- Aromaticity, chirality, ring membership",
+    },
 }
 
 # Add zh-only entries as copies of en for keys that are English-only

@@ -356,7 +356,7 @@ def analyze_admet(smiles, features, pka_val=None):
         metabolism_sites.append(t("analysis.admet.metabolism.carboxylic"))
     if fg.get("ester"):
         metabolism_sites.append(t("analysis.admet.metabolism.ester"))
-        cyp_notes.append("酯酶（非 CYP）")
+        cyp_notes.append("Esterases (non-CYP)")
     if fg.get("amide"):
         metabolism_sites.append(t("analysis.admet.metabolism.amide"))
     if fg.get("methyl"):

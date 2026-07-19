@@ -12,7 +12,7 @@ from matplotlib.patches import Patch
 from ui.plots import mol_to_dark_image, mol_to_dark_image_with_importance
 from model import get_pka_type, get_solubility_level, get_shap_explainer
 from core.ai_client import explain_with_kimi
-from core.i18n import t
+from core.i18n import t, get_lang
 from core.cache import (
     cached_compute_features, cached_show_3d, cached_pka_analysis,
     cached_shap_contributions, cached_lipinski, cached_admet, cached_druglikeness,
@@ -206,25 +206,28 @@ def _tab_solubility(features, prediction, interp, color, css_class, model):
                 diff = abs(rf_val - gnn_val)
                 weighted = 0.45 * rf_val + 0.55 * gnn_val
                 is_weighted = model_type == "Ensemble(W)"
-                title = "Weighted Ensemble (0.45×RF + 0.55×GNN)" if is_weighted else "Weighted Ensemble (0.45×RF + 0.55×GNN)"
+                title = t("result.solubility.badge_weighted")
                 title_color = "#f97316" if is_weighted else "#fbbf24"
+                _agree = t("result.solubility.good_agreement") if diff < 0.5 else (t("result.solubility.notable_disagreement") if diff < 1.0 else t("result.solubility.large_divergence"))
                 st.markdown(f"""
                 <div style="margin-top:0.8rem;padding:0.7rem 0.9rem;background:rgba({251 if is_weighted else 251},191,36,0.08);border-radius:10px;border:1px solid rgba({251 if is_weighted else 251},191,36,0.2);font-size:0.82rem;">
                     <b style="color:{title_color};">{title}</b><br>
-                    <span style="color:#34d399;">RF:</span> {rf_val:.3f} &nbsp;|&nbsp;
-                    <span style="color:#a78bfa;">GNN:</span> {gnn_val:.3f}<br>
-                    <span style="color:#fbbf24;">Disagreement |RF−GNN|:</span> {diff:.3f}
-                    <span style="color:#8b8b9b;font-size:0.75rem;">{' (good agreement)' if diff < 0.5 else ' (notable disagreement)' if diff < 1.0 else ' (large divergence — treat prediction with caution)'}</span>
+                    <span style="color:#34d399;">{t('result.solubility.ensemble_rf')}</span> {rf_val:.3f} &nbsp;|&nbsp;
+                    <span style="color:#a78bfa;">{t('result.solubility.ensemble_gnn')}</span> {gnn_val:.3f}<br>
+                    <span style="color:#fbbf24;">{t('result.solubility.disagreement')}:</span> {diff:.3f}
+                    <span style="color:#8b8b9b;font-size:0.75rem;">{_agree}</span>
                 </div>
                 """, unsafe_allow_html=True)
 
     with col_sol2:
-        st.markdown("""
+        _high_str = t("result.solubility.high") if get_lang() == "en" else "Very soluble (like ethanol)"
+        _poor_str = t("result.solubility.poor") if get_lang() == "en" else "Poorly soluble (like many drug molecules)"
+        st.markdown(f"""
         <div style="background: rgba(255, 255, 255, 0.03); border-radius: 14px; padding: 1rem; font-size: 0.85rem; color: var(--ob-text-tertiary); border: 1px solid var(--ob-border); font-family: 'Cascadia Code', 'Consolas', monospace;">
-        <b style="color: var(--ob-text-secondary);">Interpretation guide:</b><br>
-        <span style="color: #34d399;">&gt;</span> logS > 0: Very soluble (like ethanol)<br>
-        <span style="color: #fbbf24;">&gt;</span> -2 < logS < 0: Moderately soluble<br>
-        <span style="color: #f87171;">&gt;</span> logS < -2: Poorly soluble (like many drug molecules)
+        <b style="color: var(--ob-text-secondary);">{t('result.solubility.guide')}</b><br>
+        <span style="color: #34d399;">&gt;</span> logS > 0: {_high_str}<br>
+        <span style="color: #fbbf24;">&gt;</span> -2 < logS < 0: {t('result.solubility.moderate')}<br>
+        <span style="color: #f87171;">&gt;</span> logS < -2: {_poor_str}
         </div>
         """, unsafe_allow_html=True)
 
@@ -244,12 +247,11 @@ def _tab_solubility(features, prediction, interp, color, css_class, model):
         with desc_col4:
             st.metric(t("result.solubility.desc_arom"), f"{features['NumAromaticRings']}")
             st.metric(t("result.solubility.desc_aliph"), f"{features['NumAliphaticRings']}")
-    st.info("""
-    **Chemistry Insight:**
-    - **TPSA** (Topological Polar Surface Area) measures how much of the molecule is polar.
-       Higher TPSA usually means better water solubility.
-    - **H-Bond Donors/Acceptors** tell us how well the molecule can form hydrogen bonds with water.
-    - **LogP** measures lipophilicity. Lower LogP means the molecule prefers water over oil.
+    st.info(f"""
+    **{t('result.solubility.insight_title')}:**
+    - {t('result.solubility.insight_tpsa')}
+    - {t('result.solubility.insight_hbond')}
+    - {t('result.solubility.insight_logp')}
     """)
 
     # ── SHAP / GNN Explainability section ──
@@ -291,30 +293,30 @@ def _tab_solubility(features, prediction, interp, color, css_class, model):
             ax.set_yticks(range(len(top_names)))
             ax.set_yticklabels(top_names, fontsize=11)
             ax.axvline(x=0, color="#f0f0f5", linewidth=1.0, alpha=0.4)
-            ax.set_xlabel("对溶解度的贡献值 (logS)", fontsize=11)
+            ax.set_xlabel(t("result.solubility.shap_xlabel"), fontsize=11)
             ev = get_shap_explainer(model).expected_value
             if isinstance(ev, (list, tuple, np.ndarray)):
                 base_value = float(np.array(ev).flatten()[0])
             else:
                 base_value = float(ev)
-            ax.set_title(f"预测值: {prediction:.3f}  (基准值: {base_value:.3f})", fontsize=12, pad=10)
+            ax.set_title(t("result.solubility.shap_title_pred", pred=prediction, base=base_value), fontsize=12, pad=10)
             ax.spines["top"].set_visible(False)
             ax.spines["right"].set_visible(False)
             ax.spines["left"].set_visible(False)
             legend_elements = [
-                Patch(facecolor="#a78bfa", label="推动易溶 (正贡献)"),
-                Patch(facecolor="#06b6d4", label="推动难溶 (负贡献)")
+                Patch(facecolor="#a78bfa", label=t("result.solubility.shap_legend_pos")),
+                Patch(facecolor="#06b6d4", label=t("result.solubility.shap_legend_neg"))
             ]
             ax.legend(handles=legend_elements, loc="lower right", fontsize=9)
             plt.tight_layout()
             st.pyplot(fig, width="stretch")
             plt.close(fig)
             if prediction > 0:
-                solubility_level = "易溶于水"
+                solubility_level = t("result.solubility.high")
             elif prediction > -2:
-                solubility_level = "中等溶解"
+                solubility_level = t("result.solubility.moderate")
             else:
-                solubility_level = "难溶于水"
+                solubility_level = t("result.solubility.poor")
             supporting = []
             resisting = []
             for i in range(min(3, len(top_names))):
@@ -331,17 +333,17 @@ def _tab_solubility(features, prediction, interp, color, css_class, model):
                     else:
                         resisting.append("**" + name + "**（" + f"{val:.3f}" + "）")
                 else:
-                    direction = "推动易溶" if val > 0 else "推动难溶"
+                    direction = t("ai.shap.direction_up") if val > 0 else t("ai.shap.direction_down")
                     supporting.append("**" + name + "**（" + f"{val:+.3f}" + "，" + direction + "）")
-            parts = ["**关键分析**：模型预测该分子 **" + solubility_level + "**（logS = " + f"{prediction:.3f}" + "）。"]
+            parts = [t("result.solubility.shap_insight_leading", level=solubility_level, logS=prediction)]
             if supporting:
-                parts.append("推动这一结果的主要因素：" + ", ".join(supporting) + "。")
+                parts.append(t("result.solubility.shap_supporting", factors=", ".join(supporting)))
             if resisting:
-                target = "更易溶" if prediction <= -2 else "更难溶"
-                parts.append("但以下因素在抵抗这一趋势、试图让分子" + target + "：" + ", ".join(resisting) + "。")
+                target = t("result.solubility.shap_target_soluble") if prediction <= -2 else t("result.solubility.shap_target_insoluble")
+                parts.append(t("result.solubility.shap_resisting", target=target, factors=", ".join(resisting)))
             shift = abs(prediction - base_value)
-            direction = "向上" if prediction > base_value else "向下"
-            parts.append("相比训练集平均分子（基准值 " + f"{base_value:.3f}" + "），该分子的结构特征将预测值" + direction + "拉动了 " + f"{shift:.3f}" + " 个单位。")
+            direction = t("result.solubility.shap_dir_up") if prediction > base_value else t("result.solubility.shap_dir_down")
+            parts.append(t("result.solubility.shap_shift", base=base_value, direction=direction, shift=shift))
             insight_text = " ".join(parts)
             st.info(insight_text)
 
@@ -362,7 +364,7 @@ def _tab_pka(pka_val, pka_type, pka_label, pka_css, pka_text_color, pka_desc, fe
             """, unsafe_allow_html=True)
 
         st.markdown("<br>", unsafe_allow_html=True)
-        st.markdown("""<div class="card-title">Chemical Factor Decomposition</div>""", unsafe_allow_html=True)
+        st.markdown(f"""<div class="card-title">{t('result.pka.decomp_title')}</div>""", unsafe_allow_html=True)
         chem_factors = cached_pka_analysis(st.session_state[StateKey.PREDICTED_SMILES], pka_val)
         if chem_factors:
             names = list(chem_factors.keys())
@@ -383,42 +385,38 @@ def _tab_pka(pka_val, pka_type, pka_label, pka_css, pka_text_color, pka_desc, fe
                                   edgecolor='none', alpha=0.9))
             ax.set_yticks(range(len(names)))
             ax.set_yticklabels(names, fontsize=10)
-            unit = "增强酸性" if pka_val < 7 else "增强碱性"
-            ax.set_xlabel(f"对 {unit} 的贡献", fontsize=11)
-            ax.set_title(f"pKa = {pka_val:.2f} | 化学因素分解", fontsize=12, pad=12)
+            pka_unit = t("result.pka.unit_acid") if pka_val < 7 else t("result.pka.unit_base")
+            ax.set_xlabel(t("result.pka.chart_xlabel", unit=pka_unit), fontsize=11)
+            ax.set_title(t("result.pka.chart_title", val=pka_val), fontsize=12, pad=12)
             ax.spines['top'].set_visible(False)
             ax.spines['right'].set_visible(False)
             ax.spines['left'].set_visible(False)
             ax.spines['bottom'].set_color('#33334d')
+            legend_type = t("result.pka.legend_type_acid") if pka_val < 7 else t("result.pka.legend_type_base")
             legend_elements = [
-                Patch(facecolor='#a78bfa', label=f'增强{"酸性" if pka_val < 7 else "碱性"}'),
-                Patch(facecolor='#22d3ee', label=f'减弱{"酸性" if pka_val < 7 else "碱性"}')
+                Patch(facecolor='#a78bfa', label=t("result.pka.legend_enhance", type=legend_type)),
+                Patch(facecolor='#22d3ee', label=t("result.pka.legend_weaken", type=legend_type))
             ]
             ax.legend(handles=legend_elements, loc='upper right', fontsize=9,
                       framealpha=0.8, facecolor='#1a1a2e', edgecolor=(1, 1, 1, 0.1))
             plt.tight_layout()
             st.pyplot(fig, width="stretch")
             plt.close(fig)
-            st.caption("""
-            **如何读懂这张图**：
-            紫色条越长 = 该因素越推动分子**释放/结合质子**；
-            青色条越长 = 该因素越**抵抗**质子转移。
-            和 SHAP 不同，这些不是机器学习权重，而是**真实的结构化学效应**。
-            """)
-            st.markdown("""
+            st.caption(t("result.pka.factor_guide"))
+            st.markdown(f"""
             <div style="margin-top: 0.3rem; padding: 0.65rem 0.9rem; background: rgba(124, 58, 237, 0.06); border-left: 2px solid rgba(124, 58, 237, 0.3); border-radius: 4px; font-size: 0.82rem; color: #a0a0b5; line-height: 1.9;">
-            <b style="color: #c4b5fd;">图表术语速查</b> &nbsp;点击术语查看中英双语定义：<br>
-            &bull; <b>诱导效应</b>（Inductive Effect）&mdash; 电负性原子通过 σ 键吸引或排斥电子，从而影响质子的结合与释放<br>
-            &bull; <b>共轭效应</b>（Resonance / Conjugation）&mdash; π 电子在共轭体系中离域分布，稳定电离后的离子形式<br>
-            &bull; <b>分子内氢键</b>（Intramolecular H-Bond）&mdash; 同一分子内不同基团间形成氢键，屏蔽极性、调节 pKa<br>
-            &bull; <b>空间位阻</b>（Steric Hindrance）&mdash; 大体积原子或基团阻碍质子的接近与离去，改变反应活性<br>
-            &bull; <b>杂化/芳香性</b>（Hybridization / Aromaticity）&mdash; sp² 碳比例与芳香环共轭体系带来的额外稳定性
+            <b style="color: #c4b5fd;">{t('result.pka.glossary_title')}</b> &nbsp;{'Click terms to see bilingual definition:' if get_lang() == 'en' else '点击术语查看中英双语定义：'}<br>
+            &bull; {t('result.pka.glossary_inductive')}<br>
+            &bull; {t('result.pka.glossary_resonance')}<br>
+            &bull; {t('result.pka.glossary_intra_hb')}<br>
+            &bull; {t('result.pka.glossary_steric')}<br>
+            &bull; {t('result.pka.glossary_hybrid')}
             </div>
             """, unsafe_allow_html=True)
         else:
-            st.info("化学因素分析暂不可用")
+            st.info(t("result.pka.unavailable_short"))
     else:
-        st.info("pKa 模型未加载，pKa 分析不可用。")
+        st.info(t("result.pka.model_unavailable_short"))
 
 
 def _tab_pharmacology(features, prediction, pka_val, pka_type, pka_label, pka_css, pka_text_color, pka_desc):
@@ -431,11 +429,11 @@ def _tab_pharmacology(features, prediction, pka_val, pka_type, pka_label, pka_cs
     fig, ax = plt.subplots(figsize=(10, 3.6))
 
     property_labels = [
-        ("分子量\nMol. Weight", "≤ 500 Da"),
-        ("脂水分配系数\nLogP", "≤ 5"),
-        ("氢键供体数\nH-Bond Donors", "≤ 5"),
-        ("氢键受体数\nH-Bond Acceptors", "≤ 10"),
-        ("可旋转键数\nRotatable Bonds", "≤ 10"),
+        (t("result.pharma.lipinski_prop_mw"), "≤ 500 Da"),
+        (t("result.pharma.lipinski_prop_logp"), "≤ 5"),
+        (t("result.pharma.lipinski_prop_hbd"), "≤ 5"),
+        (t("result.pharma.lipinski_prop_hba"), "≤ 10"),
+        (t("result.pharma.lipinski_prop_rotb"), "≤ 10"),
     ]
 
     y_positions = list(range(5))
@@ -455,8 +453,8 @@ def _tab_pharmacology(features, prediction, pka_val, pka_type, pka_label, pka_cs
                           edgecolor=(1, 1, 1, 0.10)), zorder=6)
 
     legend_elements = [
-        Patch(facecolor='#34d399', alpha=0.82, label='PASS — 符合规则'),
-        Patch(facecolor='#f87171', alpha=0.82, label='FAIL — 超出阈值'),
+        Patch(facecolor='#34d399', alpha=0.82, label=t("result.pharma.lipinski_legend_pass")),
+        Patch(facecolor='#f87171', alpha=0.82, label=t("result.pharma.lipinski_legend_fail")),
     ]
     ax.legend(handles=legend_elements, loc='lower center', fontsize=9,
               ncol=2, framealpha=0.7, facecolor='#1a1a2e', edgecolor=(1, 1, 1, 0.08),
@@ -468,7 +466,7 @@ def _tab_pharmacology(features, prediction, pka_val, pka_type, pka_label, pka_cs
 
     title_color = '#34d399' if lipinski_result['passed'] >= 4 else '#fbbf24'
     ax.set_title(
-        f'Lipinski 五规则评分：{lipinski_result["passed"]} / 5   —   {lipinski_result["interpretation"]}',
+        t("result.pharma.lipinski_score_title", score=str(lipinski_result["passed"]), total="5", text=lipinski_result["interpretation"]),
         fontsize=12, pad=16, color=title_color, fontweight='600')
 
     plt.tight_layout()
@@ -477,11 +475,8 @@ def _tab_pharmacology(features, prediction, pka_val, pka_type, pka_label, pka_cs
 
     st.markdown(f"""
     <div style="margin-top: 0.3rem; padding: 0.65rem 0.9rem; background: rgba(124, 58, 237, 0.06); border-left: 2px solid rgba(124, 58, 237, 0.3); border-radius: 4px; font-size: 0.82rem; color: #a0a0b5; line-height: 1.9;">
-    <b style="color: #c4b5fd;">About Lipinski's Rule of Five</b><br>
-    &bull; <b>Christopher Lipinski (Pfizer, 1997)</b> 分析了 2,245 个进入 II 期临床的药物分子，总结出 5 条口服药物的经验规则<br>
-    &bull; 规则认为分子违反 ≤1 条时，其<b>口服吸收和生物利用度</b>更可能达标<br>
-    &bull; 但这只是筛选规则，<b>不是绝对标准</b>——许多成功药物也违反五规则（如天然产物、抗生素、抗癌药）<br>
-    &bull; 超出规则范围 (bRo5) 的分子仍是现代药物化学的重要方向（如 PROTAC、大环分子）
+    <b style="color: #c4b5fd;">{'About Lipinski' if get_lang() == 'en' else '关于 Lipinski'}</b><br>
+    {t('result.pharma.lipinski_history_html')}
     </div>
     """, unsafe_allow_html=True)
 
@@ -544,17 +539,17 @@ def _tab_pharmacology(features, prediction, pka_val, pka_type, pka_label, pka_cs
 
         st.markdown(f"""
         <div style="margin-top:0.6rem;text-align:center;font-size:0.72rem;color:#6b6b7b;">
-        碳原子总数 Total carbons: <b style="color:#a0a0b0;">{dl['n_carbons']}</b> &nbsp;|&nbsp;
-        sp&sup3; 碳 sp&sup3; carbons: <b style="color:#a0a0b0;">{dl['n_sp3']}</b> &nbsp;|&nbsp;
+        {t('result.pharma.fsp3_detail', n_sp3=dl['n_sp3'], n_carbon=dl['n_carbons'])}<br>
         Refs: Bickerton et al. (2012), Ertl &amp; Schuffenhauer (2009), Lovering et al. (2009)
         </div>
         """, unsafe_allow_html=True)
 
     if pka_val is not None:
         st.markdown("<br>", unsafe_allow_html=True)
-        st.markdown("""<div class="card-title">Ionization Profile</div>""", unsafe_allow_html=True)
+        st.markdown(f"""<div class="card-title">{t('result.pharma.ionization_title')}</div>""", unsafe_allow_html=True)
         env_ph = [1.5, 4.5, 6.8, 7.4]
-        env_names = ['Stomach\n胃', 'Duodenum\n十二指肠', 'Small Intestine\n小肠', 'Blood/Brain\n血液/脑']
+        env_names = [t("result.pharma.ionization_env_stomach"), t("result.pharma.ionization_env_duodenum"),
+                     t("result.pharma.ionization_env_intestine"), t("result.pharma.ionization_env_blood")]
         if pka_type == "acid":
             fractions = [1 / (1 + 10**(ph - pka_val)) for ph in env_ph]
         else:
@@ -567,9 +562,9 @@ def _tab_pharmacology(features, prediction, pka_val, pka_type, pka_label, pka_cs
             height = bar.get_height()
             ax.text(bar.get_x() + bar.get_width()/2., height + 2,
                     f'{frac*100:.1f}%', ha='center', va='bottom', fontsize=10, fontfamily='monospace')
-        ax.set_ylabel('分子态比例 (Unionized %)', fontsize=11)
+        ax.set_ylabel(t("result.pharma.ionization_ylabel"), fontsize=11)
         ax.set_ylim(0, 105)
-        ax.set_title(f'不同生理环境下的分子态比例 | pKa = {pka_val:.2f}', fontsize=12)
+        ax.set_title(t("result.pharma.ionization_chart_title", val=pka_val), fontsize=12)
         ax.spines['top'].set_visible(False)
         ax.spines['right'].set_visible(False)
         plt.tight_layout()
@@ -577,52 +572,52 @@ def _tab_pharmacology(features, prediction, pka_val, pka_type, pka_label, pka_cs
         plt.close(fig)
 
         st.markdown("<br>", unsafe_allow_html=True)
-        st.markdown("""<div class="card-title">药理学分析</div>""", unsafe_allow_html=True)
+        st.markdown(f"""<div class="card-title">{t('result.pharma.pharma_analysis')}</div>""", unsafe_allow_html=True)
         with st.container(border=True):
             if pka_type == "acid":
                 if pka_val < 4:
-                    st.success("**胃吸收优势**：pKa < 4，在胃酸（pH 1.5）中大部分以分子态存在，脂溶性高，容易被胃黏膜吸收。代表药物：阿司匹林 (pKa 3.5)、布洛芬 (pKa 4.9)。")
+                    st.success(t("result.pharma.analysis.strong_acid"))
                 else:
-                    st.info("**全肠道吸收**：pKa 中等，在胃和小肠中都有一定比例的分子态，吸收较均匀。注意：分子态比例高时脂溶性强，可能刺激胃黏膜。")
+                    st.info(t("result.pharma.analysis.mid_acid"))
             elif pka_type == "base":
                 if pka_val > 9:
-                    st.warning("**肠道吸收为主**：强碱性分子在胃中几乎完全电离，难以吸收；进入小肠（pH 6.8）后分子态增加，主要在小肠吸收。代表药物：二甲双胍 (pKa ~12.4)。")
+                    st.warning(t("result.pharma.analysis.strong_base"))
                 else:
-                    st.info("**弱碱性分子**：在胃中少量电离，小肠中吸收良好。进入血液（pH 7.4）后可能部分电离，水溶性增加，有利于肾脏排泄。")
+                    st.info(t("result.pharma.analysis.weak_base"))
             else:
-                st.info("**两性分子**：在不同 pH 环境下电离行为复杂，吸收部位取决于具体结构。可能需要特殊制剂（如肠溶片）来优化生物利用度。")
+                st.info(t("result.pharma.analysis.amphoteric"))
 
         st.markdown("<br>", unsafe_allow_html=True)
-        st.markdown("""<div class="card-title">溶解度 x pKa 联动分析</div>""", unsafe_allow_html=True)
+        st.markdown(f"""<div class="card-title">{t('result.pharma.linkage.title')}</div>""", unsafe_allow_html=True)
         logS = prediction
         parts = []
         if logS > 0:
-            parts.append("**溶解度**：易溶于水，有利于溶出。")
+            parts.append(t("result.pharma.linkage.soluble"))
         elif logS > -2:
-            parts.append("**溶解度**：中等，可能需要辅料助溶。")
+            parts.append(t("result.pharma.linkage.moderate"))
         else:
-            parts.append("**溶解度**：较低，生物利用度可能受限。")
+            parts.append(t("result.pharma.linkage.poor"))
         if pka_type == "acid":
             if pka_val < 4:
-                parts.append(f"**pKa**：弱酸性 (pKa={pka_val:.1f})，胃吸收好，**空腹服用**效果更佳。")
+                parts.append(t("result.pharma.linkage.pka_weak_acid", val=pka_val))
             else:
-                parts.append(f"**pKa**：中等酸性 (pka={pka_val:.1f})，全肠道吸收，对服药时间要求不高。")
+                parts.append(t("result.pharma.linkage.pka_mid_acid", val=pka_val))
         elif pka_type == "base":
             if pka_val > 9:
-                parts.append(f"**pKa**：强碱性 (pKa={pka_val:.1f})，胃吸收差，**餐后服用**可减少胃刺激，主要在小肠吸收。")
+                parts.append(t("result.pharma.linkage.pka_strong_base", val=pka_val))
             else:
-                parts.append(f"**pKa**：弱碱性 (pKa={pka_val:.1f})，小肠吸收为主，血液中有利于排泄。")
+                parts.append(t("result.pharma.linkage.pka_weak_base", val=pka_val))
         else:
-            parts.append(f"**pKa**：接近中性 (pKa={pka_val:.1f})，吸收行为较复杂。")
+            parts.append(t("result.pharma.linkage.pka_neutral", val=pka_val))
         if logS > 0 and pka_type == "acid" and pka_val < 4:
-            parts.append("**综合**：高溶解度 + 胃吸收优势 = **口服生物利用度极佳**，适合做成普通片剂。")
+            parts.append(t("result.pharma.linkage.combo_good"))
         elif logS < -2 and pka_type == "base" and pka_val > 9:
-            parts.append("**综合**：低溶解度 + 强碱性 = **口服吸收双重挑战**，可能需要肠溶片或注射剂型。")
+            parts.append(t("result.pharma.linkage.combo_challenging"))
         elif logS > 0 and pka_type == "base" and pka_val > 9:
-            parts.append("**综合**：高溶解度弥补了胃吸收劣势，进入小肠后吸收良好，总体生物利用度可接受。")
+            parts.append(t("result.pharma.linkage.combo_acceptable"))
         st.info(" | ".join(parts))
     else:
-        st.info("pKa 模型未加载，药理学分析不可用。")
+        st.info(t("result.pharma.linkage.not_loaded"))
 
     st.markdown("<br>", unsafe_allow_html=True)
     st.markdown(f"""<div class="card-title">{t('result.pharma.admet_title')}</div>""", unsafe_allow_html=True)
@@ -648,11 +643,7 @@ def _tab_pharmacology(features, prediction, pka_val, pka_type, pka_label, pka_cs
         <span style="color: #c0c0d0; font-size: 0.9rem; line-height: 1.7;">{admet['absorption']}</span>
         </div>
         """, unsafe_allow_html=True)
-        st.caption("""
-        **吸收 (Absorption)** 决定了药物从给药部位进入血液循环的效率和程度。
-        主要影响因素包括：分子极性 (TPSA)、脂溶性 (LogP)、电离状态 (pKa vs pH)、氢键能力、分子大小。
-        口服药物的吸收主要发生在小肠（表面积大、血流丰富），部分酸性药物可在胃中开始吸收。
-        """)
+        st.caption(t("result.pharma.admet.absorption_caption"))
 
     with adme_tabs[1]:
         d = admet["distribution"]
@@ -676,12 +667,7 @@ def _tab_pharmacology(features, prediction, pka_val, pka_type, pka_label, pka_cs
         <span style="color: #c0c0d0; font-size: 0.9rem; line-height: 1.7;">{d['summary']}</span>
         </div>
         """, unsafe_allow_html=True)
-        st.caption("""
-        **分布 (Distribution)** 描述药物从血液进入组织和器官的过程。
-        - **表观分布容积 (Vd)**：Vd 越大，药物越倾向于分布到组织；Vd 小则主要留在血浆中
-        - **血浆蛋白结合率**：高结合率 = 药物储备在血液中缓慢释放；低结合率 = 游离药物多、作用快但排泄也快
-        - **血脑屏障 (BBB)**：低 TPSA + 适中 LogP 的分子更容易进入中枢神经系统
-        """)
+        st.caption(t("result.pharma.admet.distribution_caption"))
 
     with adme_tabs[2]:
         m = admet["metabolism"]
@@ -700,12 +686,7 @@ def _tab_pharmacology(features, prediction, pka_val, pka_type, pka_label, pka_cs
             <span style="color: #c0c0d0; font-size: 0.9rem;">{m['cyp_enzymes']}</span>
             </div>
             """, unsafe_allow_html=True)
-        st.caption("""
-        **代谢 (Metabolism)** 主要在肝脏进行，分为两相：
-        - **I 相代谢**（氧化/还原/水解）：主要由 CYP450 酶系催化，引入或暴露极性基团
-        - **II 相代谢**（结合反应）：将葡萄糖醛酸、硫酸、氨基酸等连接到分子上，增加水溶性便于排泄
-        - CYP3A4 代谢约 50% 的临床药物；CYP2D6 有显著的基因多态性（人群差异大）
-        """)
+        st.caption(t("result.pharma.admet.metabolism_caption"))
 
     with adme_tabs[3]:
         e = admet["excretion"]
@@ -715,12 +696,7 @@ def _tab_pharmacology(features, prediction, pka_val, pka_type, pka_label, pka_cs
         <span style="color: #c0c0d0; font-size: 0.9rem; line-height: 1.7;">{e['summary']}</span>
         </div>
         """, unsafe_allow_html=True)
-        st.caption("""
-        **排泄 (Excretion)** 是药物及其代谢物从体内清除的过程：
-        - **肾脏排泄**：分子量 < 350 Da 且极性适中的分子主要通过肾小球滤过进入尿液
-        - **肝胆排泄**：分子量 > 500 Da 或高度亲脂的分子倾向于通过胆汁排入肠道
-        - 肾小管重吸收会使亲脂性分子重新进入血液，延长药物半衰期
-        """)
+        st.caption(t("result.pharma.admet.excretion_caption"))
 
     with adme_tabs[4]:
         alerts = admet["toxicity"]
@@ -743,12 +719,7 @@ def _tab_pharmacology(features, prediction, pka_val, pka_type, pka_label, pka_cs
             <span style="color: #c0c0d0; font-size: 0.85rem; margin-left: 0.5rem;">{desc}</span>
             </div>
             """, unsafe_allow_html=True)
-        st.caption("""
-        **毒性 (Toxicity)** 评估基于结构警报 (Structural Alerts) —— 某些官能团或子结构在历史上与毒性事件相关：
-        - 以上分析仅基于<b>结构特征</b>，不代表实际毒性——毒性受剂量、代谢、个体差异等多因素影响
-        - 结构警报是药物设计初筛的重要工具，但存在许多假阳性——含警报结构的药物仍可能安全上市
-        - 实际毒性需要通过 Ames 试验、hERG 测试、动物实验和临床试验逐级验证
-        """)
+        st.caption(t("result.pharma.admet.toxicity_caption"))
 
 
 # ════════════════════════════════════════════════════════════════════════════════
@@ -763,22 +734,22 @@ def _display_gnn_explanation():
 
     smiles = st.session_state.get(StateKey.PREDICTED_SMILES)
     if not smiles:
-        st.info("无可解释的分子")
+        st.info(t("result.gnn.no_mol"))
         return
 
     # Try to load cached explanation
     explanation = None
     placeholder = st.empty()
     with placeholder:
-        with st.spinner("正在运行 GNNExplainer 分析（约 10-30 秒）..."):
+        with st.spinner(t("result.gnn.spinner")):
             try:
                 explanation = cached_gnn_explanation(smiles)
             except Exception as e:
-                st.error(f"GNN 解释生成失败: {e}")
+                st.error(t("result.gnn.fail", err=e))
                 return
 
     if explanation is None:
-        st.warning("GNN 解释生成失败（模型未加载或分子无法解析）")
+        st.warning(t("result.gnn.model_unavailable"))
         return
 
     bond_imp = explanation.get("bond_importance", [])
@@ -787,7 +758,7 @@ def _display_gnn_explanation():
     mol = explanation.get("mol")
 
     if not bond_imp:
-        st.info("该分子无非氢键，无法进行边重要性分析")
+        st.info(t("result.gnn.no_bonds"))
         return
 
     # ── Bond importance to RDKit bond weights ──
@@ -804,13 +775,13 @@ def _display_gnn_explanation():
         try:
             img = mol_to_dark_image_with_importance(mol, bond_weights, size=(500, 400))
             if img is not None:
-                st.image(img, caption="关键化学键高亮（暖色 = 更重要）", use_container_width=True)
+                st.image(img, caption=t("result.gnn.img_caption"), use_container_width=True)
             else:
                 # fallback
                 from ui.plots import mol_to_dark_image
                 st.image(mol_to_dark_image(mol, (500, 400)), use_container_width=True)
         except Exception as e:
-            st.warning(f"高亮图生成失败: {e}")
+            st.warning(f"Highlight image failed: {e}")
             # fallback to standard image
             from ui.plots import mol_to_dark_image
             try:
@@ -821,12 +792,12 @@ def _display_gnn_explanation():
     with col_right:
         st.markdown(f"""
         <div style="font-size:0.82rem;color:var(--ob-text-tertiary);margin-bottom:0.5rem;">
-            分析耗时：<b style="color:#a78bfa;">{elapsed:.1f}s</b>
+            {t('result.gnn.elapsed_text', t=elapsed)}
         </div>
         """, unsafe_allow_html=True)
 
         # Top-K most important bonds
-        st.markdown("**Top 最重要的化学键**")
+        st.markdown(t("result.gnn.top_bonds_title"))
         bond_descriptions = []
         for rank, (a, b, imp) in enumerate(top_bonds, 1):
             if mol:
@@ -847,7 +818,7 @@ def _display_gnn_explanation():
                 <div style="height:14px;background:#1e1e30;border-radius:7px;overflow:hidden;">
                     <div style="height:100%;width:{pct:.0f}%;background:{bar_color};border-radius:7px;"></div>
                 </div>
-                <span style="font-size:0.75rem;color:#8b8b9b;">重要性: {imp:.3f} ({pct:.0f}%)</span>
+                <span style="font-size:0.75rem;color:#8b8b9b;">{t('result.gnn.top_bonds_importance', imp=imp, pct=pct)}</span>
             </div>
             """, unsafe_allow_html=True)
 
@@ -856,7 +827,7 @@ def _display_gnn_explanation():
         st.markdown("<br>", unsafe_allow_html=True)
         col_atom_left, col_atom_right = st.columns([1, 1])
         with col_atom_left:
-            st.markdown("**原子重要性（基于相连键汇总）**")
+            st.markdown(t("result.gnn.atom_title"))
             sorted_atoms = sorted(atom_imp.items(), key=lambda x: x[1], reverse=True)[:8]
             for idx, imp_val in sorted_atoms:
                 if mol:
@@ -879,7 +850,7 @@ def _display_gnn_explanation():
         with col_atom_right:
             # Feature importance
             if feat_imp and len(feat_imp) > 0:
-                st.markdown("**原子特征重要性**")
+                st.markdown(t("result.gnn.feature_title"))
                 # Feature names for the 37-dim atom feature vector
                 feat_names = [
                     "AtomicNum_H", "AtomicNum_C", "AtomicNum_N", "AtomicNum_O",
@@ -912,33 +883,13 @@ def _display_gnn_explanation():
 
     # ── Interpretation ──
     st.markdown("<br>", unsafe_allow_html=True)
-    with st.expander("如何读懂 GNN 解释", expanded=False):
-        st.markdown("""
+    with st.expander(t("result.gnn.how_to_read_title"), expanded=False):
+        st.markdown(f"""
         <div style="font-size:0.85rem;line-height:1.8;color:#a0a0b5;">
-
-        **GNNExplainer** 通过学习每条化学键的"重要性权重"来解释模型预测：
-
-        - **暖色高亮边** = 模型认为这条化学键及其连接的原子对判断溶解度最重要
-        - **冷色/暗淡边** = 该化学键对预测影响较小
-
-        **技术原理**：
-        1. 将每条边（化学键）初始化为一个可学习的参数（0~1 的权重）
-        2. 用带权重的图做前向传播，只保留高权重的边
-        3. 优化目标是"带权重的预测 ≈ 原始预测"，同时尽量保留最少的边
-        4. 最终权重 = 这条边对模型预测的贡献大小
-
-        **原子特征重要性** 显示 37 维原子特征向量中哪些维度最重要：
-        - 原子类型（是 C、N、O 还是其他元素）
-        - 连接度（连了几个原子）
-        - 杂化方式（sp²、sp³）
-        - 芳香性、手性、是否在环上等
-
-        **注意**：
-        - GNNExplainer 是近似方法，不同运行可能有微小差异
-        - 重要性高的边 ≠ 该键在化学反应中更容易断裂
-        - 重要性说明的是该子结构对**模型预测**的贡献，而非真实的物理化学机制
-        - 建议结合 SHAP（RF 模式）和 pKa 化学因素分解共同解读
-
+        {t('result.gnn.how_to_read_html')}
+        <br><br>
+        {t('result.gnn.how_to_read_tech')}
+        <br><br>
         </div>
         """, unsafe_allow_html=True)
 

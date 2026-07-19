@@ -298,9 +298,9 @@ def render_input_area():
                         with st.status(t("input.method2.local_not_found"), expanded=True) as pub_status:
                             found_smiles, pub_status_str = search_pubchem_final(search_name)
                             if found_smiles:
-                                pub_status.update(label=f"PubChem 匹配成功：{pub_status_str}", state="complete")
+                                pub_status.update(label=t("input.method2.pubchem_success", status=pub_status_str), state="complete")
                             else:
-                                pub_status.update(label=f"PubChem 未找到：{pub_status_str}", state="error")
+                                pub_status.update(label=t("input.method2.pubchem_fail", status=pub_status_str), state="error")
                         if found_smiles:
                             st.session_state[StateKey.SEARCH_STATE] = "pubchem_done"
                             st.session_state[StateKey.FUZZY_SMILES] = found_smiles
