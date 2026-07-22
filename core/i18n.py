@@ -175,14 +175,23 @@ _ALL: dict[str, dict[str, str]] = {
         "en": "Cannot reach the backend server. Start it first: uvicorn backend.main:app --port 8000",
     },
 
-    # Disagreement
+    # Disagreement — Auto mode (system chose model)
     "app.warn.disagreement.severe": {
         "zh": "⚠️ **RF 与 GNN 预测严重分歧**（|RF−GNN| = {diff:.2f}），已自动降级为 GNN 预测。此分子的预测可靠性较低，请谨慎参考。",
         "en": "⚠️ **RF & GNN predictions severely disagree** (|RF−GNN| = {diff:.2f}). Using GNN prediction. This result has low reliability.",
     },
+    "app.warn.disagreement.severe_manual": {
+        "zh": "⚠️ **RF 与 GNN 预测严重分歧**（|RF−GNN| = {diff:.2f}），预测可靠性较低。请谨慎参考。",
+        "en": "⚠️ **RF & GNN predictions severely disagree** (|RF−GNN| = {diff:.2f}). Prediction reliability is low. Interpret with caution.",
+    },
+    # Disagreement — moderate
     "app.warn.disagreement.moderate": {
         "zh": "📊 **RF 与 GNN 存在显著分歧**（|RF−GNN| = {diff:.2f}），加权集成已偏向 GNN。建议结合分子结构自行判断。",
         "en": "📊 **RF & GNN notably disagree** (|RF−GNN| = {diff:.2f}). Weighted ensemble favors GNN. Interpret with caution.",
+    },
+    "app.warn.disagreement.moderate_manual": {
+        "zh": "📊 **RF 与 GNN 存在显著分歧**（|RF−GNN| = {diff:.2f}）。请谨慎参考预测结果。",
+        "en": "📊 **RF & GNN notably disagree** (|RF−GNN| = {diff:.2f}). Interpret predictions with caution.",
     },
 
     # Model labels in status

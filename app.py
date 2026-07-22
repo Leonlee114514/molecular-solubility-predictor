@@ -301,10 +301,17 @@ if predict_button and model_ready:
 
                 # ── Disagreement warning ──
                 disagreement = st.session_state.get(StateKey.MODEL_DISAGREEMENT, 0.0)
+                is_auto = st.session_state.get(StateKey.SELECTED_MODEL, "Auto") == "Auto"
                 if disagreement > 1.0:
-                    st.warning(t("app.warn.disagreement.severe", diff=disagreement))
+                    if is_auto:
+                        st.warning(t("app.warn.disagreement.severe", diff=disagreement))
+                    else:
+                        st.warning(t("app.warn.disagreement.severe_manual", diff=disagreement))
                 elif disagreement > 0.5:
-                    st.info(t("app.warn.disagreement.moderate", diff=disagreement))
+                    if is_auto:
+                        st.info(t("app.warn.disagreement.moderate", diff=disagreement))
+                    else:
+                        st.info(t("app.warn.disagreement.moderate_manual", diff=disagreement))
 
                 _model_label_map = {
                     "RF": t("app.model_label.rf"),
