@@ -718,7 +718,7 @@ def _tab_pharmacology(features, prediction, pka_val, pka_type, pka_label, pka_cs
                 color = "#34d399"
             st.markdown(f"""
             <div style="padding: 0.7rem 1rem; margin-bottom: 0.5rem; background: {bg}; border-radius: 10px; border: 1px solid {border};">
-            <b style="color: {color};">[风险：{risk_level}]</b>
+            <b style="color: {color};">{t("result.pharma.admet_risk", level=risk_level)}</b>
             <span style="color: #c0c0d0; font-size: 0.85rem; margin-left: 0.5rem;">{desc}</span>
             </div>
             """, unsafe_allow_html=True)

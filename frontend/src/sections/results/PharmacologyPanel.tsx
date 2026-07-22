@@ -395,7 +395,7 @@ function AdmetSection({ analysis }: { analysis: AnalysisResponse }) {
                   className="rounded-lg px-3 py-2 text-sm"
                   style={{ background: `${color}14`, border: `1px solid ${color}33` }}
                 >
-                  <b style={{ color }}>[{level}]</b>{" "}
+                  <b style={{ color }}>{t("result.pharma.admet_risk", { level })}</b>{" "}
                   <span className="text-ob-muted">{desc}</span>
                 </div>
               );

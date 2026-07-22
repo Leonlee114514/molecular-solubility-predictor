@@ -592,7 +592,7 @@ _ALL: dict[str, dict[str, str]] = {
     "analysis.admet.absorption.fallback": {"zh": "吸收特性待评估", "en": "Absorption characteristics pending evaluation"},
 
     # ADME/Tox – Distribution
-    "analysis.admet.distribution.lipophilic": {"zh": "分子亲脂性强 (LogP > 3)，倾向于分布到脂肪组织和通过血脑屏障", "en": "Highly lipophilic (LogP > 3),倾向于 distribute to adipose tissue and cross BBB"},
+    "analysis.admet.distribution.lipophilic": {"zh": "分子亲脂性强 (LogP > 3)，倾向于分布到脂肪组织和通过血脑屏障", "en": "Highly lipophilic (LogP > 3), tends to distribute to adipose tissue and cross BBB"},
     "analysis.admet.distribution.hydrophilic": {"zh": "分子亲水性强 (LogP < 0)，主要分布在血浆和细胞外液", "en": "Highly hydrophilic (LogP < 0), mainly distributed in plasma and extracellular fluid"},
     "analysis.admet.distribution.moderate": {"zh": "LogP 适中，组织分布较均衡", "en": "Moderate LogP, balanced tissue distribution"},
     "analysis.admet.distribution.bbb": {"zh": "低 TPSA + 中等 LogP = 可能通过血脑屏障 (BBB)", "en": "Low TPSA + moderate LogP = may cross Blood-Brain Barrier (BBB)"},
@@ -618,9 +618,9 @@ _ALL: dict[str, dict[str, str]] = {
     # ADME/Tox – Excretion
     "analysis.admet.excretion.renal": {"zh": "分子量小 + 亲水性适中 → 倾向于肾脏排泄（肾小球滤过）", "en": "Low MW + moderate hydrophilicity → renal excretion (glomerular filtration)"},
     "analysis.admet.excretion.biliary": {"zh": "分子量 > 500 → 倾向于肝胆排泄（胆汁）", "en": "MW > 500 → hepatobiliary excretion (bile)"},
-    "analysis.admet.excretion.hepato": {"zh": "LogP > 3 → 在肾小管中易被重吸收，肝胆排泄比例增加", "en": "LogP > 3 →容易 reabsorbed in renal tubules, increased hepatobiliary excretion"},
+    "analysis.admet.excretion.hepato": {"zh": "LogP > 3 → 在肾小管中易被重吸收，肝胆排泄比例增加", "en": "LogP > 3 → prone to reabsorption in renal tubules, increased hepatobiliary excretion"},
     "analysis.admet.excretion.tpsa": {"zh": "高 TPSA 有利于肾脏排泄（水溶性代谢物）", "en": "High TPSA favors renal excretion (water-soluble metabolites)"},
-    "analysis.admet.excretion.conjugate": {"zh": "含羧基/酚羟基 → 易形成 II 相代谢物经肾脏排出", "en": "Carboxyl/phenolic OH →容易 form Phase II conjugates for renal excretion"},
+    "analysis.admet.excretion.conjugate": {"zh": "含羧基/酚羟基 → 易形成 II 相代谢物经肾脏排出", "en": "Carboxyl/phenolic OH → readily forms Phase II conjugates for renal excretion"},
     "analysis.admet.excretion.route_renal": {"zh": "主要经肾脏排泄", "en": "Primarily renal excretion"},
     "analysis.admet.excretion.route_biliary": {"zh": "倾向于肝胆排泄", "en": "Hepatobiliary excretion"},
     "analysis.admet.excretion.route_dual": {"zh": "肝肾双途径排泄", "en": "Renal + hepatobiliary excretion"},

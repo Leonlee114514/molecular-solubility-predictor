@@ -9,10 +9,15 @@ import pickle
 import numpy as np
 from rdkit import Chem
 from rdkit.Chem import Descriptors, rdFingerprintGenerator, rdMolDescriptors
-from core.i18n import t
+from core.i18n import t, get_lang
 
 
 # ========== pKa Chemistry Analysis ==========
+
+def _join_sentences(parts):
+    """Join translated sentence fragments with language-appropriate separator."""
+    sep = "; " if get_lang() == "en" else "；"
+    return sep.join(parts) if parts else ""
 
 def analyze_pka_chemistry(smiles, pka_val):
     """Analyze chemical factors contributing to pKa value.
@@ -317,7 +322,7 @@ def analyze_admet(smiles, features, pka_val=None):
     if hba > 10:
         absorption_factors.append(t("analysis.admet.absorption.hba_high"))
 
-    absorption_summary = "；".join(absorption_factors) if absorption_factors else t("analysis.admet.absorption.fallback")
+    absorption_summary = _join_sentences(absorption_factors) if absorption_factors else t("analysis.admet.absorption.fallback")
 
     # Distribution
     distribution_factors = []
@@ -342,7 +347,7 @@ def analyze_admet(smiles, features, pka_val=None):
     elif logp < 0:
         ppb = t("analysis.admet.distribution.ppb_low")
 
-    distribution_summary = "；".join(distribution_factors) if distribution_factors else t("analysis.admet.distribution.fallback")
+    distribution_summary = _join_sentences(distribution_factors) if distribution_factors else t("analysis.admet.distribution.fallback")
 
     # Metabolism
     metabolism_sites = []
@@ -370,7 +375,7 @@ def analyze_admet(smiles, features, pka_val=None):
         cyp_notes.append("CYP3A4, CYP2D6")
 
     unique_cyps = list(set(cyp_notes))
-    metabolism_summary = "；".join(metabolism_sites) if metabolism_sites else t("analysis.admet.metabolism.fallback")
+    metabolism_summary = _join_sentences(metabolism_sites) if metabolism_sites else t("analysis.admet.metabolism.fallback")
     cyp_summary = ", ".join(unique_cyps) if unique_cyps else t("analysis.admet.metabolism.cyp_fallback")
 
     # Excretion
@@ -392,7 +397,7 @@ def analyze_admet(smiles, features, pka_val=None):
     if fg.get("carboxylic_acid") or fg.get("phenol"):
         excretion_factors.append(t("analysis.admet.excretion.conjugate"))
 
-    excretion_summary = "；".join(excretion_factors) if excretion_factors else t("analysis.admet.excretion.fallback")
+    excretion_summary = _join_sentences(excretion_factors) if excretion_factors else t("analysis.admet.excretion.fallback")
 
     # Toxicity
     toxicity_alerts = []
