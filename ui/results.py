@@ -193,10 +193,14 @@ def _tab_solubility(features, prediction, interp, color, css_class, model):
         # ── Disagreement warning (all modes) ──
         rf_val = st.session_state.get(StateKey.PREDICTED_LOGS_RF)
         gnn_val = st.session_state.get(StateKey.PREDICTED_LOGS_GNN)
+        selected_model = st.session_state.get(StateKey.SELECTED_MODEL, "Auto")
         if rf_val is not None and gnn_val is not None:
             diff = abs(rf_val - gnn_val)
             if diff > 1.0:
-                st.error(t("result.solubility.severe_disagree", diff=diff))
+                if selected_model == "Auto":
+                    st.error(t("result.solubility.severe_disagree_auto", diff=diff))
+                else:
+                    st.error(t("result.solubility.severe_disagree", diff=diff))
             elif diff > 0.5:
                 st.error(t("result.solubility.notable_disagree", diff=diff))
 

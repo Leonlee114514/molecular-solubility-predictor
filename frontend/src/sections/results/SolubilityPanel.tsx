@@ -365,7 +365,9 @@ export default function SolubilityPanel({ result }: SolubilityPanelProps) {
       {diff != null && diff > 0.5 && (
         <div className="rounded-xl border border-red-500/50 bg-red-500/10 px-4 py-3 text-sm text-red-300">
           {diff > 1.0
-            ? tf("result.solubility.severe_disagree", { diff })
+            ? (result.model_selected === "auto"
+                ? tf("result.solubility.severe_disagree_auto", { diff })
+                : tf("result.solubility.severe_disagree", { diff }))
             : tf("result.solubility.notable_disagree", { diff })}
         </div>
       )}

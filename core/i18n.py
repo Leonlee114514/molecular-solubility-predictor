@@ -367,9 +367,13 @@ _ALL: dict[str, dict[str, str]] = {
     "result.solubility.badge_ensemble": {"zh": "Ensemble (RF+GNN)", "en": "Ensemble (RF+GNN)"},
     "result.solubility.badge_weighted": {"zh": "Weighted Ensemble (0.45×RF+0.55×GNN)", "en": "Weighted Ensemble (0.45×RF+0.55×GNN)"},
     "result.solubility.metric_logs": {"zh": "Predicted Solubility (logS)", "en": "Predicted Solubility (logS)"},
-    "result.solubility.severe_disagree": {
+    "result.solubility.severe_disagree_auto": {
         "zh": "⚠️ RF 与 GNN 严重分歧（|Δ|={diff:.2f}），已自动降级为 GNN 预测。请谨慎参考。",
-        "en": "⚠️ RF & GNN severely disagree (|Δ|={diff:.2f}). Using GNN. Interpret with caution.",
+        "en": "⚠️ RF & GNN severely disagree (|Δ|={diff:.2f}). Using GNN prediction. Interpret with caution.",
+    },
+    "result.solubility.severe_disagree": {
+        "zh": "⚠️ RF 与 GNN 严重分歧（|Δ|={diff:.2f}），预测可靠性较低。请谨慎参考。",
+        "en": "⚠️ RF & GNN severely disagree (|Δ|={diff:.2f}). Prediction reliability is low. Interpret with caution.",
     },
     "result.solubility.notable_disagree": {
         "zh": "📊 RF 与 GNN 存在显著分歧（|Δ|={diff:.2f}），集成偏向 GNN。",
