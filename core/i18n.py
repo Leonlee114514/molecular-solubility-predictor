@@ -104,8 +104,9 @@ def t(key, **kwargs):
 def render_language_selector():
     """Render a floating language toggle dropdown in the top-right corner.
 
-    Uses query-param <a> links (no inline JS needed) to trigger a Streamlit
-    rerun that init_language() picks up via st.query_params.
+    Uses <form target="_top"> to submit a GET request with ?lang=... that
+    triggers a Streamlit rerun picked up by init_language() via st.query_params.
+    This works inside Streamlit's sandboxed iframe (allow-forms is always set).
     """
     current = get_lang()
     flag = "🇨🇳" if current == "zh" else "🇬🇧"
@@ -141,18 +142,24 @@ def render_language_selector():
     background:rgba(26,26,46,0.7);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);
     box-shadow:0 8px 32px rgba(0,0,0,0.4);
   ">
-    <a href="?lang=zh" target="_parent" class="lang-opt" style="
-      display:flex;align-items:center;gap:8px;width:100%;padding:8px 12px;border-radius:8px;
-      text-decoration:none;color:{'#a78bfa' if current == 'zh' else '#a0a0b0'};
-      font-size:13px;font-weight:{'600' if current == 'zh' else '400'};background:transparent">
-      🇨🇳 中文{" <span style='margin-left:auto;color:#a78bfa'>✓</span>" if current == 'zh' else ""}
-    </a>
-    <a href="?lang=en" target="_parent" class="lang-opt" style="
-      display:flex;align-items:center;gap:8px;width:100%;padding:8px 12px;border-radius:8px;
-      text-decoration:none;color:{'#a78bfa' if current == 'en' else '#a0a0b0'};
-      font-size:13px;font-weight:{'600' if current == 'en' else '400'};background:transparent">
-      🇬🇧 English{" <span style='margin-left:auto;color:#a78bfa'>✓</span>" if current == 'en' else ""}
-    </a>
+    <form action="" method="GET" target="_top" style="margin:0">
+      <input type="hidden" name="lang" value="zh">
+      <button type="submit" class="lang-opt" style="
+        display:flex;align-items:center;gap:8px;width:100%;padding:8px 12px;border:none;border-radius:8px;
+        background:transparent;color:{'#a78bfa' if current == 'zh' else '#a0a0b0'};
+        font-size:13px;font-weight:{'600' if current == 'zh' else '400'};cursor:pointer;text-align:left">
+        🇨🇳 中文{" <span style='margin-left:auto;color:#a78bfa'>✓</span>" if current == 'zh' else ""}
+      </button>
+    </form>
+    <form action="" method="GET" target="_top" style="margin:0">
+      <input type="hidden" name="lang" value="en">
+      <button type="submit" class="lang-opt" style="
+        display:flex;align-items:center;gap:8px;width:100%;padding:8px 12px;border:none;border-radius:8px;
+        background:transparent;color:{'#a78bfa' if current == 'en' else '#a0a0b0'};
+        font-size:13px;font-weight:{'600' if current == 'en' else '400'};cursor:pointer;text-align:left">
+        🇬🇧 English{" <span style='margin-left:auto;color:#a78bfa'>✓</span>" if current == 'en' else ""}
+      </button>
+    </form>
   </div>
 </div>
 """, unsafe_allow_html=True)
