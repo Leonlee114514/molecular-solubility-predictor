@@ -104,9 +104,9 @@ def t(key, **kwargs):
 def render_language_selector():
     """Render a floating language toggle dropdown in the top-right corner.
 
-    Uses <form target="_top"> to submit a GET request with ?lang=... that
-    triggers a Streamlit rerun picked up by init_language() via st.query_params.
-    This works inside Streamlit's sandboxed iframe (allow-forms is always set).
+    CSS checkbox toggle the dropdown. Language switching uses
+    window.top.location.href with ?lang=... query param, picked up by
+    init_language() via st.query_params.
     """
     current = get_lang()
     flag = "🇨🇳" if current == "zh" else "🇬🇧"
@@ -114,17 +114,25 @@ def render_language_selector():
 
     st.markdown(f"""\
 <style>
-#langToggle {{ position:fixed;top:-99px;left:-99px;opacity:0;pointer-events:none; }}
-#langToggle:checked ~ #langMenu {{ display:block !important; }}
-.lang-opt:hover {{ background:rgba(124,58,237,0.2) !important; }}
+#langCb {{ position:fixed;top:-99px;left:-99px;opacity:0;pointer-events:none; }}
+#langCb:checked ~ #langMenu {{ display:block !important; }}
+#langLabel:hover {{
+  border-color: rgba(124,58,237,0.5) !important;
+  color: #f0f0f5 !important;
+  box-shadow: 0 0 18px rgba(124,58,237,0.3) !important;
+}}
+#langMenu button:hover {{
+  background: rgba(124,58,237,0.2) !important;
+  color: #f0f0f5 !important;
+}}
 </style>
 <div style="
     position:fixed;top:20px;right:20px;z-index:99999;
     font-family:'Space Grotesk','Segoe UI',system-ui,sans-serif;
     user-select:none;
 ">
-  <input type="checkbox" id="langToggle">
-  <label for="langToggle" style="
+  <input type="checkbox" id="langCb">
+  <label for="langCb" id="langLabel" style="
     display:flex;align-items:center;gap:6px;padding:8px 14px;border-radius:12px;
     border:1px solid rgba(255,255,255,0.08);
     background:rgba(26,26,46,0.6);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
@@ -142,26 +150,26 @@ def render_language_selector():
     background:rgba(26,26,46,0.7);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);
     box-shadow:0 8px 32px rgba(0,0,0,0.4);
   ">
-    <form action="" method="GET" target="_top" style="margin:0">
-      <input type="hidden" name="lang" value="zh">
-      <button type="submit" class="lang-opt" style="
-        display:flex;align-items:center;gap:8px;width:100%;padding:8px 12px;border:none;border-radius:8px;
-        background:transparent;color:{'#a78bfa' if current == 'zh' else '#a0a0b0'};
-        font-size:13px;font-weight:{'600' if current == 'zh' else '400'};cursor:pointer;text-align:left">
-        🇨🇳 中文{" <span style='margin-left:auto;color:#a78bfa'>✓</span>" if current == 'zh' else ""}
-      </button>
-    </form>
-    <form action="" method="GET" target="_top" style="margin:0">
-      <input type="hidden" name="lang" value="en">
-      <button type="submit" class="lang-opt" style="
-        display:flex;align-items:center;gap:8px;width:100%;padding:8px 12px;border:none;border-radius:8px;
-        background:transparent;color:{'#a78bfa' if current == 'en' else '#a0a0b0'};
-        font-size:13px;font-weight:{'600' if current == 'en' else '400'};cursor:pointer;text-align:left">
-        🇬🇧 English{" <span style='margin-left:auto;color:#a78bfa'>✓</span>" if current == 'en' else ""}
-      </button>
-    </form>
+    <button onclick="langPick('zh')" style="
+      display:flex;align-items:center;gap:8px;width:100%;padding:8px 12px;border:none;border-radius:8px;
+      cursor:pointer;text-align:left;background:transparent;
+      color:{'#a78bfa' if current == 'zh' else '#a0a0b0'};font-size:13px;font-weight:{'600' if current == 'zh' else '400'}">
+      🇨🇳 中文{" <span style='margin-left:auto;color:#a78bfa'>✓</span>" if current == 'zh' else ""}
+    </button>
+    <button onclick="langPick('en')" style="
+      display:flex;align-items:center;gap:8px;width:100%;padding:8px 12px;border:none;border-radius:8px;
+      cursor:pointer;text-align:left;background:transparent;
+      color:{'#a78bfa' if current == 'en' else '#a0a0b0'};font-size:13px;font-weight:{'600' if current == 'en' else '400'}">
+      🇬🇧 English{" <span style='margin-left:auto;color:#a78bfa'>✓</span>" if current == 'en' else ""}
+    </button>
   </div>
 </div>
+<script>
+function langPick(l) {{
+  document.getElementById('langCb').checked = false;
+  window.top.location.href = '?lang=' + l;
+}}
+</script>
 """, unsafe_allow_html=True)
 
 
