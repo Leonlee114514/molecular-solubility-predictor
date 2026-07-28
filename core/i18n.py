@@ -53,7 +53,17 @@ class language_context:
 # ── Engine ──
 
 def init_language():
-    """Initialize language in session state (must be called early in app.py)."""
+    """Initialize language in session state (must be called early in app.py).
+
+    Checks URL query params first (set by the floating dropdown),
+    then falls back to existing session state or default 'zh'.
+    """
+    try:
+        qlang = st.query_params.get("lang")
+        if qlang in ("zh", "en"):
+            st.session_state[_LANG_KEY] = qlang
+    except Exception:
+        pass
     if _LANG_KEY not in st.session_state:
         st.session_state[_LANG_KEY] = "zh"
 
@@ -92,19 +102,75 @@ def t(key, **kwargs):
 
 
 def render_language_selector():
-    """Render language toggle buttons in the page header."""
+    """Render a floating language toggle dropdown in the top-right corner.
+
+    Uses query parameters to communicate language changes to the Streamlit
+    backend (no hidden buttons needed).
+    """
     current = get_lang()
-    cols = st.columns([1, 1, 10])
-    with cols[0]:
-        if st.button("🇨🇳 中文" if current == "en" else "✅ 中文",
-                     key="lang_zh", use_container_width=True):
-            st.session_state[_LANG_KEY] = "zh"
-            st.rerun()
-    with cols[1]:
-        if st.button("✅ English" if current == "en" else "🇬🇧 English",
-                     key="lang_en", use_container_width=True):
-            st.session_state[_LANG_KEY] = "en"
-            st.rerun()
+    flag = "🇨🇳" if current == "zh" else "🇬🇧"
+    label = "中文" if current == "zh" else "EN"
+
+    st.markdown(f"""\
+<div id="lang-fs-wrapper" style="
+    position:fixed;top:20px;right:20px;z-index:99999;
+    font-family:'Space Grotesk','Segoe UI',system-ui,sans-serif;
+    user-select:none;-webkit-user-select:none;
+">
+  <button onclick="var m=document.getElementById('langFsMenu');if(m)m.style.display=m.style.display==='none'?'block':'none'" style="
+    display:flex;align-items:center;gap:6px;padding:8px 14px;border-radius:12px;
+    border:1px solid rgba(255,255,255,0.08);
+    background:rgba(26,26,46,0.6);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
+    color:#a0a0b0;font-size:13px;cursor:pointer;transition:all .2s;
+    box-shadow:0 4px 20px rgba(0,0,0,0.3);
+  "
+  onmouseover="this.style.borderColor='rgba(124,58,237,0.5)';this.style.color='#f0f0f5';this.style.boxShadow='0 0 18px rgba(124,58,237,0.3)'"
+  onmouseout="this.style.borderColor='rgba(255,255,255,0.08)';this.style.color='#a0a0b0';this.style.boxShadow='0 4px 20px rgba(0,0,0,0.3)'">
+    <span>{flag}</span><span>{label}</span>
+    <svg width="10" height="10" viewBox="0 0 10 10" fill="none" style="opacity:.5">
+      <path d="M2 4L5 7L8 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+    </svg>
+  </button>
+  <div id="langFsMenu" style="
+    display:none;position:absolute;top:calc(100% + 6px);right:0;min-width:140px;padding:6px;
+    border-radius:12px;border:1px solid rgba(255,255,255,0.08);
+    background:rgba(26,26,46,0.7);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);
+    box-shadow:0 8px 32px rgba(0,0,0,0.4);
+  ">
+    <button style="display:flex;align-items:center;gap:8px;width:100%;padding:8px 12px;border:none;border-radius:8px;
+        background:transparent;color:{'#a78bfa' if current == 'zh' else '#a0a0b0'};font-size:13px;cursor:pointer;text-align:left;
+        font-weight:{'600' if current == 'zh' else '400'}"
+      onmouseover="this.style.background='rgba(124,58,237,0.2)';this.style.color='#f0f0f5'"
+      onmouseout="this.style.background='transparent';this.style.color='{'#a78bfa' if current == 'zh' else '#a0a0b0'}'"
+      onclick="langFsPick('zh')">🇨🇳 中文{" <span style='margin-left:auto;color:#a78bfa'>✓</span>" if current == 'zh' else ""}</button>
+    <button style="display:flex;align-items:center;gap:8px;width:100%;padding:8px 12px;border:none;border-radius:8px;
+        background:transparent;color:{'#a78bfa' if current == 'en' else '#a0a0b0'};font-size:13px;cursor:pointer;text-align:left;
+        font-weight:{'600' if current == 'en' else '400'}"
+      onmouseover="this.style.background='rgba(124,58,237,0.2)';this.style.color='#f0f0f5'"
+      onmouseout="this.style.background='transparent';this.style.color='{'#a78bfa' if current == 'en' else '#a0a0b0'}'"
+      onclick="langFsPick('en')">🇬🇧 English{" <span style='margin-left:auto;color:#a78bfa'>✓</span>" if current == 'en' else ""}</button>
+  </div>
+</div>
+<script>
+function langFsPick(l) {{
+  var m=document.getElementById('langFsMenu');
+  if(m)m.style.display='none';
+  // Navigate with lang query param to trigger Streamlit rerun
+  var p=new URLSearchParams(window.location.search);
+  p.set('lang',l);
+  var q=p.toString();
+  var url=window.location.pathname+(q?'?'+q:'');
+  window.parent.location.href=url;
+}}
+document.addEventListener('click',function(e){{
+  var w=document.getElementById('lang-fs-wrapper');
+  if(w&&!w.contains(e.target)){{
+    var m=document.getElementById('langFsMenu');
+    if(m)m.style.display='none';
+  }}
+}});
+</script>
+""", unsafe_allow_html=True)
 
 
 # ── Translation dictionary ──
