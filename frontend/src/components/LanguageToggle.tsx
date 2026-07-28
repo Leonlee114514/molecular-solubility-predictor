@@ -1,29 +1,53 @@
 import { useTranslation } from "react-i18next";
+import { Globe } from "lucide-react";
+
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 export default function LanguageToggle() {
   const { i18n } = useTranslation();
   const current = i18n.language.startsWith("zh") ? "zh" : "en";
 
-  const switchTo = (lang: "zh" | "en") => {
+  const switchTo = (lang: string) => {
     void i18n.changeLanguage(lang);
   };
 
   return (
-    <div className="inline-flex items-center rounded-full border border-ob-border bg-ob-surface/70 p-0.5 text-xs backdrop-blur">
-      {(["zh", "en"] as const).map((lang) => (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
         <button
-          key={lang}
           type="button"
-          onClick={() => switchTo(lang)}
-          className={`rounded-full px-3 py-1 transition-colors ${
-            current === lang
-              ? "bg-nebula text-white shadow-glow"
-              : "text-ob-muted hover:text-ob-text"
-          }`}
+          className="flex items-center gap-1.5 rounded-xl border border-ob-border/60 bg-ob-surface/60 px-3 py-2 text-xs text-ob-muted backdrop-blur-xl transition-all hover:border-nebula/50 hover:text-ob-text hover:shadow-glow/30"
         >
-          {lang === "zh" ? "中文" : "EN"}
+          <Globe className="size-3.5" />
+          <span>{current === "zh" ? "中文" : "EN"}</span>
         </button>
-      ))}
-    </div>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent
+        align="end"
+        sideOffset={6}
+        className="min-w-[120px] border-ob-border/50 bg-ob-surface/60 backdrop-blur-2xl"
+      >
+        <DropdownMenuRadioGroup value={current} onValueChange={switchTo}>
+          <DropdownMenuRadioItem
+            value="zh"
+            className="cursor-pointer text-sm text-ob-muted focus:text-ob-text data-[state=checked]:text-nebula-light"
+          >
+            <span className="mr-2">🇨🇳</span> 中文
+          </DropdownMenuRadioItem>
+          <DropdownMenuRadioItem
+            value="en"
+            className="cursor-pointer text-sm text-ob-muted focus:text-ob-text data-[state=checked]:text-nebula-light"
+          >
+            <span className="mr-2">🇬🇧</span> English
+          </DropdownMenuRadioItem>
+        </DropdownMenuRadioGroup>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }

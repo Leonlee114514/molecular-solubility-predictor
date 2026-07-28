@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { api, ApiError } from "@/api/client";
+import LanguageToggle from "@/components/LanguageToggle";
 import { clearHistory, loadHistory, pushHistory, type HistoryEntry } from "@/lib/history";
 import BatchSection from "@/sections/BatchSection";
 import HeaderSection from "@/sections/HeaderSection";
@@ -93,6 +94,10 @@ export default function Home() {
 
   return (
     <div className="relative min-h-screen bg-ob-bg text-ob-text">
+      {/* Floating language selector — top-right corner */}
+      <div className="fixed right-5 top-5 z-50">
+        <LanguageToggle />
+      </div>
       <main className="relative z-10 mx-auto flex max-w-6xl flex-col gap-6 px-4 pb-16">
         <HeaderSection />
         <InputSection selectedSmiles={smiles} onSelect={handleSelect} />
