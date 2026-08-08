@@ -73,7 +73,7 @@ def get_cjk_font():
 def render_header():
     """Render the DisSolve page title and introduction."""
     st.markdown(f"""
-    <div style="text-align:center; margin-top:1rem; margin-bottom:0.5rem;">
+    <div class="glossary-exclude" style="text-align:center; margin-top:1rem; margin-bottom:0.5rem;">
         <div class="tagline">{t('header.tagline')}</div>
         <h1 class="gradient-title">DisSolve</h1>
         <p class="subtitle">{t('header.subtitle')}</p>
@@ -81,7 +81,7 @@ def render_header():
     """, unsafe_allow_html=True)
 
     st.markdown(f"""
-    <div class="card-container" style="padding: 1.2rem 1.5rem; margin-bottom: 2rem;">
+    <div class="card-container glossary-exclude" style="padding: 1.2rem 1.5rem; margin-bottom: 2rem;">
         <p style="margin: 0; color: var(--ob-text-secondary); line-height: 1.7;">
             <b style="color: var(--ob-text-primary);">{t('header.welcome')}</b> {t('header.welcome_text')}
         </p>

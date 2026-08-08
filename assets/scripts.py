@@ -554,7 +554,7 @@ _GLOSSARY_JS = """<script>
             if (parent && !parent.closest('#gloss-popup') && !parent.closest('script') &&
                 !parent.closest('style') && !parent.closest('input') && !parent.closest('textarea') &&
                 !parent.closest('.gloss-term') && !parent.closest('code') && !parent.closest('pre') &&
-                !parent.closest('[data-testid="stMetricValue"]'))
+                !parent.closest('[data-testid="stMetricValue"]') && !parent.closest('.glossary-exclude'))
             {
                 if (node.nodeValue && node.nodeValue.trim().length > 0) {
                     out.push(node);
