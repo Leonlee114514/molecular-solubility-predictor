@@ -101,7 +101,7 @@ def render_language_selector():
     st.markdown(_LANG_SELECTOR_CSS, unsafe_allow_html=True)
 
     current = get_lang()
-    options = ["🇨🇳 中文", "🇬🇧 English"]
+    options = ["中文", "English"]
     index = 0 if current == "zh" else 1
 
     with st.container(key="lang_selector"):
@@ -164,12 +164,6 @@ div.st-key-lang_selector [data-baseweb="select"] svg {
 # ── Translation dictionary ──
 
 _ALL: dict[str, dict[str, str]] = {
-    # ============================================================
-    # Language selector
-    # ============================================================
-    "lang.zh_btn": {"zh": "🇨🇳 中文", "en": "🇨🇳 中文"},
-    "lang.en_btn": {"zh": "🇬🇧 English", "en": "🇬🇧 English"},
-
     # ============================================================
     # app.py – Page / Top-level
     # ============================================================
