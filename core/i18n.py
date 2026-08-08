@@ -92,19 +92,73 @@ def t(key, **kwargs):
 
 
 def render_language_selector():
-    """Render language toggle buttons in the page header."""
+    """Render a floating top-right frosted-glass language dropdown.
+
+    Uses a native st.selectbox pinned to the top-right corner via the
+    ``st-key-lang_selector`` container class. Opening it produces a
+    frosted-glass popup (styling lives in the theme CSS + the CSS below).
+    """
+    st.markdown(_LANG_SELECTOR_CSS, unsafe_allow_html=True)
+
     current = get_lang()
-    cols = st.columns([1, 1, 10])
-    with cols[0]:
-        if st.button("🇨🇳 中文" if current == "en" else "✅ 中文",
-                     key="lang_zh", use_container_width=True):
-            st.session_state[_LANG_KEY] = "zh"
-            st.rerun()
-    with cols[1]:
-        if st.button("✅ English" if current == "en" else "🇬🇧 English",
-                     key="lang_en", use_container_width=True):
-            st.session_state[_LANG_KEY] = "en"
-            st.rerun()
+    options = ["🇨🇳 中文", "🇬🇧 English"]
+    index = 0 if current == "zh" else 1
+
+    with st.container(key="lang_selector"):
+        choice = st.selectbox(
+            "Language",
+            options,
+            index=index,
+            key="lang_select_widget",
+            label_visibility="collapsed",
+        )
+
+    new_lang = "zh" if options.index(choice) == 0 else "en"
+    if new_lang != current:
+        st.session_state[_LANG_KEY] = new_lang
+        st.rerun()
+
+
+# CSS for the floating language dropdown (kept near the code it styles).
+_LANG_SELECTOR_CSS = """
+<style>
+/* ─── Floating language selector — top-right, frosted glass ─── */
+div.st-key-lang_selector {
+    position: fixed !important;
+    top: 1.1rem !important;
+    right: 1.1rem !important;
+    z-index: 1000 !important;
+    width: fit-content !important;
+}
+div.st-key-lang_selector [data-testid="stSelectbox"] > div { padding: 0 !important; }
+div.st-key-lang_selector [data-baseweb="select"] > div {
+    display: flex !important;
+    align-items: center !important;
+    min-height: 40px !important;
+    padding: 0.4rem 0.95rem !important;
+    border-radius: 999px !important;
+    border: 1px solid rgba(255, 255, 255, 0.14) !important;
+    background: linear-gradient(135deg, rgba(45, 45, 70, 0.55) 0%, rgba(24, 24, 42, 0.55) 100%) !important;
+    -webkit-backdrop-filter: blur(14px) saturate(150%) !important;
+    backdrop-filter: blur(14px) saturate(150%) !important;
+    box-shadow: 0 6px 24px -6px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(124, 58, 237, 0.10), 0 0 22px rgba(124, 58, 237, 0.08) !important;
+    color: var(--ob-text-primary) !important;
+    font-weight: 600 !important;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease !important;
+}
+div.st-key-lang_selector [data-baseweb="select"] > div:hover {
+    border-color: rgba(167, 139, 250, 0.55) !important;
+    box-shadow: 0 8px 30px -6px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(124, 58, 237, 0.22), 0 0 28px rgba(124, 58, 237, 0.15) !important;
+}
+div.st-key-lang_selector [data-baseweb="select"] svg {
+    color: var(--ob-nebula-light) !important;
+    margin-left: 0.5rem !important;
+}
+@media (max-width: 768px) {
+    div.st-key-lang_selector { top: 0.6rem !important; right: 0.6rem !important; }
+}
+</style>
+"""
 
 
 # ── Translation dictionary ──

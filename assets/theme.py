@@ -428,32 +428,69 @@ code, pre, .mono {
 }
 
 /* ─── 下拉菜单容器：全局强制覆盖（不局限在 .stSelectbox 内部） ─── */
-/* Streamlit 的下拉菜单位于 body 层级的 portal/overlay 中 */
+/* Streamlit 的下拉菜单位于 body 层级的 portal/overlay 中。
+   改为毛玻璃：菜单半透明背景 + backdrop-filter 模糊背后的星云/星空。 */
+html body [data-baseweb="popover"] {
+    background: transparent !important;
+    background-color: transparent !important;
+    box-shadow: none !important;
+}
+
 html body [data-baseweb="menu"],
-html body [data-baseweb="popover"],
 html body [data-baseweb="select"] [data-baseweb="menu"],
 html body div[role="listbox"],
 html body ul[role="listbox"] {
-    background: #1a1a2e !important;
-    background-color: #1a1a2e !important;
+    background: rgba(24, 24, 42, 0.72) !important;
+    background-color: rgba(24, 24, 42, 0.72) !important;
     background-image: none !important;
-    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    -webkit-backdrop-filter: blur(18px) saturate(150%) !important;
+    backdrop-filter: blur(18px) saturate(150%) !important;
+    border: 1px solid rgba(124, 58, 237, 0.22) !important;
     border-radius: var(--ob-radius-sm) !important;
-    box-shadow: 0 10px 30px -5px rgba(0,0,0,0.4) !important;
+    box-shadow: 0 20px 40px -10px rgba(0,0,0,0.5), 0 0 0 1px rgba(124,58,237,0.06), 0 0 30px rgba(124,58,237,0.10) !important;
     color: #e0e0e0 !important;
 }
 
-/* 菜单内直接子容器 —— 必须显式设回深色，覆盖浏览器/组件默认白底 */
+/* 菜单内直接子容器 —— 透明，露出毛玻璃模糊效果 */
 html body [data-baseweb="menu"] > div,
 html body [data-baseweb="menu"] > div > div:first-child,
 html body [data-baseweb="menu"] [role="listbox"],
 html body [data-baseweb="menu"] ul,
 html body div[role="listbox"] > div,
 html body ul[role="listbox"] > li {
-    background: #1a1a2e !important;
-    background-color: #1a1a2e !important;
+    background: transparent !important;
+    background-color: transparent !important;
     background-image: none !important;
     color: #e0e0e0 !important;
+}
+
+/* ─── Selectbox 虚拟化下拉列表（Streamlit ≥1.40 默认结构）─ 毛玻璃 ─── */
+html body [data-testid="stSelectboxVirtualDropdown"] {
+    background: rgba(24, 24, 42, 0.72) !important;
+    background-color: rgba(24, 24, 42, 0.72) !important;
+    -webkit-backdrop-filter: blur(18px) saturate(150%) !important;
+    backdrop-filter: blur(18px) saturate(150%) !important;
+    border: 1px solid rgba(124, 58, 237, 0.22) !important;
+    border-radius: 14px !important;
+    box-shadow: 0 20px 40px -10px rgba(0,0,0,0.5), 0 0 0 1px rgba(124,58,237,0.06), 0 0 30px rgba(124,58,237,0.10) !important;
+    overflow: hidden !important;
+}
+/* 虚拟列表内部滚动容器保持透明 */
+html body [data-testid="stSelectboxVirtualDropdown"] > div {
+    background: transparent !important;
+    background-color: transparent !important;
+    background-image: none !important;
+}
+/* 选项行悬停 / 选中态 */
+html body [data-testid="stSelectboxVirtualDropdown"] [role="option"]:hover {
+    background: rgba(124, 58, 237, 0.25) !important;
+    color: #ffffff !important;
+}
+html body [data-testid="stSelectboxVirtualDropdown"] [aria-selected="true"],
+html body [data-testid="stSelectboxVirtualDropdown"] [role="option"][aria-selected="true"] {
+    background: rgba(124, 58, 237, 0.32) !important;
+    color: #ffffff !important;
+    font-weight: 600 !important;
 }
 
 /* 下拉选项行 */
