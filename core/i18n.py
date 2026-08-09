@@ -477,7 +477,6 @@ _ALL: dict[str, dict[str, str]] = {
     # pKa result
     "result.pka.card_title": {"zh": "pKa Prediction", "en": "pKa Prediction"},
     "result.pka.metric": {"zh": "Predicted pKa", "en": "Predicted pKa"},
-    "result.pka.decomp_title": {"zh": "Chemical Factor Decomposition", "en": "Chemical Factor Decomposition"},
     "result.pka.chart_title": {"zh": "pKa = {val:.2f} | 化学因素分解", "en": "pKa = {val:.2f} | Chemical Factor Decomposition"},
     "result.pka.enhance_acid": {"zh": "增强酸性", "en": "Enhances acidity"},
     "result.pka.enhance_base": {"zh": "增强碱性", "en": "Enhances basicity"},
@@ -579,28 +578,10 @@ _ALL: dict[str, dict[str, str]] = {
     "result.pharma.admet_risk": {"zh": "[风险：{level}]", "en": "[Risk: {level}]"},
 
     # GNN Explainer
-    "result.gnn.title": {"zh": "GNN Explainability — 原子/边注意力分析", "en": "GNN Explainability — Atom/Bond Attention Analysis"},
     "result.gnn.desc": {
         "zh": "GNNExplainer 识别分子中对该分子溶解度预测最重要的化学键和原子特征。暖色 = 更高重要性。",
         "en": "GNNExplainer identifies the bonds and atom features most important for this molecule's solubility prediction. Warmer colors = higher importance.",
     },
-    "result.gnn.no_mol": {"zh": "无可解释的分子", "en": "No molecule to explain"},
-    "result.gnn.running": {"zh": "正在运行 GNNExplainer 分析（约 10-30 秒）...", "en": "Running GNNExplainer analysis (~10-30 seconds)..."},
-    "result.gnn.fail": {"zh": "GNN 解释生成失败: {err}", "en": "GNN explanation failed: {err}"},
-    "result.gnn.model_unavailable": {"zh": "GNN 解释生成失败（模型未加载或分子无法解析）", "en": "GNN explanation unavailable (model not loaded or molecule invalid)"},
-    "result.gnn.no_bonds": {"zh": "该分子无非氢键，无法进行边重要性分析", "en": "This molecule has no non-hydrogen bonds, cannot analyze bond importance"},
-    "result.gnn.img_caption": {"zh": "关键化学键高亮（暖色 = 更重要）", "en": "Key bond highlighting (warmer = more important)"},
-    "result.gnn.elapsed": {"zh": "分析耗时：", "en": "Analysis time: "},
-    "result.gnn.top_bonds": {"zh": "Top 最重要的化学键", "en": "Top most important bonds"},
-    "result.gnn.bond_importance": {"zh": "重要性: {imp:.3f} ({pct:.0f}%)", "en": "Importance: {imp:.3f} ({pct:.0f}%)"},
-    "result.gnn.atom_title": {"zh": "原子重要性（基于相连键汇总）", "en": "Atom Importance (aggregated from bond importance)"},
-    "result.gnn.feature_title": {"zh": "原子特征重要性", "en": "Atom Feature Importance"},
-    "result.gnn.how_to_read": {"zh": "如何读懂 GNN 解释", "en": "How to read GNN explanations"},
-    "result.gnn.how_to_read_desc": {
-        "zh": "GNNExplainer 通过分析消息传递路径，识别哪些化学键和原子特征对模型的溶解度预测贡献最大。高重要性（暖色）的键表示删除或改性该键会显著改变预测结果，是分子中结构-性质关系的关键位点。",
-        "en": "GNNExplainer identifies which bonds and atom features contribute most to the solubility prediction by analyzing message-passing paths. High-importance (warm-colored) bonds are key structure-property relationship sites.",
-    },
-
     # AI Explanation tab
     "result.ai.title": {"zh": "AI Chemistry Explanation", "en": "AI Chemistry Explanation"},
     "result.ai.clear_btn": {"zh": "清除解释", "en": "Clear"},
@@ -851,7 +832,7 @@ _ALL: dict[str, dict[str, str]] = {
     "result.solubility.shap_dir_down": {"zh": "向下", "en": "downward"},
 
     # pKa tab – chart labels
-    "result.pka.decomp_title": {"zh": "Chemical Factor Decomposition", "en": "Chemical Factor Decomposition"},
+    "result.pka.decomp_title": {"zh": "化学因素分解", "en": "Chemical Factor Decomposition"},
     "result.pka.chart_xlabel": {"zh": "对 {unit} 的贡献", "en": "Contribution to {unit}"},
     "result.pka.unit_acid": {"zh": "增强酸性", "en": "enhance acidity"},
     "result.pka.unit_base": {"zh": "增强碱性", "en": "enhance basicity"},

@@ -3,6 +3,8 @@
 Single-user local app: a plain dict + lock + daemon threads is sufficient.
 Each task runs services.prediction.predict_batch in a background thread and
 stores JSON-safe results (PredictionResult dicts and/or per-row error dicts).
+
+Completed tasks are pruned to bound memory usage on long-running servers.
 """
 
 import logging
@@ -13,6 +15,9 @@ import uuid
 from backend import prediction_result_to_dict
 
 logger = logging.getLogger(__name__)
+
+# How many finished (done/error) tasks to keep before pruning the oldest.
+_MAX_DONE_TASKS = 20
 
 
 class BatchTaskRegistry:
@@ -56,7 +61,22 @@ class BatchTaskRegistry:
                         task["error"] = str(e)
 
         threading.Thread(target=_worker, daemon=True, name=f"batch-{task_id}").start()
+
+        self._prune_done()
         return task_id
+
+    def _prune_done(self) -> None:
+        """Drop the oldest finished tasks, keeping the most recent _MAX_DONE_TASKS.
+
+        Running tasks are never pruned. Called under self._lock.
+        """
+        finished = [(tid, task) for tid, task in self._tasks.items() if task["status"] in ("done", "error")]
+        if len(finished) <= _MAX_DONE_TASKS:
+            return
+        # Order by creation time (stable for equal timestamps), drop the oldest.
+        finished.sort(key=lambda item: item[1]["created_at"])
+        for tid, _task in finished[: len(finished) - _MAX_DONE_TASKS]:
+            del self._tasks[tid]
 
     def get(self, task_id: str) -> dict | None:
         """Public view: {status, progress: {done, total}, results, error}."""

@@ -18,13 +18,13 @@ def cached_compute_features(smiles_string):
 
 @st.cache_data(show_spinner=False, ttl=3600)
 def cached_show_3d(smiles):
-    """Cached wrapper around features.show_3d_molecule."""
+    """Cached wrapper around ui.plots.show_3d_molecule."""
     return show_3d_molecule(smiles)
 
 
 @st.cache_data(show_spinner=False, ttl=3600)
 def cached_pka_analysis(smiles, pka_val):
-    """Cached wrapper around features.analyze_pka_chemistry."""
+    """Cached wrapper around core.analysis.analyze_pka_chemistry."""
     return analyze_pka_chemistry(smiles, pka_val)
 
 

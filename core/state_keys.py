@@ -44,17 +44,8 @@ class StateKey:
     # ── History ──
     PREDICTION_HISTORY = "prediction_history"
 
-    # ── Batch prediction ──
-    BATCH_RESULTS = "batch_results"
-
     # ── Molecule name tracking ──
     CURRENT_MOLECULE_NAME = "_current_molecule_name"
 
     # ── Internal ──
     TARGET_TAB = "_target_tab"
-
-    # ── GNN Explanation ──
-    GNN_EXPLANATION = "gnn_explanation"
-    GNN_BOND_IMPORTANCE = "gnn_bond_importance"
-    GNN_FEATURE_IMPORTANCE = "gnn_feature_importance"
-    GNN_EXPL_ELAPSED = "gnn_expl_elapsed"

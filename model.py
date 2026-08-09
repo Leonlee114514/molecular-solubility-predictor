@@ -59,13 +59,6 @@ def warmup_shap():
     get_shap_explainer(model)
 
 
-def predict_solubility(model, features_dict, fp_array):
-    """Run solubility prediction given features and fingerprint."""
-    import numpy as np
-    X = np.hstack([list(features_dict.values()), fp_array]).reshape(1, -1)
-    return float(model.predict(X)[0])
-
-
 def get_shap_contributions(model, features_dict, fp_array):
     """Compute SHAP values and return combined descriptor + fingerprint contributions."""
     import numpy as np

@@ -214,7 +214,7 @@ def _tab_solubility(features, prediction, interp, color, css_class, model):
                 title_color = "#f97316" if is_weighted else "#fbbf24"
                 _agree = t("result.solubility.good_agreement") if diff < 0.5 else (t("result.solubility.notable_disagreement") if diff < 1.0 else t("result.solubility.large_divergence"))
                 st.markdown(f"""
-                <div style="margin-top:0.8rem;padding:0.7rem 0.9rem;background:rgba({251 if is_weighted else 251},191,36,0.08);border-radius:10px;border:1px solid rgba({251 if is_weighted else 251},191,36,0.2);font-size:0.82rem;">
+                <div style="margin-top:0.8rem;padding:0.7rem 0.9rem;background:rgba(251,191,36,0.08);border-radius:10px;border:1px solid rgba(251,191,36,0.2);font-size:0.82rem;">
                     <b style="color:{title_color};">{title}</b><br>
                     <span style="color:#34d399;">{t('result.solubility.ensemble_rf')}</span> {rf_val:.3f} &nbsp;|&nbsp;
                     <span style="color:#a78bfa;">{t('result.solubility.ensemble_gnn')}</span> {gnn_val:.3f}<br>
@@ -907,13 +907,13 @@ def _tab_ai(features, prediction, pka_val, pka_type):
     with st.container(border=True):
         if st.session_state[StateKey.AI_EXPLANATION]:
             st.markdown(st.session_state[StateKey.AI_EXPLANATION])
-            if st.button(t("result.ai.clear_btn"), key="clear_ai"):
+            if st.button(t("result.ai.clear_btn"), key=StateKey.CLEAR_AI):
                 st.session_state[StateKey.AI_EXPLANATION] = None
                 st.session_state[StateKey.TARGET_TAB] = t("result.tab.ai")
                 st.rerun()
         else:
             st.caption(t("result.ai.need_manual"))
-            if st.button(t("result.ai.generate_btn"), key="gen_ai", use_container_width=True):
+            if st.button(t("result.ai.generate_btn"), key=StateKey.GEN_AI, use_container_width=True):
                 with st.spinner(t("result.ai.generating")):
                     pka_val_gen = st.session_state.get(StateKey.PREDICTED_PKA)
                     pka_type_gen = None

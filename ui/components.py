@@ -133,7 +133,7 @@ def _on_radio_select():
     """Callback when user actively selects a molecule from the radio list.
     Only fires on explicit user interaction, not on every script run.
     """
-    selected = st.session_state["molecule_select_radio"]
+    selected = st.session_state[StateKey.MOLECULE_SELECT_RADIO]
     if selected != "(自定义输入)":
         smiles = MOLECULE_DB.get(selected)
         if smiles:
@@ -155,7 +155,7 @@ def render_input_area():
         mol_search = st.text_input(
             t("input.method1.search_label"),
             placeholder=t("input.method1.search_placeholder"),
-            key="mol_search_filter",
+            key=StateKey.MOL_SEARCH_FILTER,
             label_visibility="collapsed"
         ).strip().lower()
 
@@ -178,7 +178,7 @@ def render_input_area():
             t("input.method1.select_label"),
             filtered_mols,
             index=current_idx,
-            key="molecule_select_radio",
+            key=StateKey.MOLECULE_SELECT_RADIO,
             label_visibility="collapsed",
             on_change=_on_radio_select,
         )
@@ -192,11 +192,11 @@ def render_input_area():
             search_name = st.text_input(
                 "search_name",
                 placeholder=t("input.method2.placeholder"),
-                key="search_name",
+                key=StateKey.SEARCH_NAME,
                 label_visibility="collapsed"
             )
         with search_col2:
-            search_clicked = st.button(t("input.method2.search_btn"), key="search_btn", use_container_width=True)
+            search_clicked = st.button(t("input.method2.search_btn"), key=StateKey.SEARCH_BTN, use_container_width=True)
 
         if StateKey.SEARCH_STATE not in st.session_state:
             st.session_state[StateKey.SEARCH_STATE] = None
@@ -255,9 +255,9 @@ def render_input_area():
 
                         confirm_col1, confirm_col2 = st.columns(2)
                         with confirm_col1:
-                            use_fuzzy = st.button(t("input.method2.confirm_btn"), key="use_fuzzy_match", use_container_width=True)
+                            use_fuzzy = st.button(t("input.method2.confirm_btn"), key=StateKey.USE_FUZZY_MATCH, use_container_width=True)
                         with confirm_col2:
-                            use_pubchem = st.button(t("input.method2.skip_btn"), key="skip_to_pubchem", use_container_width=True)
+                            use_pubchem = st.button(t("input.method2.skip_btn"), key=StateKey.SKIP_TO_PUBCHEM, use_container_width=True)
 
                         if use_fuzzy:
                             st.session_state[StateKey.SEARCH_STATE] = "fuzzy_confirmed"
