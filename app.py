@@ -7,7 +7,7 @@ import streamlit as st
 
 # Import t() early so it's available for st.set_page_config.
 # Importing core.i18n only defines functions + a dict — no Streamlit commands.
-from core.i18n import t
+from core.i18n import t, get_lang
 
 # CRITICAL: st.set_page_config() MUST be the first Streamlit command.
 # Importing core.cache or other modules with @st.cache_data triggers
@@ -424,6 +424,14 @@ with st.expander(t("app.batch.title"), expanded=False):
 
                     from features import compute_features
 
+                    # Localized batch-result column headers (shared by the table and CSV export).
+                    _is_en = get_lang() == "en"
+                    _c_model = "Model" if _is_en else "模型"
+                    _c_level = "Solubility Level" if _is_en else "溶解度等级"
+                    _c_rf = "RF_pred" if _is_en else "RF 预测"
+                    _c_gnn = "GNN_pred" if _is_en else "GNN 预测"
+                    _invalid = "Invalid SMILES" if _is_en else "无效 SMILES"
+
                     # Step 1: compute features for all molecules (RDKit is fast)
                     features_list = []
                     valid_indices = []
@@ -433,7 +441,7 @@ with st.expander(t("app.batch.title"), expanded=False):
                             results.append({
                                 "SMILES": smi,
                                 "logS": None,
-                                "Solubility Level": "Invalid SMILES",
+                                _c_level: _invalid,
                                 "pKa": None,
                                 "MolWt": None,
                                 "LogP": None,
@@ -549,34 +557,34 @@ with st.expander(t("app.batch.title"), expanded=False):
                                 row = {
                                     "SMILES": smiles_list[idx],
                                     "logS": f"{logS:.3f}",
-                                    "Model": f"Auto→{actual_m}",
-                                    "Solubility Level": level,
+                                    _c_model: f"Auto→{actual_m}",
+                                    _c_level: level,
                                     "pKa": f"{pKa_val:.2f}" if pKa_val is not None else "?",
                                     "MolWt": f"{features['MolWt']:.1f}",
                                     "LogP": f"{features['LogP']:.2f}",
-                                    "RF_pred": f"{rf_val:.3f}",
-                                    "GNN_pred": f"{gnn_val:.3f}" if gnn_val is not None else "?",
+                                    _c_rf: f"{rf_val:.3f}",
+                                    _c_gnn: f"{gnn_val:.3f}" if gnn_val is not None else "?",
                                     "|RF-GNN|": f"{abs(rf_val - gnn_val):.3f}" if gnn_val is not None else "?",
                                 }
                             elif batch_model_type == "Ensemble":
                                 row = {
                                     "SMILES": smiles_list[idx],
                                     "logS": f"{logS:.3f}",
-                                    "Model": batch_model_type,
-                                    "Solubility Level": level,
+                                    _c_model: batch_model_type,
+                                    _c_level: level,
                                     "pKa": f"{pKa_val:.2f}" if pKa_val is not None else "?",
                                     "MolWt": f"{features['MolWt']:.1f}",
                                     "LogP": f"{features['LogP']:.2f}",
-                                    "RF_pred": f"{rf_val:.3f}",
-                                    "GNN_pred": f"{gnn_val:.3f}" if gnn_val is not None else "?",
+                                    _c_rf: f"{rf_val:.3f}",
+                                    _c_gnn: f"{gnn_val:.3f}" if gnn_val is not None else "?",
                                     "|RF-GNN|": f"{abs(rf_val - gnn_val):.3f}" if gnn_val is not None else "?",
                                 }
                             else:
                                 row = {
                                     "SMILES": smiles_list[idx],
                                     "logS": f"{logS:.3f}",
-                                    "Model": batch_model_type,
-                                    "Solubility Level": level,
+                                    _c_model: batch_model_type,
+                                    _c_level: level,
                                     "pKa": f"{pKa_val:.2f}" if pKa_val is not None else "?",
                                     "MolWt": f"{features['MolWt']:.1f}",
                                     "LogP": f"{features['LogP']:.2f}",

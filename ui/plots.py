@@ -114,6 +114,104 @@ def mol_to_dark_image(mol, size=(500, 400)):
     return Image.fromarray(composed, "RGBA")
 
 
+def _importance_color(norm):
+    """Map normalized importance (0..1) to the purple→yellow highlight colour.
+
+    Must stay in sync with the per-bond gradient used in
+    mol_to_dark_image_with_importance.
+    """
+    n = max(0.0, min(1.0, norm))
+    return (
+        int(round((0.55 + 0.45 * n) * 255)),
+        int(round((0.25 + 0.65 * n) * 255)),
+        int(round((0.90 - 0.80 * n) * 255)),
+    )
+
+
+def _cjk_font_path():
+    """Return a font file path able to render CJK, or None if unavailable."""
+    import glob
+    import platform
+
+    if platform.system() == "Windows":
+        patterns = (
+            r"C:\Windows\Fonts\msyh*.ttc",
+            r"C:\Windows\Fonts\msyh*.ttf",
+            r"C:\Windows\Fonts\simhei.ttf",
+            r"C:\Windows\Fonts\simsun.ttc",
+        )
+    elif platform.system() == "Darwin":
+        patterns = (
+            "/System/Library/Fonts/PingFang.ttc",
+            "/System/Library/Fonts/Hiragino Sans GB.ttc",
+            "/Library/Fonts/Arial Unicode.ttf",
+        )
+    else:
+        patterns = (
+            "/usr/share/fonts/opentype/noto/*.ttc",
+            "/usr/share/fonts/truetype/noto/*.ttc",
+            "/usr/share/fonts/noto-cjk/*.ttc",
+            "/usr/share/fonts/truetype/wqy/*.ttf",
+            "/usr/share/fonts/opentype/source-han-sans/*.otf",
+        )
+    for pattern in patterns:
+        for fp in glob.glob(pattern):
+            return fp
+    return None
+
+
+def _draw_importance_legend(img, w, h):
+    """Append a horizontal purple→yellow importance scale below a structure image.
+
+    Gives the per-bond saturation gradient an explicit reference: left end is
+    low importance (dim purple), right end is high importance (bright yellow).
+    Labels are bilingual (低/Low, 高/High) when a CJK font is available.
+    """
+    from PIL import Image, ImageDraw, ImageFont
+
+    bar_w, bar_h = 180, 12
+    gap_top, gap_bottom = 16, 20
+    canvas = Image.new(
+        "RGBA", (w, h + gap_top + bar_h + gap_bottom), (42, 42, 60, 255)
+    )
+    canvas.paste(img, (0, 0))
+    draw = ImageDraw.Draw(canvas)
+
+    bx = (w - bar_w) // 2
+    by = h + gap_top
+    for i in range(bar_w):
+        norm = i / (bar_w - 1)
+        draw.line([(bx + i, by), (bx + i, by + bar_h)], fill=_importance_color(norm))
+    draw.rectangle([bx - 1, by - 1, bx + bar_w, by + bar_h], outline=(125, 125, 150, 255))
+
+    font = None
+    fp = _cjk_font_path()
+    if fp:
+        try:
+            font = ImageFont.truetype(fp, 13)
+        except Exception:
+            font = None
+    has_cjk = font is not None
+    if font is None:
+        font = ImageFont.load_default()
+    low, high = ("低 / Low", "高 / High") if has_cjk else ("Low", "High")
+
+    y = by + bar_h // 2 - 7
+    draw.text(
+        (bx - draw.textlength(low, font=font) - 12, y),
+        low,
+        fill=(205, 205, 220, 255),
+        font=font,
+    )
+    draw.text(
+        (bx + bar_w + 12, y),
+        high,
+        fill=(205, 205, 220, 255),
+        font=font,
+    )
+    return canvas
+
+
 def mol_to_dark_image_with_importance(mol, bond_weights, size=(500, 400)):
     """Render a 2D molecular structure with bonds highlighted by GNN importance.
 
@@ -191,4 +289,5 @@ def mol_to_dark_image_with_importance(mol, bond_weights, size=(500, 400)):
     glow_arr = np.array(glow, dtype=np.float32) * alpha * 0.2
     composed = np.clip(composed + glow_arr, 0, 255).astype(np.uint8)
 
-    return Image.fromarray(composed, "RGBA")
+    out = Image.fromarray(composed, "RGBA")
+    return _draw_importance_legend(out, w, h)

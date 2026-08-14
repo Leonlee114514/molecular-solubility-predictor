@@ -409,7 +409,7 @@ def _tab_pka(pka_val, pka_type, pka_label, pka_css, pka_text_color, pka_desc, fe
             st.caption(t("result.pka.factor_guide"))
             st.markdown(f"""
             <div style="margin-top: 0.3rem; padding: 0.65rem 0.9rem; background: rgba(124, 58, 237, 0.06); border-left: 2px solid rgba(124, 58, 237, 0.3); border-radius: 4px; font-size: 0.82rem; color: #a0a0b5; line-height: 1.9;">
-            <b style="color: #c4b5fd;">{t('result.pka.glossary_title')}</b> &nbsp;{'Click terms to see bilingual definition:' if get_lang() == 'en' else '点击术语查看中英双语定义：'}<br>
+            <b style="color: #c4b5fd;">{t('result.pka.glossary_title')}</b> &nbsp;{t('result.pka.glossary_click_hint')}<br>
             &bull; {t('result.pka.glossary_inductive')}<br>
             &bull; {t('result.pka.glossary_resonance')}<br>
             &bull; {t('result.pka.glossary_intra_hb')}<br>
@@ -450,7 +450,7 @@ def _tab_pharmacology(features, prediction, pka_val, pka_type, pka_label, pka_cs
                 fontweight='600', color='#d0d0e0', zorder=5)
         ax.text(0.03, i, threshold, va='center', ha='left', fontsize=9,
                 color='#7b7b8b', zorder=5)
-        icon = "PASS" if passed else "FAIL"
+        icon = t("result.pharma.lipinski_pass") if passed else t("result.pharma.lipinski_fail")
         ax.text(0.53, i, f"{actual}  [{icon}]", va='center', ha='center',
                 fontsize=11, fontweight='bold', color='#ffffff',
                 bbox=dict(boxstyle='round,pad=0.35', facecolor=(0, 0, 0, 0.55),
@@ -479,7 +479,7 @@ def _tab_pharmacology(features, prediction, pka_val, pka_type, pka_label, pka_cs
 
     st.markdown(f"""
     <div style="margin-top: 0.3rem; padding: 0.65rem 0.9rem; background: rgba(124, 58, 237, 0.06); border-left: 2px solid rgba(124, 58, 237, 0.3); border-radius: 4px; font-size: 0.82rem; color: #a0a0b5; line-height: 1.9;">
-    <b style="color: #c4b5fd;">{'About Lipinski' if get_lang() == 'en' else '关于 Lipinski'}</b><br>
+    <b style="color: #c4b5fd;">{t('result.pharma.lipinski_about')}</b><br>
     {t('result.pharma.lipinski_history_html')}
     </div>
     """, unsafe_allow_html=True)
@@ -493,7 +493,7 @@ def _tab_pharmacology(features, prediction, pka_val, pka_type, pka_label, pka_cs
             qed_val = dl["qed"]
             st.markdown(f"""
             <div style="text-align:center;padding:1.2rem 1rem;background:linear-gradient(155deg,rgba(30,30,50,0.75),rgba(18,18,35,0.65));border-radius:14px;border:1px solid rgba(124,58,237,0.12);backdrop-filter:blur(8px);">
-                <div style="font-size:0.7rem;color:#8b8b9b;text-transform:uppercase;letter-spacing:0.12em;margin-bottom:0.3rem;">Quantitative Estimate of Drug-likeness</div>
+                <div style="font-size:0.7rem;color:#8b8b9b;text-transform:uppercase;letter-spacing:0.12em;margin-bottom:0.3rem;">{t('result.pharma.qed_label')}</div>
             </div>
             """, unsafe_allow_html=True)
             st.markdown(f"""
@@ -511,7 +511,7 @@ def _tab_pharmacology(features, prediction, pka_val, pka_type, pka_label, pka_cs
             sa_pct = max(5, min(100, (1 - (sa_val - 1) / 9) * 100))
             st.markdown(f"""
             <div style="text-align:center;padding:1.2rem 1rem;background:linear-gradient(155deg,rgba(30,30,50,0.75),rgba(18,18,35,0.65));border-radius:14px;border:1px solid rgba(6,182,212,0.12);backdrop-filter:blur(8px);">
-                <div style="font-size:0.7rem;color:#8b8b9b;text-transform:uppercase;letter-spacing:0.12em;margin-bottom:0.3rem;">Synthetic Accessibility Score</div>
+                <div style="font-size:0.7rem;color:#8b8b9b;text-transform:uppercase;letter-spacing:0.12em;margin-bottom:0.3rem;">{t('result.pharma.sascore_label')}</div>
             </div>
             """, unsafe_allow_html=True)
             st.markdown(f"""
@@ -528,7 +528,7 @@ def _tab_pharmacology(features, prediction, pka_val, pka_type, pka_label, pka_cs
             fsp3_val = dl["fsp3"]
             st.markdown(f"""
             <div style="text-align:center;padding:1.2rem 1rem;background:linear-gradient(155deg,rgba(30,30,50,0.75),rgba(18,18,35,0.65));border-radius:14px;border:1px solid rgba(251,191,36,0.12);backdrop-filter:blur(8px);">
-                <div style="font-size:0.7rem;color:#8b8b9b;text-transform:uppercase;letter-spacing:0.12em;margin-bottom:0.3rem;">Fraction sp&sup3; Carbons</div>
+                <div style="font-size:0.7rem;color:#8b8b9b;text-transform:uppercase;letter-spacing:0.12em;margin-bottom:0.3rem;">{t('result.pharma.fsp3_label')}</div>
             </div>
             """, unsafe_allow_html=True)
             st.markdown(f"""
@@ -544,7 +544,7 @@ def _tab_pharmacology(features, prediction, pka_val, pka_type, pka_label, pka_cs
         st.markdown(f"""
         <div style="margin-top:0.6rem;text-align:center;font-size:0.72rem;color:#6b6b7b;">
         {t('result.pharma.fsp3_detail', n_sp3=dl['n_sp3'], n_carbon=dl['n_carbons'])}<br>
-        Refs: Bickerton et al. (2012), Ertl &amp; Schuffenhauer (2009), Lovering et al. (2009)
+        {t('result.pharma.refs')} Bickerton et al. (2012), Ertl &amp; Schuffenhauer (2009), Lovering et al. (2009)
         </div>
         """, unsafe_allow_html=True)
 
@@ -788,7 +788,7 @@ def _display_gnn_explanation():
                 from ui.plots import mol_to_dark_image
                 st.image(mol_to_dark_image(mol, (500, 400)), use_container_width=True)
         except Exception as e:
-            st.warning(f"Highlight image failed: {e}")
+            st.warning(t("result.gnn.highlight_fail", err=e))
             # fallback to standard image
             from ui.plots import mol_to_dark_image
             try:
@@ -816,7 +816,7 @@ def _display_gnn_explanation():
                 bond_type = str(bond.GetBondType()) if bond else "?"
                 label = f"{symbol_a}{a}—{symbol_b}{b} ({bond_type})"
             else:
-                label = f"Atom {a} — Atom {b}"
+                label = t("result.gnn.atom_bond_label", a=a, b=b)
             pct = imp * 100
             bar_color = f"rgba({int(140+115*imp)},{int(60+175*imp)},{int(230-200*imp)},0.6)"
             st.markdown(f"""

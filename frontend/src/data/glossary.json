@@ -174,6 +174,40 @@
   },
   {
     "keys": [
+      "GNN",
+      "图神经网络",
+      "Graph Neural Network"
+    ],
+    "en": "Graph Neural Network (GNN)",
+    "cn": "图神经网络",
+    "def": "一种直接在分子图上运行的深度学习模型。分子被视为图：原子是节点，化学键是边。GNN 通过消息传递逐层聚合邻居原子的信息，学习原子间相互作用如何影响溶解度。本应用使用 GNN 预测溶解度，并与随机森林结果进行集成对比。",
+    "defEn": "A deep learning model that operates directly on molecular graphs. Molecules are treated as graphs: atoms are nodes, bonds are edges. GNNs aggregate neighbor information via message passing to learn how atomic interactions affect solubility. This app uses a GNN for solubility prediction and compares/integrates it with the Random Forest."
+  },
+  {
+    "keys": [
+      "集成模型",
+      "集成学习",
+      "Ensemble",
+      "Ensemble Model"
+    ],
+    "en": "Ensemble Model",
+    "cn": "集成模型",
+    "def": "将多个模型的预测组合成更稳健结果的方法。本应用采用加权集成：RF 权重 0.45、GNN 权重 0.55（即 Ensemble(W)），综合传统描述符建模与图神经网络的各自优势。当两模型分歧较大时，系统会提示预测可靠性降低。",
+    "defEn": "A method that combines predictions from multiple models into a more robust result. This app uses a weighted ensemble (RF 0.45 + GNN 0.55, i.e. Ensemble(W)) to leverage the strengths of both descriptor-based modeling and graph neural networks. When the two models disagree strongly, the app warns that reliability is reduced."
+  },
+  {
+    "keys": [
+      "分布外",
+      "Out-of-Distribution",
+      "OOD"
+    ],
+    "en": "Out-of-Distribution (OOD)",
+    "cn": "分布外",
+    "def": "待预测分子与训练模型所用分子的化学空间差异过大的情况。分布外分子的预测可靠性较低。本应用通过检查分子描述符是否超出训练集范围、以及分子指纹与训练集的相似度来判断 OOD 风险。",
+    "defEn": "A situation where the query molecule lies too far outside the chemical space of the molecules the model was trained on. Predictions for out-of-distribution molecules are less reliable. This app estimates OOD risk by checking whether descriptors fall outside training ranges and by measuring fingerprint similarity to the training set."
+  },
+  {
+    "keys": [
       "SHAP"
     ],
     "en": "SHAP (SHapley Additive exPlanations)",
@@ -221,6 +255,36 @@
     "cn": "分子态（非电离形式）",
     "def": "分子在中性状态下未发生电离的形式。分子态通常脂溶性较高，更容易穿透细胞膜被吸收。",
     "defEn": "The neutral, non-ionized form of a molecule. Unionized forms are typically more lipid-soluble and can more easily cross cell membranes for absorption."
+  },
+  {
+    "keys": [
+      "离子态",
+      "Ionized Form"
+    ],
+    "en": "Ionized Form",
+    "cn": "离子态（电离形式）",
+    "def": "分子在溶液中电离后形成的带电形式（阳离子或阴离子）。离子态分子通常水溶性好但脂溶性差，难以穿透细胞膜——与分子态（非电离形式）相对。电离状态由环境 pH 与分子 pKa 的关系决定。",
+    "defEn": "The charged form of a molecule (cation or anion) after ionization in solution. Ionized forms are typically water-soluble but poorly lipid-soluble, making membrane crossing difficult — the counterpart of the unionized form. Ionization state is governed by the relationship between environmental pH and the molecule's pKa."
+  },
+  {
+    "keys": [
+      "两性分子",
+      "两性",
+      "Amphoteric"
+    ],
+    "en": "Amphoteric",
+    "cn": "两性分子",
+    "def": "同时含酸性基团与碱性基团的分子，如既有羧基（-COOH）又有氨基（-NH2）的氨基酸。两性分子在酸性环境中呈阳离子、在碱性环境中呈阴离子。本应用中 pKa 介于 5-9 的分子被归为两性/中性。",
+    "defEn": "A molecule containing both acidic and basic groups, such as an amino acid with carboxyl (-COOH) and amino (-NH2) groups. Amphoteric molecules are cationic in acidic environments and anionic in basic ones. In this app, molecules with pKa between 5 and 9 are classified as amphoteric/neutral."
+  },
+  {
+    "keys": [
+      "pH"
+    ],
+    "en": "pH",
+    "cn": "pH 值",
+    "def": "衡量溶液酸碱度的指标，为氢离子浓度的负对数。pH 越低酸性越强，越高碱性越强。人体各部位 pH 差异很大（胃约 1-2，小肠约 6-7），决定药物在各部位以分子态还是离子态存在，从而影响吸收。",
+    "defEn": "A measure of solution acidity, the negative logarithm of the hydrogen ion concentration. Lower pH = more acidic; higher pH = more basic. Human body compartments differ widely in pH (stomach ~1-2, small intestine ~6-7), which determines whether a drug exists in unionized or ionized form at each site and thus how it is absorbed."
   },
   {
     "keys": [
@@ -393,6 +457,86 @@
     "cn": "ADME/Tox 药代动力学",
     "def": "药物在体内的吸收 (Absorption)、分布 (Distribution)、代谢 (Metabolism)、排泄 (Excretion) 和毒性 (Toxicity) 五个关键过程。合称 ADME/Tox，是药物发现和开发中必须评估的核心性质。",
     "defEn": "The five key processes governing a drug's fate in the body: Absorption, Distribution, Metabolism, Excretion, and Toxicity. ADME/Tox properties must be evaluated for any drug candidate during discovery and development."
+  },
+  {
+    "keys": [
+      "吸收",
+      "Absorption"
+    ],
+    "en": "Absorption",
+    "cn": "吸收",
+    "def": "药物从给药部位进入血液循环的过程。口服药物吸收主要发生在小肠（表面积大、血流丰富），部分酸性药物可在胃中开始吸收。吸收程度受分子极性（TPSA）、脂溶性（LogP）、电离状态（pKa 与 pH）及氢键能力影响。",
+    "defEn": "The process of a drug entering the bloodstream from its administration site. For oral drugs, absorption occurs mainly in the small intestine (large surface area, rich blood flow); some acidic drugs begin absorbing in the stomach. Absorption is governed by polarity (TPSA), lipophilicity (LogP), ionization state (pKa vs pH), and H-bond capacity."
+  },
+  {
+    "keys": [
+      "分布",
+      "Distribution"
+    ],
+    "en": "Distribution",
+    "cn": "分布",
+    "def": "药物从血液进入组织和器官的过程。表观分布容积（Vd）越大，药物越倾向于分布到组织；血浆蛋白结合率影响游离药物浓度；血脑屏障（BBB）决定药物能否进入中枢神经系统。",
+    "defEn": "The process of a drug moving from blood into tissues and organs. A larger volume of distribution (Vd) means the drug favors tissue distribution; plasma protein binding affects free-drug concentration; the blood-brain barrier (BBB) governs CNS penetration."
+  },
+  {
+    "keys": [
+      "代谢",
+      "Metabolism"
+    ],
+    "en": "Metabolism",
+    "cn": "代谢",
+    "def": "药物在体内（主要在肝脏）被酶催化转化的过程。I 相代谢（氧化/还原/水解）主要由 CYP450 酶系催化；II 相代谢（结合反应）将葡萄糖醛酸、硫酸等基团连接到分子上，增加水溶性、便于排泄。",
+    "defEn": "The enzymatic transformation of a drug in the body, mainly in the liver. Phase I (oxidation/reduction/hydrolysis) is catalyzed mainly by CYP450 enzymes; Phase II (conjugation) attaches groups such as glucuronic acid or sulfate to increase water solubility and facilitate excretion."
+  },
+  {
+    "keys": [
+      "排泄",
+      "Excretion"
+    ],
+    "en": "Excretion",
+    "cn": "排泄",
+    "def": "药物及其代谢物从体内清除的过程。分子量小于 350 Da 且极性适中的分子主要通过肾脏滤过进入尿液；分子量大于 500 Da 或高度亲脂的分子倾向于通过胆汁排入肠道。肾小管重吸收可使亲脂性分子重新进入血液，延长半衰期。",
+    "defEn": "The elimination of a drug and its metabolites from the body. Molecules with MW < 350 Da and moderate polarity are filtered by the kidneys into urine; molecules with MW > 500 Da or highly lipophilic molecules tend to be excreted via bile. Tubular reabsorption can return lipophilic molecules to the blood, prolonging half-life."
+  },
+  {
+    "keys": [
+      "毒性",
+      "Toxicity"
+    ],
+    "en": "Toxicity",
+    "cn": "毒性",
+    "def": "药物对机体造成损害的能力。本应用的毒性评估基于结构警报——历史上与毒性相关的特定子结构。但结构警报只是初筛工具、存在假阳性；实际毒性需通过 Ames 试验、hERG 测试、动物实验与临床试验逐级验证。",
+    "defEn": "The capacity of a drug to cause harm to an organism. This app's toxicity assessment is based on structural alerts — specific substructures historically associated with toxicity. Alerts are only a screening tool with false positives; actual toxicity must be validated through Ames tests, hERG assays, animal studies, and clinical trials."
+  },
+  {
+    "keys": [
+      "半衰期",
+      "Half-life",
+      "Half Life"
+    ],
+    "en": "Half-life",
+    "cn": "半衰期",
+    "def": "体内药物浓度下降一半所需的时间。半衰期决定给药频率：半衰期短的药物需多次给药以维持有效浓度。亲脂性分子被肾小管重吸收后，半衰期可能延长。",
+    "defEn": "The time required for the drug concentration in the body to fall to half its initial value. Half-life determines dosing frequency: drugs with short half-lives need more frequent dosing to maintain effective levels. Reabsorption of lipophilic molecules can prolong half-life."
+  },
+  {
+    "keys": [
+      "膜渗透性",
+      "Membrane Permeability"
+    ],
+    "en": "Membrane Permeability",
+    "cn": "膜渗透性",
+    "def": "分子穿过细胞膜的能力。分子态（非电离、低 TPSA、适中 LogP）分子更容易穿透细胞膜；离子态及极性强的分子穿透力较弱。膜渗透性是口服吸收的关键决定因素。",
+    "defEn": "The ability of a molecule to cross cell membranes. Unionized molecules with low TPSA and moderate LogP cross membranes readily; ionized and highly polar molecules penetrate poorly. Membrane permeability is a key determinant of oral absorption."
+  },
+  {
+    "keys": [
+      "hERG"
+    ],
+    "en": "hERG (human Ether-à-go-go-Related Gene)",
+    "cn": "hERG 钾离子通道",
+    "def": "编码心脏快速延迟整流钾离子通道（IKr）的基因。许多药物抑制 hERG 通道会延长 QT 间期，可能引发致命性心律失常（尖端扭转型室速）。hERG 抑制是药物开发中必须筛查的心脏毒性风险。",
+    "defEn": "The gene encoding the cardiac rapid delayed-rectifier potassium channel (IKr). Many drugs that inhibit hERG prolong the QT interval, potentially causing a fatal arrhythmia (torsades de pointes). hERG inhibition is a cardiotoxicity risk that must be screened during drug development."
   },
   {
     "keys": [

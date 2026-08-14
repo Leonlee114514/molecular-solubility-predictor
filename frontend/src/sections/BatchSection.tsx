@@ -21,6 +21,21 @@ const OOD_COLORS: Record<string, string> = {
   UNKNOWN: "#6b6b7b",
 };
 
+// Raw enums from the API map to i18n keys so both languages localize.
+const MODEL_BADGE_KEYS: Record<string, string> = {
+  RF: "result.solubility.badge_rf",
+  GNN: "result.solubility.badge_gnn",
+  Ensemble: "result.solubility.badge_ensemble",
+  "Ensemble(W)": "result.solubility.badge_weighted",
+};
+
+const OOD_KEYS: Record<string, string> = {
+  LOW: "ood.risk.low",
+  MEDIUM: "ood.risk.medium",
+  HIGH: "ood.risk.high",
+  UNKNOWN: "ood.risk.unknown",
+};
+
 const POLL_MS = 1500;
 
 /** Build the results CSV client-side (columns per Phase-4 spec). */
@@ -368,7 +383,9 @@ export default function BatchSection({ mode }: BatchSectionProps) {
                           <td className="px-3 py-1.5 tabular-nums text-nebula-light">
                             {row.logS_final.toFixed(3)}
                           </td>
-                          <td className="px-3 py-1.5 text-ob-muted">{row.model_used}</td>
+                          <td className="px-3 py-1.5 text-ob-muted">
+                            {t(MODEL_BADGE_KEYS[row.model_used] ?? row.model_used)}
+                          </td>
                           <td className="px-3 py-1.5 tabular-nums text-cyan-300">
                             {row.pka != null ? row.pka.toFixed(2) : "—"}
                           </td>
@@ -381,7 +398,7 @@ export default function BatchSection({ mode }: BatchSectionProps) {
                                   background: `${OOD_COLORS[row.ood_risk] ?? OOD_COLORS.UNKNOWN}22`,
                                 }}
                               >
-                                {row.ood_risk}
+                                {t(OOD_KEYS[row.ood_risk] ?? "ood.risk.unknown")}
                               </span>
                             ) : (
                               <span className="text-ob-faint">—</span>

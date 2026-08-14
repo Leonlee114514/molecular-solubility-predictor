@@ -179,15 +179,15 @@ _ALL: dict[str, dict[str, str]] = {
 
     # Model selector
     "app.model.label": {"zh": "模型选择", "en": "Model Selection"},
-    "app.model.auto": {"zh": "Auto (智能选择)", "en": "Auto (Smart Selection)"},
-    "app.model.rf": {"zh": "RF (Random Forest)", "en": "RF (Random Forest)"},
-    "app.model.gnn": {"zh": "GNN (Graph Neural Network)", "en": "GNN (Graph Neural Network)"},
-    "app.model.ensemble": {"zh": "Ensemble (RF + GNN)", "en": "Ensemble (RF + GNN)"},
+    "app.model.auto": {"zh": "自动（智能选择）", "en": "Auto (Smart Selection)"},
+    "app.model.rf": {"zh": "RF（随机森林）", "en": "RF (Random Forest)"},
+    "app.model.gnn": {"zh": "GNN（图神经网络）", "en": "GNN (Graph Neural Network)"},
+    "app.model.ensemble": {"zh": "集成模型（RF + GNN）", "en": "Ensemble (RF + GNN)"},
     "app.model.gnn_missing": {
         "zh": "GNN 模型未找到，仅 RF 可用。运行 `python scripts/train_gnn.py` 训练 GNN 模型。",
         "en": "GNN model not found. Only RF available. Run `python scripts/train_gnn.py` to train the GNN model.",
     },
-    "app.predict_btn": {"zh": "Predict Solubility", "en": "Predict Solubility"},
+    "app.predict_btn": {"zh": "预测溶解度", "en": "Predict Solubility"},
 
     # Prediction – warnings / errors
     "app.predict.empty": {
@@ -195,14 +195,14 @@ _ALL: dict[str, dict[str, str]] = {
         "en": "Please enter or select a molecule SMILES first",
     },
     "app.predict.status": {"zh": "正在分析分子结构...", "en": "Analyzing molecular structure..."},
-    "app.predict.step.parse": {"zh": "Step 1/4: 解析分子结构...", "en": "Step 1/4: Parsing molecular structure..."},
+    "app.predict.step.parse": {"zh": "步骤 1/4：解析分子结构...", "en": "Step 1/4: Parsing molecular structure..."},
     "app.predict.step.parse_fail": {"zh": "解析失败", "en": "Parsing failed"},
-    "app.predict.step.rf": {"zh": "Step 2/5: Random Forest 预测溶解度...", "en": "Step 2/5: Random Forest predicting solubility..."},
-    "app.predict.step.pka": {"zh": "Step 3/5: 预测 pKa 与电离行为...", "en": "Step 3/5: Predicting pKa & ionization..."},
-    "app.predict.step.ood": {"zh": "Step 3+/5: OOD 分布检测，智能选择模型...", "en": "Step 3+/5: OOD detection, smart model selection..."},
-    "app.predict.step.gnn": {"zh": "Step 4/5: GNN 预测溶解度...", "en": "Step 4/5: GNN predicting solubility..."},
-    "app.predict.step.shap": {"zh": "Step 5/5: SHAP 可解释性分析...", "en": "Step 5/5: SHAP explainability analysis..."},
-    "app.predict.step.ood_post": {"zh": "Step 5+/5: OOD 分布检测...", "en": "Step 5+/5: OOD distribution detection..."},
+    "app.predict.step.rf": {"zh": "步骤 2/5：随机森林预测溶解度...", "en": "Step 2/5: Random Forest predicting solubility..."},
+    "app.predict.step.pka": {"zh": "步骤 3/5：预测 pKa 与电离行为...", "en": "Step 3/5: Predicting pKa & ionization..."},
+    "app.predict.step.ood": {"zh": "步骤 3+/5：OOD 分布检测，智能选择模型...", "en": "Step 3+/5: OOD detection, smart model selection..."},
+    "app.predict.step.gnn": {"zh": "步骤 4/5：GNN 预测溶解度...", "en": "Step 4/5: GNN predicting solubility..."},
+    "app.predict.step.shap": {"zh": "步骤 5/5：SHAP 可解释性分析...", "en": "Step 5/5: SHAP explainability analysis..."},
+    "app.predict.step.ood_post": {"zh": "步骤 5+/5：OOD 分布检测...", "en": "Step 5+/5: OOD distribution detection..."},
     "app.predict.complete": {
         "zh": "分析完成！[{model}] 预测 logS = {logS:.3f}",
         "en": "Analysis complete! [{model}] Predicted logS = {logS:.3f}",
@@ -210,7 +210,7 @@ _ALL: dict[str, dict[str, str]] = {
     "app.predict.complete_state": {"zh": "complete", "en": "complete"},
 
     # SMILES error
-    "app.error.invalid_smiles": {"zh": "Invalid SMILES: `{smiles}`", "en": "Invalid SMILES: `{smiles}`"},
+    "app.error.invalid_smiles": {"zh": "无效的 SMILES：`{smiles}`", "en": "Invalid SMILES: `{smiles}`"},
     "app.error.parse_fail_info": {
         "zh": "该 SMILES 无法被 RDKit 解析。可能原因：",
         "en": "This SMILES could not be parsed by RDKit. Possible causes:",
@@ -246,11 +246,11 @@ _ALL: dict[str, dict[str, str]] = {
     "app.model_label.rf": {"zh": "RF", "en": "RF"},
     "app.model_label.gnn": {"zh": "GNN", "en": "GNN"},
     "app.model_label.ensemble": {"zh": "Ensemble", "en": "Ensemble"},
-    "app.model_label.auto": {"zh": "Auto → {actual}", "en": "Auto → {actual}"},
+    "app.model_label.auto": {"zh": "自动 → {actual}", "en": "Auto → {actual}"},
 
     # Toast
     "app.toast.prediction": {
-        "zh": "预测: name={name} logS={logS:.3f} pKa={pKa}",
+        "zh": "预测：{name} logS={logS:.3f} pKa={pKa}",
         "en": "Prediction: name={name} logS={logS:.3f} pKa={pKa}",
     },
 
@@ -294,13 +294,13 @@ _ALL: dict[str, dict[str, str]] = {
     # ============================================================
     # ui/components.py – Header / Footer / Input
     # ============================================================
-    "header.tagline": {"zh": "AI-POWERED MOLECULAR PROPERTY PREDICTION", "en": "AI-POWERED MOLECULAR PROPERTY PREDICTION"},
+    "header.tagline": {"zh": "AI 驱动的分子性质预测", "en": "AI-POWERED MOLECULAR PROPERTY PREDICTION"},
     "header.title": {"zh": "DisSolve", "en": "DisSolve"},
     "header.subtitle": {
         "zh": "从分子结构预测水溶解度、pKa 与药理学特征",
         "en": "Predict Aqueous Solubility, pKa & Pharmacological Profiles from Molecular Structure",
     },
-    "header.welcome": {"zh": "Welcome!", "en": "Welcome!"},
+    "header.welcome": {"zh": "欢迎！", "en": "Welcome!"},
     "header.welcome_text": {
         "zh": "本应用基于<b>机器学习</b>模型（训练数据包含 <b>11,000+ 有机化合物</b>），从分子结构预测水溶解度(logS)、酸碱行为(pKa)和药理学特征。支持 2D & 3D 分子结构可视化、pKa 化学原理分析和 AI 生成的结构解释。",
         "en": "This app predicts aqueous solubility (logS), acid-base behavior (pKa), and pharmacological profiles from molecular structure using a <b>Machine Learning</b> model trained on <b>11,000+ organic compounds</b>. Explore 2D & 3D molecular structures, pKa chemistry insights, and AI-generated explanations.",
@@ -309,9 +309,9 @@ _ALL: dict[str, dict[str, str]] = {
     "header.badge_search": {"zh": "名称搜索", "en": "Name Search"},
     "header.badge_smiles": {"zh": "SMILES 输入", "en": "SMILES Input"},
 
-    "footer.subtitle": {"zh": "溶解度预测 · pKa分析 · 药理学评估 | AI-Powered Chemistry Platform", "en": "Solubility · pKa · Pharmacology | AI-Powered Chemistry Platform"},
+    "footer.subtitle": {"zh": "溶解度预测 · pKa 分析 · 药理学评估 | AI 驱动的化学平台", "en": "Solubility · pKa · Pharmacology | AI-Powered Chemistry Platform"},
     "footer.built_with": {
-        "zh": "Built with Streamlit | ML: Random Forest + GNN | AI: Kimi (Moonshot AI) | DB: 100+ local + PubChem API",
+        "zh": "基于 Streamlit 构建 | 机器学习：随机森林 + 图神经网络 | AI：Kimi（Moonshot AI）| 数据库：100+ 本地分子 + PubChem API",
         "en": "Built with Streamlit | ML: Random Forest + GNN | AI: Kimi (Moonshot AI) | DB: 100+ local + PubChem API",
     },
 
@@ -328,7 +328,7 @@ _ALL: dict[str, dict[str, str]] = {
     "input.method2.placeholder": {"zh": "例如 阿司匹林 或 Aspirin", "en": "e.g. Aspirin or Ibuprofen"},
     "input.method2.search_btn": {"zh": "搜索", "en": "Search"},
     "input.method2.exact_match": {"zh": "本地精确匹配：`{name}` -> `{smiles}`", "en": "Local exact match: `{name}` -> `{smiles}`"},
-    "input.method2.try_predict": {"zh": "点击下方的 **Predict** 按钮查看结果", "en": "Click the **Predict** button below to view results"},
+    "input.method2.try_predict": {"zh": "点击下方的 **预测** 按钮查看结果", "en": "Click the **Predict** button below to view results"},
     "input.method2.fuzzy_match": {"zh": "本地模糊匹配：`{name}` → `{best}`", "en": "Local fuzzy match: `{name}` → `{best}`"},
     "input.method2.fuzzy_see_all": {"zh": "查看全部 {n} 个模糊匹配结果", "en": "View all {n} fuzzy matches"},
     "input.method2.confirm_btn": {"zh": "✅ 确认使用此结果", "en": "✅ Confirm this result"},
@@ -349,7 +349,7 @@ _ALL: dict[str, dict[str, str]] = {
     "input.method2.manual_step2": {"zh": "在搜索框输入分子名称（英文，如 **Aspirin**）", "en": "Enter the molecule name in the search box (e.g. **Aspirin**)"},
     "input.method2.manual_step3": {"zh": "进入化合物页面，找到 **Canonical SMILES** 字段", "en": "Go to the compound page and find the **Canonical SMILES** field"},
     "input.method2.manual_step4": {"zh": "复制 SMILES 字符串（如 ", "en": "Copy the SMILES string (e.g. "},
-    "input.method2.manual_step5": {"zh": "粘贴到下方的 \"方式 3\" 文本框中，点击 Predict", "en": "Paste it into Method 3 below and click Predict"},
+    "input.method2.manual_step5": {"zh": "粘贴到下方的 \"方式 3\" 文本框中，点击预测", "en": "Paste it into Method 3 below and click Predict"},
 
     # ── Input Method 3: SMILES ──
     "input.method3.title": {"zh": "方式 3：直接输入 SMILES", "en": "Method 3: Enter SMILES Directly"},
@@ -383,47 +383,47 @@ _ALL: dict[str, dict[str, str]] = {
     # ui/results.py – Results tabs
     # ============================================================
     # Tab names
-    "result.tab.preview": {"zh": "Preview", "en": "Preview"},
-    "result.tab.solubility": {"zh": "Solubility", "en": "Solubility"},
+    "result.tab.preview": {"zh": "预览", "en": "Preview"},
+    "result.tab.solubility": {"zh": "溶解度", "en": "Solubility"},
     "result.tab.pka": {"zh": "pKa", "en": "pKa"},
-    "result.tab.pharmacology": {"zh": "Pharmacology", "en": "Pharmacology"},
-    "result.tab.ai": {"zh": "AI Explanation", "en": "AI Explanation"},
+    "result.tab.pharmacology": {"zh": "药理学", "en": "Pharmacology"},
+    "result.tab.ai": {"zh": "AI 解释", "en": "AI Explanation"},
 
     # OOD warnings
-    "result.ood.high.title": {"zh": "**Out-of-Distribution 警告 — 预测可能不可靠**", "en": "**Out-of-Distribution Warning — Prediction may be unreliable**"},
+    "result.ood.high.title": {"zh": "**分布外（OOD）警告 — 预测可能不可靠**", "en": "**Out-of-Distribution Warning — Prediction may be unreliable**"},
     "result.ood.high.desc": {
         "zh": "该分子严重偏离训练数据分布，预测值可能极不可靠。建议仅用作定性参考，不要依赖具体数值。",
         "en": "This molecule deviates significantly from the training data distribution. Prediction may be highly unreliable — use only as a qualitative reference.",
     },
-    "result.ood.medium.title": {"zh": "**Out-of-Distribution 注意 — 预测可能有一定误差**", "en": "**Out-of-Distribution Notice — Prediction may have some error**"},
+    "result.ood.medium.title": {"zh": "**分布外（OOD）注意 — 预测可能有一定误差**", "en": "**Out-of-Distribution Notice — Prediction may have some error**"},
     "result.ood.medium.desc": {
         "zh": "该分子部分偏离训练数据分布，预测值可能存在较大误差。建议谨慎解读预测结果。",
         "en": "This molecule partially deviates from the training data distribution. Results may have notable error. Interpret with caution.",
     },
     "result.ood.low": {
-        "zh": "In-Distribution — 该分子在训练数据化学空间内，预测较为可靠",
+        "zh": "分布内 — 该分子在训练数据化学空间内，预测较为可靠",
         "en": "In-Distribution — This molecule falls within the training data chemical space. Prediction is reliable.",
     },
 
     # Tab 0 – Preview
-    "result.preview.card_title": {"zh": "Molecule Preview", "en": "Molecule Preview"},
-    "result.preview.img_caption": {"zh": "2D Molecular Structure", "en": "2D Molecular Structure"},
+    "result.preview.card_title": {"zh": "分子预览", "en": "Molecule Preview"},
+    "result.preview.img_caption": {"zh": "2D 分子结构", "en": "2D Molecular Structure"},
     "result.preview.img_fail": {"zh": "无法显示2D结构图", "en": "Unable to display 2D structure"},
     "result.preview.img_error": {"zh": "结构图生成失败: {err}", "en": "Structure image generation failed: {err}"},
-    "result.preview.formula": {"zh": "Molecular Formula", "en": "Molecular Formula"},
-    "result.preview.mol_weight": {"zh": "Molecular Weight", "en": "Molecular Weight"},
+    "result.preview.formula": {"zh": "分子式", "en": "Molecular Formula"},
+    "result.preview.mol_weight": {"zh": "分子量", "en": "Molecular Weight"},
     "result.preview.smiles_label": {"zh": "SMILES", "en": "SMILES"},
     "result.preview.struct_fail": {"zh": "无法解析分子结构", "en": "Unable to parse molecular structure"},
-    "result.preview.model3d": {"zh": "3D Ball-and-Stick Model", "en": "3D Ball-and-Stick Model"},
+    "result.preview.model3d": {"zh": "3D 球棍模型", "en": "3D Ball-and-Stick Model"},
     "result.preview.model3d_fail": {"zh": "3D 模型生成失败（需安装 py3Dmol）", "en": "3D model generation failed (py3Dmol required)"},
 
     # Tab 1 – Solubility
-    "result.solubility.card_title": {"zh": "Solubility Prediction", "en": "Solubility Prediction"},
-    "result.solubility.badge_rf": {"zh": "Random Forest", "en": "Random Forest"},
-    "result.solubility.badge_gnn": {"zh": "Graph Neural Network", "en": "Graph Neural Network"},
-    "result.solubility.badge_ensemble": {"zh": "Ensemble (RF+GNN)", "en": "Ensemble (RF+GNN)"},
-    "result.solubility.badge_weighted": {"zh": "Weighted Ensemble (0.45×RF+0.55×GNN)", "en": "Weighted Ensemble (0.45×RF+0.55×GNN)"},
-    "result.solubility.metric_logs": {"zh": "Predicted Solubility (logS)", "en": "Predicted Solubility (logS)"},
+    "result.solubility.card_title": {"zh": "溶解度预测", "en": "Solubility Prediction"},
+    "result.solubility.badge_rf": {"zh": "随机森林", "en": "Random Forest"},
+    "result.solubility.badge_gnn": {"zh": "图神经网络", "en": "Graph Neural Network"},
+    "result.solubility.badge_ensemble": {"zh": "集成模型（RF+GNN）", "en": "Ensemble (RF+GNN)"},
+    "result.solubility.badge_weighted": {"zh": "加权集成（0.45×RF+0.55×GNN）", "en": "Weighted Ensemble (0.45×RF+0.55×GNN)"},
+    "result.solubility.metric_logs": {"zh": "预测溶解度 (logS)", "en": "Predicted Solubility (logS)"},
     "result.solubility.severe_disagree_auto": {
         "zh": "⚠️ RF 与 GNN 严重分歧（|Δ|={diff:.2f}），已自动降级为 GNN 预测。请谨慎参考。",
         "en": "⚠️ RF & GNN severely disagree (|Δ|={diff:.2f}). Using GNN prediction. Interpret with caution.",
@@ -436,31 +436,31 @@ _ALL: dict[str, dict[str, str]] = {
         "zh": "📊 RF 与 GNN 存在显著分歧（|Δ|={diff:.2f}），集成偏向 GNN。",
         "en": "📊 RF & GNN notably disagree (|Δ|={diff:.2f}). Ensemble favors GNN.",
     },
-    "result.solubility.ensemble_weighted": {"zh": "Weighted Ensemble", "en": "Weighted Ensemble"},
-    "result.solubility.ensemble_rf": {"zh": "RF:", "en": "RF:"},
-    "result.solubility.ensemble_gnn": {"zh": "GNN:", "en": "GNN:"},
-    "result.solubility.disagreement": {"zh": "Disagreement", "en": "Disagreement"},
-    "result.solubility.good_agreement": {"zh": "(good agreement)", "en": "(good agreement)"},
-    "result.solubility.notable_disagreement": {"zh": "(notable disagreement)", "en": "(notable disagreement)"},
-    "result.solubility.large_divergence": {"zh": "(large divergence — treat prediction with caution)", "en": "(large divergence — treat prediction with caution)"},
-    "result.solubility.guide": {"zh": "Interpretation guide:", "en": "Interpretation guide:"},
+    "result.solubility.ensemble_weighted": {"zh": "加权集成", "en": "Weighted Ensemble"},
+    "result.solubility.ensemble_rf": {"zh": "RF：", "en": "RF:"},
+    "result.solubility.ensemble_gnn": {"zh": "GNN：", "en": "GNN:"},
+    "result.solubility.disagreement": {"zh": "分歧", "en": "Disagreement"},
+    "result.solubility.good_agreement": {"zh": "（一致性良好）", "en": "(good agreement)"},
+    "result.solubility.notable_disagreement": {"zh": "（存在明显分歧）", "en": "(notable disagreement)"},
+    "result.solubility.large_divergence": {"zh": "（分歧较大 — 请谨慎对待该预测）", "en": "(large divergence — treat prediction with caution)"},
+    "result.solubility.guide": {"zh": "解读指南：", "en": "Interpretation guide:"},
     "result.solubility.high": {"zh": "易溶于水", "en": "Highly soluble"},
     "result.solubility.moderate": {"zh": "中等溶解", "en": "Moderately soluble"},
     "result.solubility.poor": {"zh": "难溶于水", "en": "Poorly soluble"},
     "result.solubility.high_hint": {"zh": "非常易溶（如乙醇）", "en": "Very soluble (like ethanol)"},
     "result.solubility.poor_hint": {"zh": "难溶（如许多药物分子）", "en": "Poorly soluble (like many drug molecules)"},
 
-    "result.solubility.descriptors": {"zh": "Molecular Descriptors", "en": "Molecular Descriptors"},
-    "result.solubility.desc_mw": {"zh": "Molecular Weight", "en": "Molecular Weight"},
-    "result.solubility.desc_logp": {"zh": "LogP (Hydrophobicity)", "en": "LogP (Hydrophobicity)"},
-    "result.solubility.desc_hbd": {"zh": "H-Bond Donors", "en": "H-Bond Donors"},
-    "result.solubility.desc_hba": {"zh": "H-Bond Acceptors", "en": "H-Bond Acceptors"},
-    "result.solubility.desc_tpsa": {"zh": "TPSA (Å²)", "en": "TPSA (Å²)"},
-    "result.solubility.desc_rotb": {"zh": "Rotatable Bonds", "en": "Rotatable Bonds"},
-    "result.solubility.desc_arom": {"zh": "Aromatic Rings", "en": "Aromatic Rings"},
-    "result.solubility.desc_aliph": {"zh": "Aliphatic Rings", "en": "Aliphatic Rings"},
+    "result.solubility.descriptors": {"zh": "分子描述符", "en": "Molecular Descriptors"},
+    "result.solubility.desc_mw": {"zh": "分子量", "en": "Molecular Weight"},
+    "result.solubility.desc_logp": {"zh": "LogP（疏水性）", "en": "LogP (Hydrophobicity)"},
+    "result.solubility.desc_hbd": {"zh": "氢键供体", "en": "H-Bond Donors"},
+    "result.solubility.desc_hba": {"zh": "氢键受体", "en": "H-Bond Acceptors"},
+    "result.solubility.desc_tpsa": {"zh": "TPSA（Å²）", "en": "TPSA (Å²)"},
+    "result.solubility.desc_rotb": {"zh": "可旋转键", "en": "Rotatable Bonds"},
+    "result.solubility.desc_arom": {"zh": "芳香环", "en": "Aromatic Rings"},
+    "result.solubility.desc_aliph": {"zh": "脂肪环", "en": "Aliphatic Rings"},
 
-    "result.solubility.shap_title": {"zh": "SHAP Explainability", "en": "SHAP Explainability"},
+    "result.solubility.shap_title": {"zh": "SHAP 可解释性", "en": "SHAP Explainability"},
     "result.solubility.shap_guide": {
         "zh": "SHAP 值显示各分子特征对溶解度预测的贡献方向与幅度，红色=推动易溶，蓝色=推动难溶。",
         "en": "SHAP values show the contribution of each molecular feature to the solubility prediction. Red = increases solubility, blue = decreases solubility.",
@@ -475,8 +475,8 @@ _ALL: dict[str, dict[str, str]] = {
     },
 
     # pKa result
-    "result.pka.card_title": {"zh": "pKa Prediction", "en": "pKa Prediction"},
-    "result.pka.metric": {"zh": "Predicted pKa", "en": "Predicted pKa"},
+    "result.pka.card_title": {"zh": "pKa 预测", "en": "pKa Prediction"},
+    "result.pka.metric": {"zh": "预测 pKa", "en": "Predicted pKa"},
     "result.pka.chart_title": {"zh": "pKa = {val:.2f} | 化学因素分解", "en": "pKa = {val:.2f} | Chemical Factor Decomposition"},
     "result.pka.enhance_acid": {"zh": "增强酸性", "en": "Enhances acidity"},
     "result.pka.enhance_base": {"zh": "增强碱性", "en": "Enhances basicity"},
@@ -493,16 +493,16 @@ _ALL: dict[str, dict[str, str]] = {
     "result.pka.model_unavailable": {"zh": "pKa 模型未加载，pKa 分析不可用。", "en": "pKa model not loaded. pKa analysis unavailable."},
 
     # Pharmacology
-    "result.pharma.lipinski_title": {"zh": "Drug-likeness: Lipinski's Rule of Five", "en": "Drug-likeness: Lipinski's Rule of Five"},
+    "result.pharma.lipinski_title": {"zh": "药物相似性：Lipinski 五规则", "en": "Drug-likeness: Lipinski's Rule of Five"},
     "result.pharma.lipinski_mw": {"zh": "分子量\nMol. Weight", "en": "Mol. Weight"},
     "result.pharma.lipinski_logp": {"zh": "脂水分配系数\nLogP", "en": "LogP"},
     "result.pharma.lipinski_hbd": {"zh": "氢键供体数\nH-Bond Donors", "en": "H-Bond Donors"},
     "result.pharma.lipinski_hba": {"zh": "氢键受体数\nH-Bond Acceptors", "en": "H-Bond Acceptors"},
     "result.pharma.lipinski_rotb": {"zh": "可旋转键数\nRotatable Bonds", "en": "Rotatable Bonds"},
-    "result.pharma.lipinski_pass": {"zh": "PASS", "en": "PASS"},
-    "result.pharma.lipinski_fail": {"zh": "FAIL", "en": "FAIL"},
-    "result.pharma.lipinski_legend_pass": {"zh": "PASS — 符合规则", "en": "PASS — Meets rule"},
-    "result.pharma.lipinski_legend_fail": {"zh": "FAIL — 超出阈值", "en": "FAIL — Exceeds threshold"},
+    "result.pharma.lipinski_pass": {"zh": "通过", "en": "PASS"},
+    "result.pharma.lipinski_fail": {"zh": "未通过", "en": "FAIL"},
+    "result.pharma.lipinski_legend_pass": {"zh": "通过 — 符合规则", "en": "PASS — Meets rule"},
+    "result.pharma.lipinski_legend_fail": {"zh": "未通过 — 超出阈值", "en": "FAIL — Exceeds threshold"},
     "result.pharma.lipinski_score": {
         "zh": "Lipinski 五规则评分：{pass}/{total} — {interpretation}",
         "en": "Lipinski Rule of Five: {pass}/{total} — {interpretation}",
@@ -511,18 +511,18 @@ _ALL: dict[str, dict[str, str]] = {
         "zh": "Lipinski 五规则由 Christopher Lipinski 于 1997 年提出，用于评估化合物的口服药物相似性。该规则是药物化学中最广泛使用的 ADME/成药性预筛选标准之一。",
         "en": "Lipinski's Rule of Five was proposed by Christopher Lipinski in 1997 to evaluate oral drug-likeness of compounds. It remains one of the most widely used ADME/drug-likeness pre-screening filters in medicinal chemistry.",
     },
-    "result.pharma.druglikeness_title": {"zh": "Drug-likeness Metrics: QED · SAscore · Fsp³", "en": "Drug-likeness Metrics: QED · SAscore · Fsp³"},
-    "result.pharma.qed_label": {"zh": "Quantitative Estimate of Drug-likeness", "en": "Quantitative Estimate of Drug-likeness"},
+    "result.pharma.druglikeness_title": {"zh": "药物相似性指标：QED · SAscore · Fsp³", "en": "Drug-likeness Metrics: QED · SAscore · Fsp³"},
+    "result.pharma.qed_label": {"zh": "药物相似性定量评估（QED）", "en": "Quantitative Estimate of Drug-likeness"},
     "result.pharma.qed_note": {
         "zh": "QED 综合分子量、LogP、氢键、电荷等 8 个描述符，数值越接近 1 表示越像药物。",
         "en": "QED integrates 8 descriptors including MW, LogP, H-bonds, and charge. Values closer to 1 indicate higher drug-likeness.",
     },
-    "result.pharma.sascore_label": {"zh": "Synthetic Accessibility Score", "en": "Synthetic Accessibility Score"},
+    "result.pharma.sascore_label": {"zh": "合成可及性评分", "en": "Synthetic Accessibility Score"},
     "result.pharma.sascore_note": {
         "zh": "SAscore 基于分子片段频率和复杂度，1=极易合成，10=极难合成。",
         "en": "SAscore estimates synthetic difficulty based on fragment frequency & complexity. 1 = very easy, 10 = very hard.",
     },
-    "result.pharma.fsp3_label": {"zh": "Fraction sp³ Carbons", "en": "Fraction sp³ Carbons"},
+    "result.pharma.fsp3_label": {"zh": "sp³ 碳比例", "en": "Fraction sp³ Carbons"},
     "result.pharma.fsp3_note": {
         "zh": "Fsp³ 反映分子的三维度/饱和度。Fsp³ ≥ 0.45 通常与更好的临床候选药物性质相关。",
         "en": "Fsp³ reflects molecular 3D character / saturation. Fsp³ ≥ 0.45 is generally associated with better clinical candidate properties.",
@@ -531,7 +531,7 @@ _ALL: dict[str, dict[str, str]] = {
         "zh": "饱和碳数: {n_sp3}/{n_carbon} | 提示：增加 sp³ 比例可提高溶解度和三维多样性",
         "en": "sp³ carbons: {n_sp3}/{n_carbon} | Higher sp³ fraction improves solubility & 3D diversity",
     },
-    "result.pharma.ionization_title": {"zh": "Ionization Profile", "en": "Ionization Profile"},
+    "result.pharma.ionization_title": {"zh": "电离曲线", "en": "Ionization Profile"},
     "result.pharma.ionization_chart_title": {"zh": "不同生理环境下的分子态比例 | pKa = {val:.2f}", "en": "Unionized fraction across physiological pH | pKa = {val:.2f}"},
     "result.pharma.ionization_yaxis": {"zh": "分子态比例 (Unionized %)", "en": "Unionized fraction (%)"},
     "result.pharma.pharma_analysis": {"zh": "药理学分析", "en": "Pharmacological Analysis"},
@@ -559,11 +559,11 @@ _ALL: dict[str, dict[str, str]] = {
 
     # ADME/Tox
     "result.pharma.admet_title": {"zh": "ADME/Tox 药代动力学概览", "en": "ADME/Tox Pharmacokinetics Overview"},
-    "result.pharma.admet_absorption": {"zh": "Absorption 吸收", "en": "Absorption"},
-    "result.pharma.admet_distribution": {"zh": "Distribution 分布", "en": "Distribution"},
-    "result.pharma.admet_metabolism": {"zh": "Metabolism 代谢", "en": "Metabolism"},
-    "result.pharma.admet_excretion": {"zh": "Excretion 排泄", "en": "Excretion"},
-    "result.pharma.admet_toxicity": {"zh": "Toxicity 毒性", "en": "Toxicity"},
+    "result.pharma.admet_absorption": {"zh": "吸收", "en": "Absorption"},
+    "result.pharma.admet_distribution": {"zh": "分布", "en": "Distribution"},
+    "result.pharma.admet_metabolism": {"zh": "代谢", "en": "Metabolism"},
+    "result.pharma.admet_excretion": {"zh": "排泄", "en": "Excretion"},
+    "result.pharma.admet_toxicity": {"zh": "毒性", "en": "Toxicity"},
     "result.pharma.admet_absorption_title": {"zh": "吸收分析", "en": "Absorption Analysis"},
     "result.pharma.admet_distribution_title": {"zh": "分布分析", "en": "Distribution Analysis"},
     "result.pharma.admet_metabolism_title": {"zh": "代谢分析", "en": "Metabolism Analysis"},
@@ -583,7 +583,7 @@ _ALL: dict[str, dict[str, str]] = {
         "en": "GNNExplainer identifies the bonds and atom features most important for this molecule's solubility prediction. Warmer colors = higher importance.",
     },
     # AI Explanation tab
-    "result.ai.title": {"zh": "AI Chemistry Explanation", "en": "AI Chemistry Explanation"},
+    "result.ai.title": {"zh": "AI 化学解释", "en": "AI Chemistry Explanation"},
     "result.ai.clear_btn": {"zh": "清除解释", "en": "Clear"},
     "result.ai.need_manual": {"zh": "AI 解释需要手动调用（消耗 API 额度）", "en": "AI explanation requires manual invocation (API credits consumed)"},
     "result.ai.generate_btn": {"zh": "生成 AI 解释", "en": "Generate AI Explanation"},
@@ -605,15 +605,15 @@ _ALL: dict[str, dict[str, str]] = {
     },
 
     # Drug-likeness levels
-    "analysis.qed.attractive": {"zh": "Attractive (有吸引力)", "en": "Attractive"},
-    "analysis.qed.moderate": {"zh": "Moderate (中等)", "en": "Moderate"},
-    "analysis.qed.low": {"zh": "Low (偏低)", "en": "Low"},
-    "analysis.sa.easy": {"zh": "Easy (容易合成)", "en": "Easy (to synthesize)"},
-    "analysis.sa.moderate": {"zh": "Moderate (中等难度)", "en": "Moderate"},
-    "analysis.sa.hard": {"zh": "Difficult (难以合成)", "en": "Difficult"},
-    "analysis.fsp3.high": {"zh": "High 3D complexity (高三维复杂度)", "en": "High 3D complexity"},
-    "analysis.fsp3.moderate": {"zh": "Moderate (中等)", "en": "Moderate"},
-    "analysis.fsp3.planar": {"zh": "Mostly planar (偏平面)", "en": "Mostly planar"},
+    "analysis.qed.attractive": {"zh": "有吸引力", "en": "Attractive"},
+    "analysis.qed.moderate": {"zh": "中等", "en": "Moderate"},
+    "analysis.qed.low": {"zh": "偏低", "en": "Low"},
+    "analysis.sa.easy": {"zh": "容易合成", "en": "Easy (to synthesize)"},
+    "analysis.sa.moderate": {"zh": "中等难度", "en": "Moderate"},
+    "analysis.sa.hard": {"zh": "难以合成", "en": "Difficult"},
+    "analysis.fsp3.high": {"zh": "高三维复杂度", "en": "High 3D complexity"},
+    "analysis.fsp3.moderate": {"zh": "中等", "en": "Moderate"},
+    "analysis.fsp3.planar": {"zh": "偏平面", "en": "Mostly planar"},
 
     # pKa factor names (used in plots)
     "analysis.pka.inductive": {"zh": "Inductive\n(诱导效应)", "en": "Inductive\n(Inductive Effect)"},
@@ -629,8 +629,8 @@ _ALL: dict[str, dict[str, str]] = {
     "analysis.admet.absorption.pka_acid": {"zh": "pKa = {val:.1f}（酸性），胃中(pH 1.5)以分子态为主，胃吸收良好", "en": "pKa = {val:.1f} (acidic), unionized in stomach (pH 1.5), good gastric absorption"},
     "analysis.admet.absorption.pka_base": {"zh": "pKa = {val:.1f}（碱性），胃中离子化，主要在小肠(pH 6.8)吸收", "en": "pKa = {val:.1f} (basic), ionized in stomach, mainly absorbed in small intestine (pH 6.8)"},
     "analysis.admet.absorption.pka_neutral": {"zh": "pKa = {val:.1f}（近中性），全肠道均有吸收", "en": "pKa = {val:.1f} (near neutral), absorbed throughout GI tract"},
-    "analysis.admet.absorption.hbd_high": {"zh": "H-Bond Donors > 5，跨膜需要脱溶剂化，可能降低吸收", "en": "H-Bond Donors > 5, desolvation required for membrane crossing, may reduce absorption"},
-    "analysis.admet.absorption.hba_high": {"zh": "H-Bond Acceptors > 10，过多的氢键受体降低膜通透性", "en": "H-Bond Acceptors > 10, excessive H-bond acceptors reduce membrane permeability"},
+    "analysis.admet.absorption.hbd_high": {"zh": "氢键供体 > 5 时，跨膜需要脱溶剂化，可能降低吸收", "en": "H-Bond Donors > 5, desolvation required for membrane crossing, may reduce absorption"},
+    "analysis.admet.absorption.hba_high": {"zh": "氢键受体 > 10 时，过多的氢键受体降低膜通透性", "en": "H-Bond Acceptors > 10, excessive H-bond acceptors reduce membrane permeability"},
     "analysis.admet.absorption.fallback": {"zh": "吸收特性待评估", "en": "Absorption characteristics pending evaluation"},
 
     # ADME/Tox – Distribution
@@ -688,22 +688,22 @@ _ALL: dict[str, dict[str, str]] = {
     # ============================================================
     # model.py – Solubility levels & pKa types
     # ============================================================
-    "model.solubility.high": {"zh": "Highly soluble (易溶于水)", "en": "Highly soluble"},
-    "model.solubility.moderate": {"zh": "Moderately soluble (中等溶解)", "en": "Moderately soluble"},
-    "model.solubility.poor": {"zh": "Poorly soluble (难溶于水)", "en": "Poorly soluble"},
-    "model.solubility.high_short": {"zh": "Highly soluble", "en": "Highly soluble"},
-    "model.solubility.moderate_short": {"zh": "Moderately soluble", "en": "Moderately soluble"},
-    "model.solubility.poor_short": {"zh": "Poorly soluble", "en": "Poorly soluble"},
+    "model.solubility.high": {"zh": "易溶于水", "en": "Highly soluble"},
+    "model.solubility.moderate": {"zh": "中等溶解", "en": "Moderately soluble"},
+    "model.solubility.poor": {"zh": "难溶于水", "en": "Poorly soluble"},
+    "model.solubility.high_short": {"zh": "易溶", "en": "Highly soluble"},
+    "model.solubility.moderate_short": {"zh": "中等可溶", "en": "Moderately soluble"},
+    "model.solubility.poor_short": {"zh": "难溶", "en": "Poorly soluble"},
 
-    "model.pka.type.acidic_display": {"zh": "酸性分子 (Acidic)", "en": "Acidic"},
-    "model.pka.type.basic_display": {"zh": "碱性分子 (Basic)", "en": "Basic"},
-    "model.pka.type.amphoteric_display": {"zh": "两性/中性 (Amphoteric/Neutral)", "en": "Amphoteric/Neutral"},
+    "model.pka.type.acidic_display": {"zh": "酸性分子", "en": "Acidic"},
+    "model.pka.type.basic_display": {"zh": "碱性分子", "en": "Basic"},
+    "model.pka.type.amphoteric_display": {"zh": "两性/中性", "en": "Amphoteric/Neutral"},
     "model.pka.type.acidic_desc": {"zh": "pKa 较低，在酸性环境中以分子态为主，脂溶性高", "en": "Low pKa, predominantly unionized in acidic environments, lipophilic"},
     "model.pka.type.basic_desc": {"zh": "pKa 较高，在碱性环境中以分子态为主", "en": "High pKa, predominantly unionized in basic environments"},
     "model.pka.type.amphoteric_desc": {"zh": "pKa 接近中性，电离行为随 pH 变化剧烈", "en": "Near-neutral pKa, ionization behavior varies significantly with pH"},
 
     "model.shap.morgan_fp": {"zh": "摩根指纹 (Morgan FP)", "en": "Morgan Fingerprint (Morgan FP)"},
-    "model.no_model": {"zh": "No solubility model found (expected output_v2/solubility_model_v5.pkl.gz)", "en": "No solubility model found (expected output_v2/solubility_model_v5.pkl.gz)"},
+    "model.no_model": {"zh": "未找到溶解度模型（需在 output_v2/solubility_model_v5.pkl.gz）", "en": "No solubility model found (expected output_v2/solubility_model_v5.pkl.gz)"},
 
     "model.model_label_rf": {"zh": "RF", "en": "RF"},
     "model.model_label_gnn": {"zh": "GNN", "en": "GNN"},
@@ -726,10 +726,10 @@ _ALL: dict[str, dict[str, str]] = {
     "ood.descriptor.Chi0v": {"zh": "连接性指数 χ0v (Chi0)", "en": "Connectivity Index χ0v (Chi0)"},
     "ood.descriptor.Chi1v": {"zh": "连接性指数 χ1v (Chi1)", "en": "Connectivity Index χ1v (Chi1)"},
 
-    "ood.risk.high": {"zh": "HIGH", "en": "HIGH"},
-    "ood.risk.medium": {"zh": "MEDIUM", "en": "MEDIUM"},
-    "ood.risk.low": {"zh": "LOW", "en": "LOW"},
-    "ood.risk.unknown": {"zh": "UNKNOWN", "en": "UNKNOWN"},
+    "ood.risk.high": {"zh": "高", "en": "HIGH"},
+    "ood.risk.medium": {"zh": "中", "en": "MEDIUM"},
+    "ood.risk.low": {"zh": "低", "en": "LOW"},
+    "ood.risk.unknown": {"zh": "未知", "en": "UNKNOWN"},
 
     "ood.warning.severe": {
         "zh": "该分子严重偏离训练数据分布，预测值可能极不可靠。建议仅用作定性参考，不要依赖具体数值。",
@@ -769,8 +769,8 @@ _ALL: dict[str, dict[str, str]] = {
     "molecule.pubchem.timeout": {"zh": "查询超时，PubChem 服务器无响应", "en": "Query timed out, PubChem server unresponsive"},
     "molecule.pubchem.network_error": {"zh": "网络异常: {err}", "en": "Network error: {err}"},
     "molecule.pubchem.unavailable": {"zh": "PubChem 持续不可用，请稍后重试", "en": "PubChem persistently unavailable, please retry later"},
-    "molecule.pubchem.cached": {"zh": "success (cached)", "en": "success (cached)"},
-    "molecule.pubchem.success": {"zh": "success (PubChem)", "en": "success (PubChem)"},
+    "molecule.pubchem.cached": {"zh": "（缓存命中）", "en": "success (cached)"},
+    "molecule.pubchem.success": {"zh": "（来自 PubChem）", "en": "success (PubChem)"},
     "molecule.custom_input": {"zh": "(自定义输入)", "en": "(Custom input)"},
 
     # ============================================================
@@ -801,21 +801,21 @@ _ALL: dict[str, dict[str, str]] = {
         "en": "Can donate or accept protons depending on pH. Absorption is complex and varies with administration site pH.",
     },
     "ai.error.no_key": {
-        "zh": "未配置 Kimi API Key。请在 .env 文件中写入：KIMI_API_KEY=sk-你的密钥",
+        "zh": "未配置 Kimi API 密钥。请在 .env 文件中写入：KIMI_API_KEY=sk-你的密钥",
         "en": "Kimi API Key not configured. Add KIMI_API_KEY=sk-xxx to your .env file.",
     },
     "ai.error.generic": {"zh": "AI 解释暂时不可用: {err}", "en": "AI explanation temporarily unavailable: {err}"},
-    "ai.shap.title": {"zh": "【SHAP 关键特征】（影响最大的前 3 个）", "en": "【SHAP Key Features】(Top 3 by importance)"},
+    "ai.shap.title": {"zh": "【SHAP 关键特征】（影响最大的前 3 个）", "en": "SHAP Key Features (Top 3 by importance)"},
 
     # ============================================================
     # ADDITIONAL RESULTS TEXT (previously missed)
     # ============================================================
 
     # Solubility tab – Chemistry Insight
-    "result.solubility.insight_title": {"zh": "Chemistry Insight", "en": "Chemistry Insight"},
-    "result.solubility.insight_tpsa": {"zh": "**TPSA** (Topological Polar Surface Area) measures how much of the molecule is polar. Higher TPSA usually means better water solubility.", "en": "**TPSA** (Topological Polar Surface Area) measures how much of the molecule is polar. Higher TPSA usually means better water solubility."},
-    "result.solubility.insight_hbond": {"zh": "**H-Bond Donors/Acceptors** tell us how well the molecule can form hydrogen bonds with water.", "en": "**H-Bond Donors/Acceptors** tell us how well the molecule can form hydrogen bonds with water."},
-    "result.solubility.insight_logp": {"zh": "**LogP** measures lipophilicity. Lower LogP means the molecule prefers water over oil.", "en": "**LogP** measures lipophilicity. Lower LogP means the molecule prefers water over oil."},
+    "result.solubility.insight_title": {"zh": "化学解读", "en": "Chemistry Insight"},
+    "result.solubility.insight_tpsa": {"zh": "**TPSA**（拓扑极性表面积）衡量分子的极性大小。TPSA 越高通常意味着水溶性越好。", "en": "**TPSA** (Topological Polar Surface Area) measures how much of the molecule is polar. Higher TPSA usually means better water solubility."},
+    "result.solubility.insight_hbond": {"zh": "**氢键供体/受体**反映分子与水形成氢键的能力。", "en": "**H-Bond Donors/Acceptors** tell us how well the molecule can form hydrogen bonds with water."},
+    "result.solubility.insight_logp": {"zh": "**LogP** 衡量亲脂性。LogP 越低表示分子更亲水而非亲油。", "en": "**LogP** measures lipophilicity. Lower LogP means the molecule prefers water over oil."},
 
     # Solubility tab – SHAP chart labels
     "result.solubility.shap_xlabel": {"zh": "对溶解度的贡献值 (logS)", "en": "SHAP contribution to solubility (logS)"},
@@ -896,29 +896,29 @@ _ALL: dict[str, dict[str, str]] = {
 
     # ADME/Tox section captions
     "result.pharma.admet.absorption_caption": {
-        "zh": "**吸收 (Absorption)** 决定了药物从给药部位进入血液循环的效率和程度。主要影响因素包括：分子极性 (TPSA)、脂溶性 (LogP)、电离状态 (pKa vs pH)、氢键能力、分子大小。口服药物的吸收主要发生在小肠（表面积大、血流丰富），部分酸性药物可在胃中开始吸收。",
+        "zh": "**吸收** 决定了药物从给药部位进入血液循环的效率和程度。主要影响因素包括：分子极性（TPSA）、脂溶性（LogP）、电离状态（pKa 与 pH）、氢键能力、分子大小。口服药物的吸收主要发生在小肠（表面积大、血流丰富），部分酸性药物可在胃中开始吸收。",
         "en": "**Absorption** determines the efficiency of drug entry from the administration site into the bloodstream. Key factors: polarity (TPSA), lipophilicity (LogP), ionization state (pKa vs pH), H-bond capacity, and molecular size. Oral absorption primarily occurs in the small intestine (large surface area, rich blood flow); some acidic drugs begin absorption in the stomach.",
     },
     "result.pharma.admet.distribution_caption": {
-        "zh": "**分布 (Distribution)** 描述药物从血液进入组织和器官的过程。\n- **表观分布容积 (Vd)**：Vd 越大，药物越倾向于分布到组织；Vd 小则主要留在血浆中\n- **血浆蛋白结合率**：高结合率 = 药物储备在血液中缓慢释放；低结合率 = 游离药物多、作用快但排泄也快\n- **血脑屏障 (BBB)**：低 TPSA + 适中 LogP 的分子更容易进入中枢神经系统",
+        "zh": "**分布** 描述药物从血液进入组织和器官的过程。\n- **表观分布容积（Vd）**：Vd 越大，药物越倾向于分布到组织；Vd 小则主要留在血浆中\n- **血浆蛋白结合率**：高结合率 = 药物储备在血液中缓慢释放；低结合率 = 游离药物多、作用快但排泄也快\n- **血脑屏障（BBB）**：低 TPSA + 适中 LogP 的分子更容易进入中枢神经系统",
         "en": "**Distribution** describes the movement of drugs from blood into tissues and organs.\n- **Volume of Distribution (Vd)**: Higher Vd = drug favors tissue distribution; lower Vd = mainly stays in plasma\n- **Plasma Protein Binding**: High binding = slow-release drug reservoir; low binding = more free drug, faster action and excretion\n- **Blood-Brain Barrier (BBB)**: Low TPSA + moderate LogP favors CNS penetration",
     },
     "result.pharma.admet.metabolism_caption": {
-        "zh": "**代谢 (Metabolism)** 主要在肝脏进行，分为两相：\n- **I 相代谢**（氧化/还原/水解）：主要由 CYP450 酶系催化，引入或暴露极性基团\n- **II 相代谢**（结合反应）：将葡萄糖醛酸、硫酸、氨基酸等连接到分子上，增加水溶性便于排泄\n- CYP3A4 代谢约 50% 的临床药物；CYP2D6 有显著的基因多态性（人群差异大）",
+        "zh": "**代谢** 主要在肝脏进行，分为两相：\n- **I 相代谢**（氧化/还原/水解）：主要由 CYP450 酶系催化，引入或暴露极性基团\n- **II 相代谢**（结合反应）：将葡萄糖醛酸、硫酸、氨基酸等连接到分子上，增加水溶性便于排泄\n- CYP3A4 代谢约 50% 的临床药物；CYP2D6 有显著的基因多态性（人群差异大）",
         "en": "**Metabolism** primarily occurs in the liver in two phases:\n- **Phase I** (oxidation/reduction/hydrolysis): catalyzed mainly by CYP450 enzymes, introducing or exposing polar groups\n- **Phase II** (conjugation): attaches glucuronic acid, sulfate, amino acids, etc. to increase water solubility for excretion\n- CYP3A4 metabolizes ~50% of clinical drugs; CYP2D6 has significant genetic polymorphism",
     },
     "result.pharma.admet.excretion_caption": {
-        "zh": "**排泄 (Excretion)** 是药物及其代谢物从体内清除的过程：\n- **肾脏排泄**：分子量 < 350 Da 且极性适中的分子主要通过肾小球滤过进入尿液\n- **肝胆排泄**：分子量 > 500 Da 或高度亲脂的分子倾向于通过胆汁排入肠道\n- 肾小管重吸收会使亲脂性分子重新进入血液，延长药物半衰期",
+        "zh": "**排泄** 是药物及其代谢物从体内清除的过程：\n- **肾脏排泄**：分子量 < 350 Da 且极性适中的分子主要通过肾小球滤过进入尿液\n- **肝胆排泄**：分子量 > 500 Da 或高度亲脂的分子倾向于通过胆汁排入肠道\n- 肾小管重吸收会使亲脂性分子重新进入血液，延长药物半衰期",
         "en": "**Excretion** is the process of eliminating drugs and their metabolites:\n- **Renal excretion**: molecules with MW < 350 Da and moderate polarity are filtered through glomeruli into urine\n- **Hepatobiliary excretion**: molecules with MW > 500 Da or highly lipophilic tend to be excreted via bile\n- Tubular reabsorption can return lipophilic molecules to the blood, prolonging half-life",
     },
     "result.pharma.admet.toxicity_caption": {
-        "zh": "**毒性 (Toxicity)** 评估基于结构警报 (Structural Alerts) — 某些官能团或子结构在历史上与毒性事件相关：\n- 以上分析仅基于<b>结构特征</b>，不代表实际毒性——毒性受剂量、代谢、个体差异等多因素影响\n- 结构警报是药物设计初筛的重要工具，但存在许多假阳性——含警报结构的药物仍可能安全上市\n- 实际毒性需要通过 Ames 试验、hERG 测试、动物实验和临床试验逐级验证",
+        "zh": "**毒性** 评估基于结构警报 — 某些官能团或子结构在历史上与毒性事件相关：\n- 以上分析仅基于<b>结构特征</b>，不代表实际毒性——毒性受剂量、代谢、个体差异等多因素影响\n- 结构警报是药物设计初筛的重要工具，但存在许多假阳性——含警报结构的药物仍可能安全上市\n- 实际毒性需要通过 Ames 试验、hERG 测试、动物实验和临床试验逐级验证",
         "en": "**Toxicity** assessment is based on Structural Alerts — functional groups or substructures historically associated with toxicity:\n- This analysis is based on <b>structural features only</b>, not actual toxicity — toxicity depends on dose, metabolism, individual variation, etc.\n- Structural alerts are important drug design screening tools, but have many false positives — drugs with alert structures can still be safe\n- Actual toxicity requires Ames test, hERG assay, animal studies, and clinical trials for validation",
     },
 
     # GNN Explanation
-    "result.gnn.title": {"zh": "GNN Explainability — 原子/边注意力分析", "en": "GNN Explainability — Atom/Bond Attention Analysis"},
-    "result.gnn.top_bonds_title": {"zh": "**Top 最重要的化学键**", "en": "**Top most important bonds**"},
+    "result.gnn.title": {"zh": "GNN 可解释性 — 原子/边注意力分析", "en": "GNN Explainability — Atom/Bond Attention Analysis"},
+    "result.gnn.top_bonds_title": {"zh": "**最重要的化学键**", "en": "**Top most important bonds**"},
     "result.gnn.top_bonds_importance": {"zh": "重要性: {imp:.3f} ({pct:.0f}%)", "en": "Importance: {imp:.3f} ({pct:.0f}%)"},
     "result.gnn.atom_title": {"zh": "**原子重要性（基于相连键汇总）**", "en": "**Atom Importance (aggregated from bond importance)**"},
     "result.gnn.feature_title": {"zh": "**原子特征重要性**", "en": "**Atom Feature Importance**"},
@@ -939,6 +939,16 @@ _ALL: dict[str, dict[str, str]] = {
         "en": "**Atom Feature Importance** shows which dimensions of the 37-dim atom feature vector matter most:<br>- Atom type (C, N, O, or other)<br>- Degree (how many atoms it's connected to)<br>- Hybridization (sp², sp³)<br>- Aromaticity, chirality, ring membership",
     },
     "result.gnn.run_btn": {"zh": "运行 GNNExplainer 分析", "en": "Run GNNExplainer Analysis"},
+
+    # ── Streamlit-only labels (routed through t() in ui/results.py) ──
+    "result.pka.glossary_click_hint": {
+        "zh": "点击术语查看中英双语定义：",
+        "en": "Click terms to see bilingual definition:",
+    },
+    "result.pharma.lipinski_about": {"zh": "关于 Lipinski", "en": "About Lipinski"},
+    "result.pharma.refs": {"zh": "参考文献：", "en": "Refs:"},
+    "result.gnn.highlight_fail": {"zh": "高亮图像生成失败：{err}", "en": "Highlight image failed: {err}"},
+    "result.gnn.atom_bond_label": {"zh": "原子 {a} — 原子 {b}", "en": "Atom {a} — Atom {b}"},
 
     # ── Web UI additions (React frontend, Phase 3) ──
     "result.preview.spin_start": {"zh": "开始旋转", "en": "Start rotation"},
