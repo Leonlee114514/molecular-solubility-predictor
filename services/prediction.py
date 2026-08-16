@@ -20,7 +20,8 @@ Hard constraints for this module:
   * Single and batch predictions share ONE code path (_predict_one).
 
 Model artifacts (read-only, under <project root>/output_v2/):
-  * solubility_model_v5.pkl.gz + descriptor_names_v5.pkl  (Random Forest)
+  * solubility_model_v6_clean.pkl.gz + descriptor_names_v6_clean.pkl  (RF)
+  * solubility_model_v5.pkl.gz + descriptor_names_v5.pkl  (legacy RF fallback)
   * pka_acidic_model.pkl / pka_basic_model.pkl            (pKa regressors)
   * pka_model.pkl                                         (legacy mixed pKa, fallback)
   * gnn_solubility_model_v4.pt / _v3.pt / .pt             (GNN, optional)
@@ -46,8 +47,13 @@ logger = logging.getLogger(__name__)
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent
 _OUTPUT_DIR = _PROJECT_ROOT / "output_v2"
 
-_SOLUBILITY_MODEL_PATH = _OUTPUT_DIR / "solubility_model_v5.pkl.gz"
-_DESCRIPTOR_NAMES_PATH = _OUTPUT_DIR / "descriptor_names_v5.pkl"
+_SOLUBILITY_MODEL_CANDIDATES = (
+    (_OUTPUT_DIR / "solubility_model_v6_clean.pkl.gz", _OUTPUT_DIR / "descriptor_names_v6_clean.pkl"),
+    (_OUTPUT_DIR / "solubility_model_v5.pkl.gz", _OUTPUT_DIR / "descriptor_names_v5.pkl"),
+)
+# Kept as attributes for backend/routes.py health reporting compatibility.
+_SOLUBILITY_MODEL_PATH = _OUTPUT_DIR / "solubility_model_v6_clean.pkl.gz"
+_DESCRIPTOR_NAMES_PATH = _OUTPUT_DIR / "descriptor_names_v6_clean.pkl"
 _PKA_ACIDIC_MODEL_PATH = _OUTPUT_DIR / "pka_acidic_model.pkl"
 _PKA_BASIC_MODEL_PATH = _OUTPUT_DIR / "pka_basic_model.pkl"
 _PKA_LEGACY_MODEL_PATH = _OUTPUT_DIR / "pka_model.pkl"
@@ -55,6 +61,8 @@ _OOD_DETECTOR_PATH = _OUTPUT_DIR / "ood_detector.pkl.gz"
 
 # Same priority / hidden-dim mapping as model.load_gnn_model (V4 -> V3 -> V2).
 _GNN_CANDIDATES = (
+    ("gnn_solubility_model_v5.pt", 256),
+    ("gnn_solubility_model_v5_clean.pt", 256),
     ("gnn_solubility_model_v4.pt", 256),
     ("gnn_solubility_model_v3.pt", 128),
     ("gnn_solubility_model.pt", 128),
@@ -119,14 +127,19 @@ def _load_joblib(path):
 
 
 def _get_solubility_model():
-    """Lazy-load the RF solubility model (V5) + descriptor names."""
+    """Lazy-load the RF solubility model (clean V6 preferred) + descriptor names."""
     global _solubility_model, _descriptor_names
     if _solubility_model is None:
         with _lock:
             if _solubility_model is None:
-                logger.info("Loading RF solubility model from %s", _SOLUBILITY_MODEL_PATH)
-                _solubility_model = _load_joblib(_SOLUBILITY_MODEL_PATH)
-                _descriptor_names = joblib.load(_DESCRIPTOR_NAMES_PATH)
+                for model_path, desc_path in _SOLUBILITY_MODEL_CANDIDATES:
+                    if model_path.exists() and desc_path.exists():
+                        logger.info("Loading RF solubility model from %s", model_path)
+                        _solubility_model = _load_joblib(model_path)
+                        _descriptor_names = joblib.load(desc_path)
+                        break
+                if _solubility_model is None:
+                    raise FileNotFoundError("No solubility model found in output_v2/")
     return _solubility_model, _descriptor_names
 
 
@@ -271,25 +284,18 @@ def _gnn_predict(smiles):
 
 
 def _ensemble(rf_pred, gnn_pred):
-    """Weighted average 0.45*RF + 0.55*GNN (model.predict_solubility_ensemble)."""
-    return 0.45 * rf_pred + 0.55 * gnn_pred
+    """Simple 0.5*RF + 0.5*GNN average (model.predict_solubility_ensemble)."""
+    return 0.5 * rf_pred + 0.5 * gnn_pred
 
 
 def _auto_select(ood_risk, rf_pred, gnn_pred):
-    """Auto+ strategy (model.predict_solubility_auto):
-      - GNN missing     -> ("RF", rf_pred)
-      - |RF-GNN| > 1.0  -> pure GNN (models fundamentally disagree, GNN is safer)
-      - OOD != "LOW"    -> pure GNN (RF unreliable on outliers)
-      - else            -> weighted ensemble ("Ensemble(W)")
+    """Auto strategy (model.predict_solubility_auto): always ensemble when possible.
+
+    OOD/disagreement are reported as warnings by the caller, not used for routing.
     Returns (prediction, actual_model_label).
     """
     if gnn_pred is None:
         return rf_pred, "RF"
-    disagreement = abs(rf_pred - gnn_pred)
-    if disagreement > 1.0:
-        return gnn_pred, "GNN"
-    if ood_risk != "LOW":
-        return gnn_pred, "GNN"
     return _ensemble(rf_pred, gnn_pred), "Ensemble(W)"
 
 

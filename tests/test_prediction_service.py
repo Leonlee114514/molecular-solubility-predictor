@@ -82,11 +82,11 @@ class TestRunPredictionModes:
 
     @requires_gnn
     def test_ensemble_mode(self):
-        """Ensemble mode: 0.45*RF + 0.55*GNN."""
+        """Ensemble mode: 0.5*RF + 0.5*GNN."""
         result = run_prediction(ETHANOL, mode="ensemble")
         assert result.model_used == "Ensemble"
         assert result.logS_gnn is not None
-        expected = 0.45 * result.logS_rf + 0.55 * result.logS_gnn
+        expected = 0.5 * result.logS_rf + 0.5 * result.logS_gnn
         assert result.logS_final == pytest.approx(expected)
         assert result.model_disagreement == pytest.approx(abs(result.logS_rf - result.logS_gnn))
 
@@ -134,6 +134,13 @@ class TestPka:
         assert _pka_kind(9.5) == "base"
         assert _pka_kind(8.01) == "base"
         assert _pka_kind(7.0) == "amphoteric"
+
+    def test_auto_select_always_ensembles_when_gnn_available(self):
+        """OOD/disagreement no longer route to pure GNN."""
+        from services.prediction import _auto_select
+        pred, label = _auto_select("HIGH", -1.0, -2.5)
+        assert label == "Ensemble(W)"
+        assert pred == pytest.approx(-1.75, abs=0.01)
 
     def test_pka_pair_resolution(self):
         """Separate acid/base pKa values resolve to amphoteric for amino acids."""

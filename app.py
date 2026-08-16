@@ -70,7 +70,13 @@ except Exception as e:
 # GNN availability: quick file-existence check instead of loading the full model
 _GNN_FILES = [
     os.path.join("output_v2", f)
-    for f in ["gnn_solubility_model_v4.pt", "gnn_solubility_model_v3.pt", "gnn_solubility_model.pt"]
+    for f in [
+        "gnn_solubility_model_v5.pt",
+        "gnn_solubility_model_v5_clean.pt",
+        "gnn_solubility_model_v4.pt",
+        "gnn_solubility_model_v3.pt",
+        "gnn_solubility_model.pt",
+    ]
 ]
 gnn_ready = any(os.path.exists(p) for p in _GNN_FILES)
 
@@ -233,7 +239,7 @@ if predict_button and model_ready:
                     st.session_state[StateKey.PREDICTED_PKA_BASIC] = None
                     st.session_state[StateKey.PREDICTED_PKA] = None
 
-                # ── Auto+: OOD 动态模型选择 ──
+                # ── Auto: OOD warning + weighted ensemble ──
                 actual_model = model_type
                 if model_type == "Auto":
                     status.update(label=t("app.predict.step.ood"))
@@ -545,9 +551,9 @@ with st.expander(t("app.batch.title"), expanded=False):
 
                             if batch_model_type == "Auto":
                                 ood_risk = ood_risks[j]
-                                # Use the exact Auto+ strategy as single prediction:
-                                # severe disagreement -> GNN, OOD != LOW -> GNN,
-                                # otherwise 0.45*RF + 0.55*GNN.
+                                # Use the exact Auto strategy as single prediction:
+                                # weighted 0.5*RF + 0.5*GNN whenever GNN is available;
+                                # OOD/disagreement are shown as warnings only.
                                 logS, actual_m, _ = predict_solubility_auto(
                                     ood_risk, rf_val, gnn_val
                                 )

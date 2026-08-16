@@ -27,7 +27,13 @@ DESCRIPTOR_KEYS = [
 
 _GNN_FILES = [
     os.path.join("output_v2", f)
-    for f in ("gnn_solubility_model_v4.pt", "gnn_solubility_model_v3.pt", "gnn_solubility_model.pt")
+    for f in (
+        "gnn_solubility_model_v5.pt",
+        "gnn_solubility_model_v5_clean.pt",
+        "gnn_solubility_model_v4.pt",
+        "gnn_solubility_model_v3.pt",
+        "gnn_solubility_model.pt",
+    )
 ]
 _GNN_AVAILABLE = any(os.path.exists(p) for p in _GNN_FILES)
 requires_gnn = pytest.mark.skipif(not _GNN_AVAILABLE, reason="GNN model files not found")
@@ -109,7 +115,7 @@ class TestPredict:
         assert resp.status_code == 200
         data = resp.json()
         assert data["model_used"] == "Ensemble"
-        expected = 0.45 * data["logS_rf"] + 0.55 * data["logS_gnn"]
+        expected = 0.5 * data["logS_rf"] + 0.5 * data["logS_gnn"]
         assert data["logS_final"] == pytest.approx(expected)
 
     def test_predict_invalid_smiles_400(self, client):

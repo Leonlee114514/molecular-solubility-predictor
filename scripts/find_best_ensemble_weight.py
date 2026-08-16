@@ -21,8 +21,12 @@ SEED = 42
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
 # ── 1. Load latest models ──
-# Try V5 first, fall back to V4
-rf_path = "output_v2/solubility_model_v5.pkl"
+# Try the clean V6 first, then V5/V4 fallbacks
+rf_path = "output_v2/solubility_model_v6_clean.pkl.gz"
+if not os.path.exists(rf_path):
+    rf_path = "output_v2/solubility_model_v5.pkl.gz"
+if not os.path.exists(rf_path):
+    rf_path = "output_v2/solubility_model_v5.pkl"
 if not os.path.exists(rf_path):
     rf_path = "output_v2/solubility_model_v4.pkl"
 rf = joblib.load(rf_path)
@@ -30,7 +34,7 @@ print(f"RF: {rf_path}")
 
 gnn_path = "output_v2/gnn_solubility_model_v4.pt"
 gnn_encoder = MoleculeGraphEncoder()
-for fname, hdim in [("gnn_solubility_model_v4.pt", 256), ("gnn_solubility_model_v3.pt", 128)]:
+for fname, hdim in [("gnn_solubility_model_v5.pt", 256), ("gnn_solubility_model_v5_clean.pt", 256), ("gnn_solubility_model_v4.pt", 256), ("gnn_solubility_model_v3.pt", 128)]:
     p = os.path.join("output_v2", fname)
     if os.path.exists(p):
         gnn_path = p

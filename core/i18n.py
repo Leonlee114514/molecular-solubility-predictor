@@ -422,7 +422,7 @@ _ALL: dict[str, dict[str, str]] = {
     "result.solubility.badge_rf": {"zh": "随机森林", "en": "Random Forest"},
     "result.solubility.badge_gnn": {"zh": "图神经网络", "en": "Graph Neural Network"},
     "result.solubility.badge_ensemble": {"zh": "集成模型（RF+GNN）", "en": "Ensemble (RF+GNN)"},
-    "result.solubility.badge_weighted": {"zh": "加权集成（0.45×RF+0.55×GNN）", "en": "Weighted Ensemble (0.45×RF+0.55×GNN)"},
+    "result.solubility.badge_weighted": {"zh": "集成（0.5×RF+0.5×GNN）", "en": "Ensemble (0.5×RF+0.5×GNN)"},
     "result.solubility.metric_logs": {"zh": "预测溶解度 (logS)", "en": "Predicted Solubility (logS)"},
     "result.solubility.severe_disagree_auto": {
         "zh": "⚠️ RF 与 GNN 严重分歧（|Δ|={diff:.2f}），已自动降级为 GNN 预测。请谨慎参考。",
@@ -707,7 +707,7 @@ _ALL: dict[str, dict[str, str]] = {
     "model.pka.type.amphoteric_desc": {"zh": "pKa 接近中性，电离行为随 pH 变化剧烈", "en": "Near-neutral pKa, ionization behavior varies significantly with pH"},
 
     "model.shap.morgan_fp": {"zh": "摩根指纹 (Morgan FP)", "en": "Morgan Fingerprint (Morgan FP)"},
-    "model.no_model": {"zh": "未找到溶解度模型（需在 output_v2/solubility_model_v5.pkl.gz）", "en": "No solubility model found (expected output_v2/solubility_model_v5.pkl.gz)"},
+    "model.no_model": {"zh": "未找到溶解度模型（需在 output_v2/solubility_model_v6_clean.pkl.gz 或 v5 回退文件）", "en": "No solubility model found (expected output_v2/solubility_model_v6_clean.pkl.gz or the v5 fallback)"},
 
     "model.model_label_rf": {"zh": "RF", "en": "RF"},
     "model.model_label_gnn": {"zh": "GNN", "en": "GNN"},
@@ -959,7 +959,7 @@ _ALL: dict[str, dict[str, str]] = {
     "result.preview.spin_stop": {"zh": "停止旋转", "en": "Stop rotation"},
     "result.ood.out_of_range_label": {"zh": "超出训练数据范围", "en": "Outside training range"},
     "result.ood.extreme_label": {"zh": "极端偏离 (|z| > 3)", "en": "Extreme deviation (|z| > 3)"},
-    "result.solubility.ensemble_weights": {"zh": "权重 RF 0.45 · GNN 0.55", "en": "Weights RF 0.45 · GNN 0.55"},
+    "result.solubility.ensemble_weights": {"zh": "权重 RF 0.5 · GNN 0.5", "en": "Weights RF 0.5 · GNN 0.5"},
     "common.loading": {"zh": "加载中...", "en": "Loading..."},
     "common.retry": {"zh": "重试", "en": "Retry"},
 

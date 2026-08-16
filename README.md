@@ -10,7 +10,7 @@ Predict aqueous solubility (logS) of organic molecules using Machine Learning.
 This web application predicts how well a molecule dissolves in water (**logS**) from its molecular structure (SMILES string). It combines:
 
 - **RDKit** for cheminformatics and molecular feature extraction
-- **Random Forest** model trained on **14,000+ organic compounds**
+- **Random Forest** (clean V6) + **GNN** (clean V5) trained on **14,000+ organic compounds**
 - **Separate acidic/basic pKa models** trained on 410,000+ pKa measurements
 - **PubChem API** for real-time molecule lookup
 - **Kimi AI (Moonshot)** for chemistry explanations in plain Chinese
@@ -32,7 +32,7 @@ Built as a high school chemistry + machine learning project.
 | Layer | Technology |
 |-------|------------|
 | Frontend | Streamlit |
-| ML Model | Scikit-learn (Random Forest) |
+| ML Model | Scikit-learn (Random Forest) + PyTorch GIN |
 | Cheminformatics | RDKit |
 | Fingerprint | Morgan (ECFP4, 1024-bit) |
 | Descriptors | MolWt, LogP, TPSA, H-bonds, Rotatable Bonds, Rings |
@@ -72,7 +72,8 @@ Built as a high school chemistry + machine learning project.
 │   └── test_ood_detector.py
 │
 ├── output_v2/                  # Trained models + evaluation report
-│   ├── solubility_model_v5.pkl.gz
+│   ├── solubility_model_v6_clean.pkl.gz  # clean RF
+│   ├── gnn_solubility_model_v5.pt        # clean GNN
 │   ├── pka_acidic_model.pkl / pka_basic_model.pkl
 │   └── evaluation_report.json
 ├── data/                       # Training datasets (CSV)
@@ -211,6 +212,17 @@ python scripts/evaluate_models.py
 
 This writes `output_v2/evaluation_report.json` with per-source R²/RMSE/MAE and
 compares RF, GNN, and ensemble strategies. A `--quick` smoke mode is available.
+
+Clean production models are trained with the same seed=2026 outer test split:
+
+```bash
+python scripts/train_rf_v6_clean.py     # clean RF
+python scripts/train_gnn_clean.py       # clean GNN
+```
+
+Clean hold-out results (R²): RF 0.797, GNN 0.801, 0.5/0.5 ensemble 0.835.
+The Auto mode uses the 0.5/0.5 ensemble and shows OOD/disagreement warnings
+without routing to a single model.
 
 pKa models are evaluated during training by `scripts/train_pka_models_v2.py`,
 which writes `output_v2/pka_models_config.json`.

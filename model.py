@@ -24,14 +24,23 @@ def _load_joblib(path):
 
 @st.cache_resource
 def load_solubility_model():
-    """Load the Random Forest solubility prediction model (V5+)."""
-    v5_path = "output_v2/solubility_model_v5.pkl.gz"
-    if os.path.exists(v5_path):
-        model = _load_joblib(v5_path)
-        desc_names = joblib.load("output_v2/descriptor_names_v5.pkl")
-        return model, desc_names
+    """Load the Random Forest solubility prediction model.
+
+    Prefers the clean V6 model (seed=2026 hold-out split). Falls back to the
+    legacy V5 artifact for older checkouts.
+    """
+    candidates = [
+        ("output_v2/solubility_model_v6_clean.pkl.gz", "output_v2/descriptor_names_v6_clean.pkl"),
+        ("output_v2/solubility_model_v5.pkl.gz", "output_v2/descriptor_names_v5.pkl"),
+    ]
+    for model_path, desc_path in candidates:
+        if os.path.exists(model_path) and os.path.exists(desc_path):
+            model = _load_joblib(model_path)
+            desc_names = joblib.load(desc_path)
+            return model, desc_names
     raise FileNotFoundError(
-        "No solubility model found (expected output_v2/solubility_model_v5.pkl.gz)"
+        "No solubility model found (expected output_v2/solubility_model_v6_clean.pkl.gz "
+        "or output_v2/solubility_model_v5.pkl.gz)"
     )
 
 
@@ -211,8 +220,10 @@ def load_gnn_model():
     import torch
 
     import os
-    # Try V4 first, then V3, then V2
+    # Try the clean V5 first, then V4/V3/V2 fallbacks
     for model_file, hidden_dim in [
+        ("gnn_solubility_model_v5.pt", 256),
+        ("gnn_solubility_model_v5_clean.pt", 256),
         ("gnn_solubility_model_v4.pt", 256),
         ("gnn_solubility_model_v3.pt", 128),
         ("gnn_solubility_model.pt", 128),
@@ -248,47 +259,42 @@ def predict_solubility_gnn(model, encoder, smiles):
 
 
 def predict_solubility_ensemble(rf_pred, gnn_pred):
-    """Return (ensemble_pred, rf_pred, gnn_pred). Weighted average (0.45RF+0.55GNN)."""
-    ensemble = 0.45 * rf_pred + 0.55 * gnn_pred
+    """Return (ensemble_pred, rf_pred, gnn_pred). Simple 0.5RF + 0.5GNN average.
+
+    On the clean seed=2026 hold-out test, the simple average outperformed both
+    single models and the previous 0.45/0.55 weighting (see evaluation_report.json).
+    """
+    ensemble = 0.5 * rf_pred + 0.5 * gnn_pred
     return ensemble, rf_pred, gnn_pred
 
 
-def predict_solubility_weighted(rf_pred, gnn_pred, rf_weight=0.45):
+def predict_solubility_weighted(rf_pred, gnn_pred, rf_weight=0.5):
     """Weighted ensemble: rf_weight × RF + (1-rf_weight) × GNN.
-    Optimal weight 0.45:RF + 0.55:GNN (found via grid search on V5)."""
+
+    Default is 0.5 after clean hold-out evaluation (previously 0.45).
+    """
     return rf_pred * rf_weight + gnn_pred * (1.0 - rf_weight)
 
 
 def predict_solubility_auto(ood_risk, rf_pred, gnn_pred):
-    """Auto+ strategy: select model based on OOD risk + model disagreement.
+    """Auto strategy: use the weighted RF+GNN ensemble whenever both are available.
+
+    Clean hold-out evaluation showed that routing to pure GNN based on OOD
+    risk or model disagreement did not improve accuracy; OOD and disagreement
+    are therefore surfaced as warnings in the UI instead of changing the model.
 
     Args:
-        ood_risk: "LOW", "MEDIUM", or "HIGH" from OOD detector.
+        ood_risk: kept for API compatibility ("LOW"/"MEDIUM"/"HIGH"), no longer routed on.
         rf_pred: Random Forest prediction value.
         gnn_pred: GNN prediction value (may be None).
 
     Returns (prediction_value, actual_model_label, disagreement):
       disagreement = abs(rf_pred - gnn_pred) or 0 if gnn is None.
-
-    Strategy:
-      - RF/GNN disagree > 1.0 → pure GNN (models can't agree, GNN is safer)
-      - OOD LOW + agree ≤ 1.0 → 0.45×RF + 0.55×GNN (weighted ensemble)
-      - OOD MEDIUM/HIGH       → pure GNN (RF unreliable on outliers)
     """
     if gnn_pred is None:
         return rf_pred, "RF", 0.0
 
     disagreement = abs(rf_pred - gnn_pred)
-
-    # Severe disagreement: models fundamentally disagree → trust GNN
-    if disagreement > 1.0:
-        return gnn_pred, "GNN", disagreement
-
-    # OOD outlier → GNN is more reliable
-    if ood_risk != "LOW":
-        return gnn_pred, "GNN", disagreement
-
-    # Normal case: weighted ensemble
     return predict_solubility_weighted(rf_pred, gnn_pred), "Ensemble(W)", disagreement
 
 

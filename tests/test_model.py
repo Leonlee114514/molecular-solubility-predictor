@@ -133,12 +133,11 @@ class TestPredictSolubilityEnsemble:
     """Tests for predict_solubility_ensemble()."""
 
     def test_ensemble_mean_weighted(self):
-        """Ensemble should return weighted average (0.45/0.55)."""
+        """Ensemble should return a 0.5/0.5 simple average."""
         ensemble, rf_p, gnn_p = predict_solubility_ensemble(-1.0, -2.0)
         assert rf_p == -1.0
         assert gnn_p == -2.0
-        # 0.45 * (-1.0) + 0.55 * (-2.0) = -0.45 - 1.10 = -1.55
-        assert ensemble == pytest.approx(-1.55, abs=0.01)
+        assert ensemble == pytest.approx(-1.5, abs=0.01)
 
     def test_identical_models(self):
         """When RF and GNN agree, ensemble should equal that value."""
@@ -148,16 +147,16 @@ class TestPredictSolubilityEnsemble:
     def test_large_disagreement(self):
         """Even with large disagreement, formula should hold."""
         ensemble, _, _ = predict_solubility_ensemble(2.0, -2.0)
-        assert ensemble == pytest.approx(0.45 * 2.0 + 0.55 * (-2.0), abs=0.01)
+        assert ensemble == pytest.approx(0.5 * 2.0 + 0.5 * (-2.0), abs=0.01)
 
 
 class TestPredictSolubilityWeighted:
     """Tests for predict_solubility_weighted()."""
 
     def test_default_weight(self):
-        """Default weight should be 0.45."""
+        """Default weight should be 0.5."""
         result = predict_solubility_weighted(-1.0, -2.0)
-        assert result == pytest.approx(-1.55, abs=0.01)
+        assert result == pytest.approx(-1.5, abs=0.01)
 
     def test_custom_weight(self):
         """Custom RF weight should work."""
@@ -185,30 +184,31 @@ class TestPredictSolubilityAuto:
         assert label == "RF"
         assert disc == 0.0
 
-    def test_high_disagreement_uses_gnn(self):
-        """Disagreement > 1.0 should select GNN."""
+    def test_high_disagreement_still_ensembles(self):
+        """Disagreement is reported, but prediction remains the ensemble."""
         pred, label, disc = predict_solubility_auto("LOW", -1.0, -2.5)
-        assert pred == -2.5
-        assert label == "GNN"
+        assert pred == pytest.approx(-1.75, abs=0.01)
+        assert label == "Ensemble(W)"
         assert disc > 1.0
 
-    def test_ood_medium_uses_gnn(self):
-        """MEDIUM OOD should select GNN."""
+    def test_ood_medium_still_ensembles(self):
+        """MEDIUM OOD is a warning condition; prediction stays ensemble."""
         pred, label, _ = predict_solubility_auto("MEDIUM", -1.0, -1.5)
-        assert label == "GNN"
+        assert label == "Ensemble(W)"
+        assert pred == pytest.approx(-1.25, abs=0.01)
 
-    def test_ood_high_uses_gnn(self):
-        """HIGH OOD should select GNN."""
+    def test_ood_high_still_ensembles(self):
+        """HIGH OOD is a warning condition; prediction stays ensemble."""
         pred, label, _ = predict_solubility_auto("HIGH", -1.0, -1.2)
-        assert label == "GNN"
+        assert label == "Ensemble(W)"
+        assert pred == pytest.approx(-1.1, abs=0.01)
 
     def test_low_ood_ensemble(self):
         """LOW OOD + low disagreement should use weighted ensemble."""
         pred, label, disc = predict_solubility_auto("LOW", -1.0, -1.2)
         assert label == "Ensemble(W)"
         assert disc < 1.0
-        # 0.45 * (-1.0) + 0.55 * (-1.2) = -0.45 - 0.66 = -1.11
-        assert pred == pytest.approx(-1.11, abs=0.01)
+        assert pred == pytest.approx(-1.1, abs=0.01)
 
     def test_disagreement_value_returned(self):
         """Should return correct disagreement."""

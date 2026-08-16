@@ -39,8 +39,14 @@ sys.path.insert(0, str(PROJECT_ROOT))
 from features import compute_features  # noqa: E402
 from ood_detector import load_ood_detector  # noqa: E402
 
-RF_ARTIFACT = PROJECT_ROOT / "output_v2" / "solubility_model_v5.pkl.gz"
+RF_ARTIFACT_CANDIDATES = [
+    PROJECT_ROOT / "output_v2" / "solubility_model_v6_clean.pkl.gz",
+    PROJECT_ROOT / "output_v2" / "solubility_model_v5.pkl.gz",
+]
+RF_ARTIFACT = next((p for p in RF_ARTIFACT_CANDIDATES if p.exists()), RF_ARTIFACT_CANDIDATES[0])
+GNN_CLEAN_CANDIDATE = PROJECT_ROOT / "output_v2" / "gnn_solubility_model_v5_clean.pt"
 GNN_CANDIDATES = [
+    (GNN_CLEAN_CANDIDATE, 256),
     (PROJECT_ROOT / "output_v2" / "gnn_solubility_model_v4.pt", 256),
     (PROJECT_ROOT / "output_v2" / "gnn_solubility_model_v3.pt", 128),
     (PROJECT_ROOT / "output_v2" / "gnn_solubility_model.pt", 128),
@@ -158,9 +164,10 @@ def load_gnn_artifact():
                 torch.load(str(path), map_location="cpu", weights_only=True)
             )
             model.eval()
-            print(f"  GNN artifact: {path.name} (hidden={hidden_dim})")
-            return model, encoder, path.name
-    return None, None, None
+            source = "clean_candidate" if path == GNN_CLEAN_CANDIDATE else "shipped_artifact"
+            print(f"  GNN {source}: {path.name} (hidden={hidden_dim})")
+            return model, encoder, path.name, source
+    return None, None, None, None
 
 
 @dataclass
@@ -227,10 +234,12 @@ def main():
         "strategies": {},
         "per_source": {},
         "caveats": [
-            "Shipped RF/GNN artifacts were trained with a DIFFERENT seed=42 split; "
-            "their metrics on this test set are informative but may be optimistic "
-            "because the artifacts may have seen some of these molecules during training.",
             "The retrained RF metric is a clean hold-out evaluation for the RF model.",
+            "The deployed RF artifact loaded by this script (V6 clean is preferred, "
+            "V5 legacy is the fallback) may have seen some of these molecules during "
+            "training if it is the legacy V5 artifact.",
+            "The GNN source is recorded in strategies_gnn_source: clean_candidate "
+            "(seed=2026 outer test split) or shipped_artifact (may be contaminated).",
         ],
     }
 
@@ -242,7 +251,7 @@ def main():
     else:
         print("  RF artifact missing")
 
-    gnn_model, gnn_encoder, gnn_name = load_gnn_artifact()
+    gnn_model, gnn_encoder, gnn_name, gnn_source = load_gnn_artifact()
 
     rf_test_pred = None
     rf_retrained_test_pred = None
@@ -299,20 +308,29 @@ def main():
             f"  GNN inferred {np.isfinite(gnn_test_pred).sum()} test molecules "
             f"in {time.time() - t0:.1f}s"
         )
-        report["models"]["gnn_shipped_artifact"] = {
+        gnn_key = "gnn_clean_candidate" if gnn_source == "clean_candidate" else "gnn_shipped_artifact"
+        gnn_note = (
+            "clean hold-out model; trained on the non-test pool only"
+            if gnn_source == "clean_candidate"
+            else "artifact may be contaminated"
+        )
+        report["models"][gnn_key] = {
             "file": gnn_name,
+            "source": gnn_source,
             "test": metrics(y[test_idx], gnn_test_pred),
-            "note": "artifact may be contaminated",
+            "note": gnn_note,
         }
+        report["strategies_gnn_source"] = gnn_source
         print(
-            "  GNN shipped artifact test:",
-            report["models"]["gnn_shipped_artifact"]["test"],
+            f"  GNN {gnn_source} test:",
+            report["models"][gnn_key]["test"],
         )
 
     if rf_test_pred is not None and gnn_test_pred is not None:
         print("\n[5/5] Strategy comparison on hold-out test")
-        # Prefer the clean retrained RF for the strategy table. The shipped GNN
-        # may still be contaminated, which is recorded in the caveats below.
+        # Prefer the clean retrained RF for the strategy table. If a clean GNN
+        # candidate exists it is loaded first; otherwise the shipped artifact is
+        # used and its contamination caveat is recorded in the report.
         rf_v = rf_retrained_test_pred if rf_retrained_test_pred is not None else rf_test_pred
         strategy_rf_source = (
             "rf_retrained (clean hold-out)"
@@ -325,28 +343,14 @@ def main():
 
         ood = load_ood_detector(str(OOD_ARTIFACT)) if OOD_ARTIFACT.exists() else None
         auto_pred, auto_used = [], []
-        if ood is not None:
-            for j, i in enumerate(test_idx):
-                risk = ood.check(features_list[i], fps[i]).risk_level
-                if not finite[j]:
-                    auto_pred.append(np.nan)
-                    auto_used.append("nan")
-                else:
-                    diff = abs(float(rf_v[j]) - float(gn_v[j]))
-                    if diff > 1.0:
-                        auto_pred.append(gn_v[j])
-                        auto_used.append("GNN")
-                    elif risk != "LOW":
-                        auto_pred.append(gn_v[j])
-                        auto_used.append("GNN")
-                    else:
-                        auto_pred.append(0.45 * rf_v[j] + 0.55 * gn_v[j])
-                        auto_used.append("Ensemble(W)")
-        else:
-            for j, i in enumerate(test_idx):
-                auto_pred.append(
-                    np.nan if not finite[j] else 0.45 * rf_v[j] + 0.55 * gn_v[j]
-                )
+        # Current Auto strategy: weighted 0.5/0.5 ensemble whenever both models
+        # are available. OOD is still evaluated for warning purposes only.
+        for j, i in enumerate(test_idx):
+            if not finite[j]:
+                auto_pred.append(np.nan)
+                auto_used.append("nan")
+            else:
+                auto_pred.append(0.5 * rf_v[j] + 0.5 * gn_v[j])
                 auto_used.append("Ensemble(W)")
 
         rows = [
@@ -358,14 +362,9 @@ def main():
                 note="",
             ),
             StrategyRow(
-                "Ensemble (0.45/0.55)",
-                **metrics(y[test_idx], 0.45 * rf_v + 0.55 * gn_v),
-                note="",
-            ),
-            StrategyRow(
-                "Auto+ (OOD+disagreement)",
+                "Auto (0.5/0.5 ensemble)",
                 **metrics(y[test_idx], np.array(auto_pred)),
-                note="",
+                note="OOD/disagreement are warnings, not routing",
             ),
         ]
         report["strategies"] = [asdict(r) for r in rows]

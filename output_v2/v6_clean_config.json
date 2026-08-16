@@ -1,0 +1,82 @@
+{
+  "model_version": "v6_clean",
+  "generated_at": "2026-08-17 01:15:58",
+  "rf_params": {
+    "n_estimators": 800,
+    "max_depth": 30,
+    "min_samples_split": 5,
+    "min_samples_leaf": 2,
+    "max_features": null,
+    "random_state": 42,
+    "n_jobs": -1
+  },
+  "n_features": 1037,
+  "n_desc": 13,
+  "descriptors": [
+    "MolWt",
+    "LogP",
+    "NumHDonors",
+    "NumHAcceptors",
+    "TPSA",
+    "NumRotatableBonds",
+    "NumAromaticRings",
+    "NumAliphaticRings",
+    "FractionCSP3",
+    "NumSaturatedRings",
+    "HallKierAlpha",
+    "Chi0v",
+    "Chi1v"
+  ],
+  "split": {
+    "test_seed": 2026,
+    "test_size": 0.2
+  },
+  "data": {
+    "n_total": 14099,
+    "n_valid": 14097,
+    "n_train": 11277,
+    "n_test": 2820
+  },
+  "metrics": {
+    "train": {
+      "n": 11277,
+      "r2": 0.94910209200336,
+      "rmse": 0.5731585550520233,
+      "mae": 0.36791596551639094
+    },
+    "test": {
+      "n": 2820,
+      "r2": 0.7973836763931569,
+      "rmse": 1.1468433644932925,
+      "mae": 0.7716820029847534
+    },
+    "test_per_source": {
+      "AqSolDB": {
+        "n": 1876,
+        "r2": 0.7570647227001375,
+        "rmse": 1.1572999124447876,
+        "mae": 0.7707018091028502
+      },
+      "ChEMBL": {
+        "n": 713,
+        "r2": 0.5584316526849882,
+        "rmse": 1.2695174218202023,
+        "mae": 0.9178483752458234
+      },
+      "ESOL": {
+        "n": 223,
+        "r2": 0.9536631663755559,
+        "rmse": 0.45638165913403067,
+        "mae": 0.33158101840184445
+      },
+      "Supplementary": {
+        "n": 8,
+        "r2": 0.9358781026741441,
+        "rmse": 0.3211778333085732,
+        "mae": 0.24227448577171876
+      }
+    }
+  },
+  "model_file": "solubility_model_v6_clean.pkl.gz",
+  "descriptor_file": "descriptor_names_v6_clean.pkl"
+}

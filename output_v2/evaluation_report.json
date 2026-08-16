@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-08-16 23:38:19",
+  "generated_at": "2026-08-17 01:29:10",
   "dataset": {
     "n_valid_molecules": 14097,
     "n_train": 11277,
@@ -21,7 +21,7 @@
       "train": {
         "n": 11277,
         "r2": 0.94910209200336,
-        "rmse": 0.5731585550520234,
+        "rmse": 0.5731585550520233,
         "mae": 0.36791596551639083
       },
       "test": {
@@ -43,21 +43,22 @@
     "rf_shipped_artifact": {
       "test": {
         "n": 2820,
-        "r2": 0.9171784189525813,
-        "rmse": 0.7332273380631191,
-        "mae": 0.4476598961230286
+        "r2": 0.7973836763931569,
+        "rmse": 1.1468433644932925,
+        "mae": 0.7716820029847531
       },
       "note": "same test set as rf_retrained; artifact may be contaminated"
     },
-    "gnn_shipped_artifact": {
-      "file": "gnn_solubility_model_v4.pt",
+    "gnn_clean_candidate": {
+      "file": "gnn_solubility_model_v5_clean.pt",
+      "source": "clean_candidate",
       "test": {
         "n": 2820,
-        "r2": 0.9025949056661862,
-        "rmse": 0.7951658612746711,
-        "mae": 0.5419098175183472
+        "r2": 0.8014063799744965,
+        "rmse": 1.1354016913100442,
+        "mae": 0.7997127837366877
       },
-      "note": "artifact may be contaminated"
+      "note": "clean hold-out model; trained on the non-test pool only"
     }
   },
   "strategies": [
@@ -71,62 +72,54 @@
     },
     {
       "strategy": "GNN",
-      "r2": 0.9025949056661862,
-      "rmse": 0.7951658612746711,
-      "mae": 0.5419098175183472,
+      "r2": 0.8014063799744965,
+      "rmse": 1.1354016913100442,
+      "mae": 0.7997127837366877,
       "n": 2820,
       "note": ""
     },
     {
       "strategy": "Ensemble (0.5/0.5)",
-      "r2": 0.8847253605864304,
-      "rmse": 0.8650351934674712,
-      "mae": 0.591864285732501,
+      "r2": 0.8345533047435622,
+      "rmse": 1.0363249139193589,
+      "mae": 0.7200965752848226,
       "n": 2820,
       "note": ""
     },
     {
-      "strategy": "Ensemble (0.45/0.55)",
-      "r2": 0.8896385613545141,
-      "rmse": 0.8463998295951782,
-      "mae": 0.5791389127818255,
+      "strategy": "Auto (0.5/0.5 ensemble)",
+      "r2": 0.8345533047435622,
+      "rmse": 1.0363249139193589,
+      "mae": 0.7200965752848226,
       "n": 2820,
-      "note": ""
-    },
-    {
-      "strategy": "Auto+ (OOD+disagreement)",
-      "r2": 0.9024355958459831,
-      "rmse": 0.7958158579559689,
-      "mae": 0.5363686993716184,
-      "n": 2820,
-      "note": ""
+      "note": "OOD/disagreement are warnings, not routing"
     }
   ],
   "per_source": {
     "shipped_rf": {
       "AqSolDB": {
         "n": 1876,
-        "r2": 0.9039025255962561,
-        "rmse": 0.7278746846457962,
-        "mae": 0.4412655938618173
+        "r2": 0.7570647227001375,
+        "rmse": 1.1572999124447876,
+        "mae": 0.7707018091028502
       },
       "ChEMBL": {
         "n": 713,
-        "r2": 0.8065332837447846,
-        "rmse": 0.8403163778231398,
-        "mae": 0.5461455835493598
+        "r2": 0.5584316526849882,
+        "rmse": 1.2695174218202023,
+        "mae": 0.9178483752458233
       },
       "ESOL": {
         "n": 223,
-        "r2": 0.9814670604823853,
-        "rmse": 0.28862713626169817,
-        "mae": 0.19865369506880667
+        "r2": 0.9536631663755559,
+        "rmse": 0.4563816591340306,
+        "mae": 0.33158101840184445
       },
       "Supplementary": {
         "n": 8,
-        "r2": 0.9892576364639615,
-        "rmse": 0.13145959939888288,
-        "mae": 0.11063473889175578
+        "r2": 0.9358781026741441,
+        "rmse": 0.3211778333085732,
+        "mae": 0.24227448577171878
       }
     },
     "retrained_rf": {
@@ -146,23 +139,24 @@
         "n": 223,
         "r2": 0.9536631663755559,
         "rmse": 0.45638165913403067,
-        "mae": 0.3315810184018445
+        "mae": 0.33158101840184445
       },
       "Supplementary": {
         "n": 8,
         "r2": 0.9358781026741441,
-        "rmse": 0.3211778333085732,
-        "mae": 0.24227448577171876
+        "rmse": 0.32117783330857325,
+        "mae": 0.2422744857717188
       }
     }
   },
   "caveats": [
-    "Shipped RF/GNN artifacts were trained with a DIFFERENT seed=42 split; their metrics on this test set are informative but may be optimistic because the artifacts may have seen some of these molecules during training.",
-    "The retrained RF metric is a clean hold-out evaluation for the RF model."
+    "The retrained RF metric is a clean hold-out evaluation for the RF model.",
+    "The deployed RF artifact loaded by this script (V6 clean is preferred, V5 legacy is the fallback) may have seen some of these molecules during training if it is the legacy V5 artifact.",
+    "The GNN source is recorded in strategies_gnn_source: clean_candidate (seed=2026 outer test split) or shipped_artifact (may be contaminated)."
   ],
+  "strategies_gnn_source": "clean_candidate",
   "strategies_rf_source": "rf_retrained (clean hold-out)",
   "strategies_auto_model_usage": {
-    "Ensemble(W)": 2079,
-    "GNN": 741
+    "Ensemble(W)": 2820
   }
 }
