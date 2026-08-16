@@ -1,5 +1,14 @@
-# Models stored as regular files (no LFS) after gzip compression
-# solubility_model_v5.pkl.gz — 83 MB
-# pka_model.pkl — 93 MB
-# ood_detector.pkl.gz — 229 KB
-
+# Large model/data artifacts are stored with Git LFS.
+# New commits will contain LFS pointers; run `git lfs migrate import` if you
+# later want to rewrite history and remove the old large blobs entirely.
+# Patterns:
+#   output_v2/pka_*.pkl                  pKa RF models
+#   output_v2/solubility_model_*.pkl.gz  compressed solubility RF model
+#   output_v2/ood_detector.pkl.gz        OOD reference stats
+#   output_v2/gnn_solubility_model*.pt   PyTorch GNN checkpoints
+#   data/sa_fpscores.pkl.gz              synthetic-accessibility fragment scores
+output_v2/pka_*.pkl filter=lfs diff=lfs merge=lfs -text
+output_v2/solubility_model_*.pkl.gz filter=lfs diff=lfs merge=lfs -text
+output_v2/ood_detector.pkl.gz filter=lfs diff=lfs merge=lfs -text
+output_v2/gnn_solubility_model*.pt filter=lfs diff=lfs merge=lfs -text
+data/sa_fpscores.pkl.gz filter=lfs diff=lfs merge=lfs -text
