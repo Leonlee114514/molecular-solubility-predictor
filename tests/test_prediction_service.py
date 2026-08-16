@@ -40,6 +40,8 @@ def _assert_common(result, mode):
     assert all(isinstance(v, float) for v in result.features.values())
     assert result.ood_risk in OOD_RISKS
     assert result.pka is None or isinstance(result.pka, float)
+    assert result.pka_acidic is None or isinstance(result.pka_acidic, float)
+    assert result.pka_basic is None or isinstance(result.pka_basic, float)
     if result.pka is not None:
         assert result.pka_kind in PKA_KINDS
     else:
@@ -125,13 +127,26 @@ class TestPka:
         assert result.pka_kind in PKA_KINDS
 
     def test_pka_kind_thresholds(self):
-        """pKa kind enum: <6 acid, >8 base, else amphoteric (from model.get_pka_type)."""
+        """Legacy pKa kind enum: <6 acid, >8 base, else amphoteric."""
         from services.prediction import _pka_kind
         assert _pka_kind(4.76) == "acid"
         assert _pka_kind(5.99) == "acid"
         assert _pka_kind(9.5) == "base"
         assert _pka_kind(8.01) == "base"
         assert _pka_kind(7.0) == "amphoteric"
+
+    def test_pka_pair_resolution(self):
+        """Separate acid/base pKa values resolve to amphoteric for amino acids."""
+        from services.prediction import _resolve_pka_pair
+        primary, kind = _resolve_pka_pair(2.34, 9.60)
+        assert kind == "amphoteric"
+        assert primary == pytest.approx(9.60)  # closest to physiological pH 7
+        primary, kind = _resolve_pka_pair(4.20, 2.00)
+        assert kind == "acid"
+        assert primary == pytest.approx(4.20)
+        primary, kind = _resolve_pka_pair(14.00, 0.60)
+        assert kind == "amphoteric"
+        assert primary == pytest.approx(0.60)
 
 
 class TestOod:

@@ -11,6 +11,7 @@ import os
 import gzip
 from ood_detector import OODDetector, load_ood_detector as _load_ood_from_disk
 from core.i18n import t
+from features import make_pka_feature_vector
 
 
 def _load_joblib(path):
@@ -35,12 +36,35 @@ def load_solubility_model():
 
 
 @st.cache_resource
+def load_pka_models():
+    """Load the separate acidic and basic pKa models.
+
+    Returns (acidic_model, basic_model). Each element may be None when the
+    corresponding file is missing. Falls back to the legacy single mixed-pKa
+    model only when both new models are unavailable (kept for old checkouts).
+    """
+    acidic_path = "output_v2/pka_acidic_model.pkl"
+    basic_path = "output_v2/pka_basic_model.pkl"
+    legacy_path = "output_v2/pka_model.pkl"
+
+    acidic = joblib.load(acidic_path) if os.path.exists(acidic_path) else None
+    basic = joblib.load(basic_path) if os.path.exists(basic_path) else None
+    if acidic is None and basic is None and os.path.exists(legacy_path):
+        legacy = joblib.load(legacy_path)
+        return legacy, legacy
+    return acidic, basic
+
+
+@st.cache_resource
 def load_pka_model():
-    """Load the pKa prediction model. Returns None if file not found."""
-    if not os.path.exists("output_v2/pka_model.pkl"):
+    """Deprecated compatibility loader for the legacy mixed pKa model.
+
+    New code should use load_pka_models() and predict_pka_pair().
+    """
+    legacy_path = "output_v2/pka_model.pkl"
+    if not os.path.exists(legacy_path):
         return None
-    model = joblib.load("output_v2/pka_model.pkl")
-    return model
+    return joblib.load(legacy_path)
 
 
 @st.cache_resource
@@ -77,17 +101,77 @@ def get_shap_contributions(model, features_dict, fp_array):
     return combined_shap, combined_names
 
 
-def get_pka_type(pka_val):
-    """Classify pKa value into acid/base/amphoteric."""
-    if pka_val < 6:
+def get_pka_type(pka_val, kind=None):
+    """Classify a pKa value into acid/base/amphoteric.
+
+    ``kind`` may be provided explicitly when the caller already resolved the
+    acid/base state from the pair of acidic/basic pKa predictions
+    (see resolve_pka_pair). Without it, the legacy single-value thresholds
+    (<6 acid, >8 base) are preserved for backwards compatibility.
+    """
+    if kind is None:
+        kind = "acid" if pka_val < 6 else ("base" if pka_val > 8 else "amphoteric")
+
+    if kind == "acid":
         return "acid", t("model.pka.type.acidic_display"), "pka-acid", "#a78bfa", \
                t("model.pka.type.acidic_desc")
-    elif pka_val > 8:
+    if kind == "base":
         return "base", t("model.pka.type.basic_display"), "pka-base", "#22d3ee", \
                t("model.pka.type.basic_desc")
+    return "amphoteric", t("model.pka.type.amphoteric_display"), "pka-amphoteric", "#fbbf24", \
+           t("model.pka.type.amphoteric_desc")
+
+
+def resolve_pka_pair(pka_acidic, pka_basic):
+    """Resolve separate acidic/basic pKa predictions into one primary value + kind.
+
+    A molecule is classified as amphoteric when it has a meaningful acidic pKa
+    (<7) AND a meaningful basic pKa (>7), e.g. amino acids. Otherwise the
+    relevant acid or base prediction is selected. The primary value is the one
+    closest to physiological pH 7 when both are available.
+
+    Returns (primary_pka, kind). ``kind`` is "acid" | "base" | "amphoteric" | None.
+    """
+    if pka_acidic is None and pka_basic is None:
+        return None, None
+
+    acidic_relevant = pka_acidic is not None and pka_acidic < 7.0
+    basic_relevant = pka_basic is not None and pka_basic > 7.0
+
+    if acidic_relevant and basic_relevant:
+        kind = "amphoteric"
+    elif acidic_relevant:
+        kind = "acid"
+    elif basic_relevant:
+        kind = "base"
+    elif pka_acidic is not None and pka_basic is not None:
+        # Both predictions sit in the weak/neutral zone.
+        kind = "amphoteric"
+    elif pka_acidic is not None:
+        kind = "acid" if pka_acidic < 7 else "base"
     else:
-        return "amphoteric", t("model.pka.type.amphoteric_display"), "pka-amphoteric", "#fbbf24", \
-               t("model.pka.type.amphoteric_desc")
+        kind = "base" if pka_basic > 7 else "acid"
+
+    values = [v for v in (pka_acidic, pka_basic) if v is not None]
+    if kind == "acid" and pka_acidic is not None:
+        primary = pka_acidic
+    elif kind == "base" and pka_basic is not None:
+        primary = pka_basic
+    else:
+        primary = min(values, key=lambda v: abs(v - 7.0))
+    return float(primary), kind
+
+
+def predict_pka_pair(pka_models, features_dict, fp_array):
+    """Predict (pka_acidic, pka_basic) with the loaded pair of models.
+
+    Missing models yield None for that quantity.
+    """
+    acidic_model, basic_model = pka_models if pka_models is not None else (None, None)
+    X = make_pka_feature_vector(features_dict, fp_array)
+    pka_acidic = float(acidic_model.predict(X)[0]) if acidic_model is not None else None
+    pka_basic = float(basic_model.predict(X)[0]) if basic_model is not None else None
+    return pka_acidic, pka_basic
 
 
 def get_solubility_level(prediction):

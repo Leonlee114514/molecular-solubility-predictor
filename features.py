@@ -7,6 +7,25 @@ import numpy as np
 from rdkit import Chem, rdBase
 from rdkit.Chem import Descriptors, AllChem
 
+# Descriptor order used by the pKa Random Forest models.
+# The pKa models were trained on these 8 core descriptors + 1024-bit Morgan FP.
+PKA_FEATURE_KEYS = (
+    "MolWt", "LogP", "NumHDonors", "NumHAcceptors",
+    "TPSA", "NumRotatableBonds", "NumAromaticRings", "NumAliphaticRings",
+)
+
+
+def make_pka_feature_vector(features, fp_array):
+    """Build the pKa-model input vector from a features dict + Morgan FP array.
+
+    Kept in features.py (framework-free) so model.py and services/prediction.py
+    use the exact same feature ordering.
+    """
+    return np.hstack([
+        [features[k] for k in PKA_FEATURE_KEYS],
+        fp_array,
+    ]).reshape(1, -1)
+
 
 def compute_features(smiles_string):
     """Extract 13 molecular descriptors + 1024-bit Morgan fingerprint from a SMILES string.

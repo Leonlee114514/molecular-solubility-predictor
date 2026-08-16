@@ -47,10 +47,10 @@ def cached_lipinski(features_tuple):
 
 
 @st.cache_data(show_spinner=False, ttl=3600)
-def cached_admet(smiles, features_tuple, pka_val):
+def cached_admet(smiles, features_tuple, pka_val, pka_kind=None):
     """Cached ADME/Tox analysis."""
     features = dict(features_tuple)
-    return analyze_admet(smiles, features, pka_val)
+    return analyze_admet(smiles, features, pka_val, pka_kind=pka_kind)
 
 
 @st.cache_data(show_spinner=False, ttl=3600)

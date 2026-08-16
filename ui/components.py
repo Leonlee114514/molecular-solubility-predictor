@@ -122,6 +122,8 @@ def _set_current_smiles(smiles, name=None):
         st.session_state[StateKey.PREDICTED_SMILES] = None
         st.session_state[StateKey.PREDICTED_LOGS] = None
         st.session_state[StateKey.PREDICTED_PKA] = None
+        st.session_state[StateKey.PREDICTED_PKA_ACIDIC] = None
+        st.session_state[StateKey.PREDICTED_PKA_BASIC] = None
         st.session_state[StateKey.AI_EXPLANATION] = None
     if name:
         st.session_state[StateKey.CURRENT_MOLECULE_NAME] = name
@@ -142,6 +144,8 @@ def _on_radio_select():
             st.session_state[StateKey.PREDICTED_SMILES] = None
             st.session_state[StateKey.PREDICTED_LOGS] = None
             st.session_state[StateKey.PREDICTED_PKA] = None
+            st.session_state[StateKey.PREDICTED_PKA_ACIDIC] = None
+            st.session_state[StateKey.PREDICTED_PKA_BASIC] = None
             st.session_state[StateKey.AI_EXPLANATION] = None
 
 
@@ -354,6 +358,8 @@ def render_input_area():
             st.session_state[StateKey.PREDICTED_SMILES] = None
             st.session_state[StateKey.PREDICTED_LOGS] = None
             st.session_state[StateKey.PREDICTED_PKA] = None
+            st.session_state[StateKey.PREDICTED_PKA_ACIDIC] = None
+            st.session_state[StateKey.PREDICTED_PKA_BASIC] = None
             st.session_state[StateKey.AI_EXPLANATION] = None
         st.session_state["_prev_smiles_input"] = smiles_input
         # Keep molecule name in sync with the current SMILES
@@ -393,6 +399,8 @@ def render_file_upload_input():
                         st.session_state[StateKey.PREDICTED_SMILES] = None
                         st.session_state[StateKey.PREDICTED_LOGS] = None
                         st.session_state[StateKey.PREDICTED_PKA] = None
+                        st.session_state[StateKey.PREDICTED_PKA_ACIDIC] = None
+                        st.session_state[StateKey.PREDICTED_PKA_BASIC] = None
                         st.session_state[StateKey.AI_EXPLANATION] = None
                     st.session_state[_file_upload_key] = uploaded.getvalue()
                     st.info(t("input.method2.try_predict"))
@@ -495,5 +503,7 @@ def render_prediction_history():
                     st.session_state[StateKey.PREDICTED_SMILES] = None
                     st.session_state[StateKey.PREDICTED_LOGS] = None
                     st.session_state[StateKey.PREDICTED_PKA] = None
+                    st.session_state[StateKey.PREDICTED_PKA_ACIDIC] = None
+                    st.session_state[StateKey.PREDICTED_PKA_BASIC] = None
                     st.session_state[StateKey.AI_EXPLANATION] = None
                     st.rerun()

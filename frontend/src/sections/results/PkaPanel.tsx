@@ -83,6 +83,22 @@ export default function PkaPanel({ result, analysis }: PkaPanelProps) {
             {pka.toFixed(2)}
           </p>
         </div>
+        {result.pka_acidic != null && result.pka_basic != null && (
+          <div className="flex items-end gap-6">
+            <div>
+              <p className="text-xs text-ob-faint">{t("result.pka.metric_acidic")}</p>
+              <p className="mt-1 text-2xl font-semibold tabular-nums text-violet-300">
+                {result.pka_acidic.toFixed(2)}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs text-ob-faint">{t("result.pka.metric_basic")}</p>
+              <p className="mt-1 text-2xl font-semibold tabular-nums text-cyan-300">
+                {result.pka_basic.toFixed(2)}
+              </p>
+            </div>
+          </div>
+        )}
         {kind && (
           <div className="flex flex-col gap-1">
             <span
@@ -96,6 +112,9 @@ export default function PkaPanel({ result, analysis }: PkaPanelProps) {
               {t(kind.key)}
             </span>
             <p className="max-w-md text-xs text-ob-muted">{t(kind.descKey)}</p>
+            {result.pka_acidic != null && result.pka_basic != null && (
+              <p className="max-w-md text-xs text-ob-faint">{t("result.pka.dual_note")}</p>
+            )}
           </div>
         )}
       </div>

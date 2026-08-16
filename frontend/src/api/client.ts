@@ -88,11 +88,17 @@ export const api = {
   mol3d: (smiles: string) =>
     request<Mol3dResponse>(`/api/mol/3d?smiles=${encodeURIComponent(smiles)}`),
 
-  analysis: (smiles: string, pka: number | null, logs: number | null, lang: string) =>
+  analysis: (
+    smiles: string,
+    pka: number | null,
+    pkaKind: string | null,
+    logs: number | null,
+    lang: string,
+  ) =>
     request<AnalysisResponse>("/api/analysis", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ smiles, pka, logs, lang }),
+      body: JSON.stringify({ smiles, pka, pka_kind: pkaKind, logs, lang }),
     }),
 
   explain: (body: ExplainRequestBody) =>

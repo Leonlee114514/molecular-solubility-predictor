@@ -10,7 +10,8 @@ Predict aqueous solubility (logS) of organic molecules using Machine Learning.
 This web application predicts how well a molecule dissolves in water (**logS**) from its molecular structure (SMILES string). It combines:
 
 - **RDKit** for cheminformatics and molecular feature extraction
-- **Random Forest** model trained on **11,000+ organic compounds**
+- **Random Forest** model trained on **14,000+ organic compounds**
+- **Separate acidic/basic pKa models** trained on 410,000+ pKa measurements
 - **PubChem API** for real-time molecule lookup
 - **Kimi AI (Moonshot)** for chemistry explanations in plain Chinese
 
@@ -36,6 +37,7 @@ Built as a high school chemistry + machine learning project.
 | Fingerprint | Morgan (ECFP4, 1024-bit) |
 | Descriptors | MolWt, LogP, TPSA, H-bonds, Rotatable Bonds, Rings |
 | AI Explanation | Kimi API (OpenAI-compatible) |
+| pKa | Two Random Forest regressors (acidic pKa + basic pKa) |
 | External Data | PubChem PUG REST API |
 
 ##  Project Structure
@@ -69,7 +71,10 @@ Built as a high school chemistry + machine learning project.
 │   ├── test_molecules.py
 │   └── test_ood_detector.py
 │
-├── output_v2/                  # Trained models
+├── output_v2/                  # Trained models + evaluation report
+│   ├── solubility_model_v5.pkl.gz
+│   ├── pka_acidic_model.pkl / pka_basic_model.pkl
+│   └── evaluation_report.json
 ├── data/                       # Training datasets (CSV)
 ├── docs/                       # Screenshots
 ├── .env                        # API keys (not tracked)
@@ -129,10 +134,10 @@ KIMI_API_KEY=sk-your-moonshot-api-key-here
 If you don't have the trained model yet, run the training script (requires dataset):
 
 ```bash
-python train_model_v2.py
+python scripts/train_model_v2.py
 ```
 
-Or download the pre-trained model from [Releases](YOUR_RELEASES_LINK) and place it in `output_v2/`.
+Or use the pre-trained models already tracked in `output_v2/`.
 
 ### 6. Run the app
 
@@ -193,7 +198,22 @@ The training pipeline (`train_model_v2.py`) typically includes:
 4. Random Forest regression with hyperparameter tuning
 5. Save model + descriptor names for inference
 
-> **Note:** The training script and raw datasets are not included in this repo due to size. Contact me if you're interested in the full pipeline.
+> **Note:** Training scripts live under `scripts/`. Large raw CSV datasets are git-ignored; the pre-trained model artifacts are committed in `output_v2/`.
+
+##  Model Evaluation
+
+Reproduce the hold-out evaluation (a new stratified split that is *not* the
+training split, retraining the RF for a clean test metric):
+
+```bash
+python scripts/evaluate_models.py
+```
+
+This writes `output_v2/evaluation_report.json` with per-source R²/RMSE/MAE and
+compares RF, GNN, and ensemble strategies. A `--quick` smoke mode is available.
+
+pKa models are evaluated during training by `scripts/train_pka_models_v2.py`,
+which writes `output_v2/pka_models_config.json`.
 
 ##  Deployment
 
@@ -207,7 +227,7 @@ The training pipeline (`train_model_v2.py`) typically includes:
 
 ### Important Deployment Notes
 
-- **Model files**: If `solubility_model_v2.pkl` > 100MB, use [Git LFS](https://git-lfs.github.com/) or host on a cloud storage bucket.
+- **Model files**: `solubility_model_v5.pkl.gz` (~83 MB) and the pKa models (~78 MB each) are tracked in Git. Prefer [Git LFS](https://git-lfs.github.io/) or GitHub Releases if the repo grows larger.
 - **RDKit**: Streamlit Cloud supports it via `requirements.txt`, but build time may be long. Consider using a lighter base image if needed.
 - **PubChem API**: The app includes rate limiting (1.2s delay) and SSL workarounds for Chinese networks.
 

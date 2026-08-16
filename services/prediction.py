@@ -21,7 +21,8 @@ Hard constraints for this module:
 
 Model artifacts (read-only, under <project root>/output_v2/):
   * solubility_model_v5.pkl.gz + descriptor_names_v5.pkl  (Random Forest)
-  * pka_model.pkl                                         (pKa regressor)
+  * pka_acidic_model.pkl / pka_basic_model.pkl            (pKa regressors)
+  * pka_model.pkl                                         (legacy mixed pKa, fallback)
   * gnn_solubility_model_v4.pt / _v3.pt / .pt             (GNN, optional)
   * ood_detector.pkl.gz                                   (OOD reference stats)
 """
@@ -37,7 +38,7 @@ from pathlib import Path
 import joblib
 import numpy as np
 
-from features import compute_features
+from features import PKA_FEATURE_KEYS, compute_features
 
 logger = logging.getLogger(__name__)
 
@@ -47,7 +48,9 @@ _OUTPUT_DIR = _PROJECT_ROOT / "output_v2"
 
 _SOLUBILITY_MODEL_PATH = _OUTPUT_DIR / "solubility_model_v5.pkl.gz"
 _DESCRIPTOR_NAMES_PATH = _OUTPUT_DIR / "descriptor_names_v5.pkl"
-_PKA_MODEL_PATH = _OUTPUT_DIR / "pka_model.pkl"
+_PKA_ACIDIC_MODEL_PATH = _OUTPUT_DIR / "pka_acidic_model.pkl"
+_PKA_BASIC_MODEL_PATH = _OUTPUT_DIR / "pka_basic_model.pkl"
+_PKA_LEGACY_MODEL_PATH = _OUTPUT_DIR / "pka_model.pkl"
 _OOD_DETECTOR_PATH = _OUTPUT_DIR / "ood_detector.pkl.gz"
 
 # Same priority / hidden-dim mapping as model.load_gnn_model (V4 -> V3 -> V2).
@@ -55,13 +58,6 @@ _GNN_CANDIDATES = (
     ("gnn_solubility_model_v4.pt", 256),
     ("gnn_solubility_model_v3.pt", 128),
     ("gnn_solubility_model.pt", 128),
-)
-
-# pKa model was trained on these 8 core descriptors + 1024-bit Morgan FP
-# (extracted from app.py's pKa feature vector construction).
-_PKA_FEATURE_KEYS = (
-    "MolWt", "LogP", "NumHDonors", "NumHAcceptors",
-    "TPSA", "NumRotatableBonds", "NumAromaticRings", "NumAliphaticRings",
 )
 
 _VALID_MODES = ("auto", "rf", "gnn", "ensemble")
@@ -82,8 +78,10 @@ class PredictionResult:
     model_selected: str               # "auto"|"rf"|"gnn"|"ensemble" (echo of request)
     model_used: str                   # "RF"|"GNN"|"Ensemble"|"Ensemble(W)"
     model_disagreement: float | None  # abs(rf-gnn) when both available, else None
-    pka: float | None
+    pka: float | None               # primary pKa (closest to physiological pH 7)
     pka_kind: str | None              # "acid"|"base"|"amphoteric" (raw enum)
+    pka_acidic: float | None          # acidic pKa prediction (separate model)
+    pka_basic: float | None           # basic pKa prediction (separate model)
     ood_risk: str                     # "LOW"|"MEDIUM"|"HIGH"|"UNKNOWN"
     ood_score: float | None
     ood_max_tanimoto: float | None
@@ -101,7 +99,8 @@ class PredictionResult:
 _lock = threading.Lock()
 _solubility_model = None
 _descriptor_names = None
-_pka_model = None
+_pka_acidic_model = None
+_pka_basic_model = None
 _pka_loaded = False
 _ood_detector = None
 _ood_loaded = False
@@ -131,23 +130,46 @@ def _get_solubility_model():
     return _solubility_model, _descriptor_names
 
 
-def _get_pka_model():
-    """Lazy-load the pKa model. Returns None if the file is missing/unreadable."""
-    global _pka_model, _pka_loaded
+def _get_pka_models():
+    """Lazy-load the separate acidic/basic pKa models.
+
+    Returns (acidic_model, basic_model); missing models are None. Falls back
+    to the legacy mixed pKa model only when both new files are absent.
+    """
+    global _pka_acidic_model, _pka_basic_model, _pka_loaded
     if not _pka_loaded:
         with _lock:
             if not _pka_loaded:
                 try:
-                    if _PKA_MODEL_PATH.exists():
-                        logger.info("Loading pKa model from %s", _PKA_MODEL_PATH)
-                        _pka_model = joblib.load(_PKA_MODEL_PATH)
+                    if _PKA_ACIDIC_MODEL_PATH.exists():
+                        logger.info("Loading acidic pKa model from %s", _PKA_ACIDIC_MODEL_PATH)
+                        _pka_acidic_model = joblib.load(_PKA_ACIDIC_MODEL_PATH)
                     else:
-                        logger.warning("pKa model not found at %s", _PKA_MODEL_PATH)
+                        logger.warning("Acidic pKa model not found at %s", _PKA_ACIDIC_MODEL_PATH)
                 except Exception:
-                    logger.exception("Failed to load pKa model")
-                    _pka_model = None
+                    logger.exception("Failed to load acidic pKa model")
+                    _pka_acidic_model = None
+                try:
+                    if _PKA_BASIC_MODEL_PATH.exists():
+                        logger.info("Loading basic pKa model from %s", _PKA_BASIC_MODEL_PATH)
+                        _pka_basic_model = joblib.load(_PKA_BASIC_MODEL_PATH)
+                    else:
+                        logger.warning("Basic pKa model not found at %s", _PKA_BASIC_MODEL_PATH)
+                except Exception:
+                    logger.exception("Failed to load basic pKa model")
+                    _pka_basic_model = None
+                if _pka_acidic_model is None and _pka_basic_model is None:
+                    try:
+                        if _PKA_LEGACY_MODEL_PATH.exists():
+                            logger.info(
+                                "New pKa models missing; loading legacy mixed model %s",
+                                _PKA_LEGACY_MODEL_PATH,
+                            )
+                            _pka_acidic_model = _pka_basic_model = joblib.load(_PKA_LEGACY_MODEL_PATH)
+                    except Exception:
+                        logger.exception("Failed to load legacy pKa model")
                 _pka_loaded = True
-    return _pka_model
+    return _pka_acidic_model, _pka_basic_model
 
 
 def _get_ood_detector():
@@ -272,12 +294,47 @@ def _auto_select(ood_risk, rf_pred, gnn_pred):
 
 
 def _pka_kind(pka_val):
-    """Raw acid/base/amphoteric enum (thresholds from model.get_pka_type)."""
+    """Legacy raw acid/base/amphoteric enum (thresholds from model.get_pka_type)."""
     if pka_val < 6:
         return "acid"
     if pka_val > 8:
         return "base"
     return "amphoteric"
+
+
+def _resolve_pka_pair(pka_acidic, pka_basic):
+    """Mirror of model.resolve_pka_pair (kept framework-free).
+
+    Returns (primary_pka, kind). Kind is acid/base/amphoteric, or None when
+    no model produced a value.
+    """
+    if pka_acidic is None and pka_basic is None:
+        return None, None
+
+    acidic_relevant = pka_acidic is not None and pka_acidic < 7.0
+    basic_relevant = pka_basic is not None and pka_basic > 7.0
+
+    if acidic_relevant and basic_relevant:
+        kind = "amphoteric"
+    elif acidic_relevant:
+        kind = "acid"
+    elif basic_relevant:
+        kind = "base"
+    elif pka_acidic is not None and pka_basic is not None:
+        kind = "amphoteric"
+    elif pka_acidic is not None:
+        kind = "acid" if pka_acidic < 7 else "base"
+    else:
+        kind = "base" if pka_basic > 7 else "acid"
+
+    values = [v for v in (pka_acidic, pka_basic) if v is not None]
+    if kind == "acid" and pka_acidic is not None:
+        primary = pka_acidic
+    elif kind == "base" and pka_basic is not None:
+        primary = pka_basic
+    else:
+        primary = min(values, key=lambda v: abs(v - 7.0))
+    return float(primary), kind
 
 
 def _run_ood_check(features, fp_array):
@@ -348,19 +405,26 @@ def _predict_one(smiles, mode):
     rf_model, _ = _get_solubility_model()
     rf_pred = float(rf_model.predict(X_input)[0])
 
-    # ── pKa prediction (lazy; failure -> None, mirrors app.py) ──
+    # ── pKa prediction (separate acidic/basic models; lazy, failure -> None) ──
+    pka_acidic = None
+    pka_basic = None
     pka_val = None
+    pka_kind = None
     try:
-        pka_model = _get_pka_model()
-        if pka_model is not None:
+        acidic_model, basic_model = _get_pka_models()
+        if acidic_model is not None or basic_model is not None:
             pka_feat = np.hstack([
-                [features[k] for k in _PKA_FEATURE_KEYS],
+                [features[k] for k in PKA_FEATURE_KEYS],
                 fp_array,
             ]).reshape(1, -1)
-            pka_val = float(pka_model.predict(pka_feat)[0])
+            if acidic_model is not None:
+                pka_acidic = float(acidic_model.predict(pka_feat)[0])
+            if basic_model is not None:
+                pka_basic = float(basic_model.predict(pka_feat)[0])
+            pka_val, pka_kind = _resolve_pka_pair(pka_acidic, pka_basic)
     except Exception:
         logger.exception("pKa prediction failed")
-        pka_val = None
+        pka_acidic = pka_basic = pka_val = pka_kind = None
 
     # ── Model resolution + OOD (mirrors app.py single-prediction flow) ──
     gnn_pred = None
@@ -402,7 +466,9 @@ def _predict_one(smiles, mode):
         model_used=model_used,
         model_disagreement=disagreement,
         pka=pka_val,
-        pka_kind=_pka_kind(pka_val) if pka_val is not None else None,
+        pka_kind=pka_kind,
+        pka_acidic=pka_acidic,
+        pka_basic=pka_basic,
         ood_risk=ood_risk,
         ood_score=ood_result.overall_score if ood_result is not None else None,
         ood_max_tanimoto=ood_result.max_tanimoto if ood_result is not None else None,

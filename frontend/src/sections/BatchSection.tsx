@@ -41,7 +41,7 @@ const POLL_MS = 1500;
 /** Build the results CSV client-side (columns per Phase-4 spec). */
 function buildResultsCsv(rows: BatchRow[]): string {
   const esc = (v: string) => (/[",\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v);
-  const lines = ["smiles,logS_final,model_used,pKa,pka_kind,ood_risk,error"];
+  const lines = ["smiles,logS_final,model_used,pKa,pKa_acidic,pKa_basic,pka_kind,ood_risk,error"];
   for (const row of rows) {
     if (isBatchRowError(row)) {
       lines.push([esc(row.smiles), "", "", "", "", "", esc(row.error)].join(","));
@@ -52,6 +52,8 @@ function buildResultsCsv(rows: BatchRow[]): string {
           row.logS_final.toFixed(4),
           esc(row.model_used),
           row.pka != null ? row.pka.toFixed(3) : "",
+          row.pka_acidic != null ? row.pka_acidic.toFixed(3) : "",
+          row.pka_basic != null ? row.pka_basic.toFixed(3) : "",
           row.pka_kind ?? "",
           row.ood_risk ?? "",
           "",

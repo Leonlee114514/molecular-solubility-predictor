@@ -7,6 +7,7 @@ from model import (
     predict_solubility_ensemble,
     predict_solubility_weighted,
     predict_solubility_auto,
+    resolve_pka_pair,
 )
 
 
@@ -53,6 +54,40 @@ class TestGetPkaType:
             color = result[3]
             assert color.startswith("#")
             assert len(color) == 7
+
+
+class TestResolvePkaPair:
+    """Separate acidic/basic pKa predictions resolve to a primary value + kind."""
+
+    def test_amino_acid_like_pair_is_amphoteric(self):
+        primary, kind = resolve_pka_pair(2.34, 9.60)
+        assert kind == "amphoteric"
+        assert primary == pytest.approx(9.60)  # closest to physiological pH 7
+
+    def test_acid_dominant(self):
+        primary, kind = resolve_pka_pair(4.20, 2.00)
+        assert kind == "acid"
+        assert primary == pytest.approx(4.20)
+
+    def test_base_dominant(self):
+        primary, kind = resolve_pka_pair(14.00, 9.25)
+        assert kind == "base"
+        assert primary == pytest.approx(9.25)
+
+    def test_neutral_pair_is_amphoteric(self):
+        primary, kind = resolve_pka_pair(14.00, 0.60)
+        assert kind == "amphoteric"
+        assert primary == pytest.approx(0.60)
+
+    def test_none_values(self):
+        assert resolve_pka_pair(None, None) == (None, None)
+        primary, kind = resolve_pka_pair(None, 9.5)
+        assert kind == "base"
+        assert primary == pytest.approx(9.5)
+
+    def test_explicit_kind_override_display(self):
+        result = get_pka_type(9.6, kind="amphoteric")
+        assert result[0] == "amphoteric"
 
 
 class TestGetSolubilityLevel:

@@ -1,0 +1,61 @@
+{
+  "generated_at": "2026-08-16 23:41:25",
+  "models": {
+    "acidic": {
+      "model_file": "pka_acidic_model.pkl",
+      "target": "pka_acidic",
+      "source_rows": 226611,
+      "n_valid": 226611,
+      "n_train": 181288,
+      "n_test": 45323,
+      "rf_params": {
+        "n_estimators": 200,
+        "max_depth": 20,
+        "min_samples_leaf": 2,
+        "random_state": 42,
+        "n_jobs": -1
+      },
+      "train": {
+        "n": 181288,
+        "r2": 0.931729257010224,
+        "rmse": 0.9417165356571235,
+        "mae": 0.600674743724963
+      },
+      "test": {
+        "n": 45323,
+        "r2": 0.8943963708090882,
+        "rmse": 1.1715032078064902,
+        "mae": 0.723597253944502
+      },
+      "size_mb": 77.25
+    },
+    "basic": {
+      "model_file": "pka_basic_model.pkl",
+      "target": "pka_basic",
+      "source_rows": 187360,
+      "n_valid": 187360,
+      "n_train": 149888,
+      "n_test": 37472,
+      "rf_params": {
+        "n_estimators": 200,
+        "max_depth": 20,
+        "min_samples_leaf": 2,
+        "random_state": 42,
+        "n_jobs": -1
+      },
+      "train": {
+        "n": 149888,
+        "r2": 0.8754295241155978,
+        "rmse": 1.1191263838447034,
+        "mae": 0.7672262180701379
+      },
+      "test": {
+        "n": 37472,
+        "r2": 0.8090011886219143,
+        "rmse": 1.3862890446735916,
+        "mae": 0.9357024955216597
+      },
+      "size_mb": 77.57
+    }
+  }
+}

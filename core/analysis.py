@@ -288,8 +288,12 @@ def detect_functional_groups(smiles):
 
 # ========== ADME/Tox Analysis ==========
 
-def analyze_admet(smiles, features, pka_val=None):
+def analyze_admet(smiles, features, pka_val=None, pka_kind=None):
     """Analyze ADME/Tox properties based on molecular descriptors and functional groups.
+
+    ``pka_kind`` ("acid"/"base"/"amphoteric") may be supplied when the caller
+    already resolved the acid/base state from separate acidic/basic pKa
+    predictions; otherwise the legacy pKa thresholds are used.
     Returns a dict with A, D, M, E, T analysis sections.
     """
     fg = detect_functional_groups(smiles)
@@ -310,9 +314,10 @@ def analyze_admet(smiles, features, pka_val=None):
         absorption_factors.append(t("analysis.admet.absorption.tpsa_high"))
 
     if pka_val is not None:
-        if pka_val < 6:
+        pka_effective_kind = pka_kind or ("acid" if pka_val < 6 else ("base" if pka_val > 8 else "amphoteric"))
+        if pka_effective_kind == "acid":
             absorption_factors.append(t("analysis.admet.absorption.pka_acid", val=pka_val))
-        elif pka_val > 8:
+        elif pka_effective_kind == "base":
             absorption_factors.append(t("analysis.admet.absorption.pka_base", val=pka_val))
         else:
             absorption_factors.append(t("analysis.admet.absorption.pka_neutral", val=pka_val))

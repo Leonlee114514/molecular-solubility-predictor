@@ -17,6 +17,7 @@ export function useAnalysis(result: PredictionResult) {
 
   const smiles = result.smiles;
   const pka = result.pka;
+  const pkaKind = result.pka_kind;
   const logs = result.logS_final;
 
   useEffect(() => {
@@ -24,7 +25,7 @@ export function useAnalysis(result: PredictionResult) {
     setLoading(true);
     setError(null);
     api
-      .analysis(smiles, pka, logs, lang)
+      .analysis(smiles, pka, pkaKind, logs, lang)
       .then((resp) => {
         if (!cancelled) setData(resp);
       })
@@ -39,7 +40,7 @@ export function useAnalysis(result: PredictionResult) {
     return () => {
       cancelled = true;
     };
-  }, [smiles, pka, logs, lang]);
+  }, [smiles, pka, pkaKind, logs, lang]);
 
   return { data, error, loading };
 }

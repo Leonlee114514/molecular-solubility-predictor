@@ -10,6 +10,8 @@ class StateKey:
     PREDICTED_SMILES = "predicted_smiles"
     PREDICTED_LOGS = "predicted_logS"
     PREDICTED_PKA = "predicted_pka"
+    PREDICTED_PKA_ACIDIC = "predicted_pka_acidic"
+    PREDICTED_PKA_BASIC = "predicted_pka_basic"
     AI_EXPLANATION = "ai_explanation"
     CACHED_FEATURES = "cached_features"
     SHAP_VALUES = "shap_values"

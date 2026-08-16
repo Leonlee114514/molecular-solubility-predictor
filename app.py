@@ -32,17 +32,18 @@ load_dotenv()
 from core.state_keys import StateKey
 from core.i18n import init_language, render_language_selector
 from model import (
-    load_solubility_model, load_pka_model,
+    load_solubility_model, load_pka_models, predict_pka_pair, resolve_pka_pair,
     load_ood_detector, run_ood_check,
     warmup_shap, get_solubility_level,
     load_gnn_model, predict_solubility_gnn, predict_solubility_ensemble,
-    predict_solubility_auto, predict_solubility_weighted,
+    predict_solubility_auto,
 )
 from core.cache import (
     cached_compute_features, cached_show_3d, cached_pka_analysis,
     cached_shap_contributions, cached_lipinski, cached_admet, cached_druglikeness,
     cached_gnn_predict,
 )
+from features import PKA_FEATURE_KEYS
 from assets.theme import inject_theme_css
 from assets.scripts import inject_all_scripts
 from ui.components import render_header, render_footer, render_input_area, render_file_upload_input, render_prediction_history
@@ -124,6 +125,8 @@ if "_pending_history_smiles" in st.session_state:
     st.session_state[StateKey.PREDICTED_SMILES] = None
     st.session_state[StateKey.PREDICTED_LOGS] = None
     st.session_state[StateKey.PREDICTED_PKA] = None
+    st.session_state[StateKey.PREDICTED_PKA_ACIDIC] = None
+    st.session_state[StateKey.PREDICTED_PKA_BASIC] = None
     st.session_state[StateKey.AI_EXPLANATION] = None
 
 
@@ -215,21 +218,19 @@ if predict_button and model_ready:
                 st.session_state[StateKey.PREDICTED_SMILES] = current
                 st.session_state[StateKey.PREDICTED_LOGS_RF] = rf_pred
 
-                # ── pKa prediction (lazy-loaded on first use) ──
+                # ── pKa prediction (separate acidic/basic models, lazy-loaded) ──
                 try:
-                    _pka_model = load_pka_model()
-                    if _pka_model is not None:
+                    _pka_models = load_pka_models()
+                    if _pka_models is not None:
                         status.update(label=t("app.predict.step.pka"))
-                        # pKa model was trained on 8 core descriptors + 1024-bit Morgan FP only
-                        pka_feat = np.hstack([
-                            [features[k] for k in ["MolWt", "LogP", "NumHDonors", "NumHAcceptors",
-                                                    "TPSA", "NumRotatableBonds", "NumAromaticRings",
-                                                    "NumAliphaticRings"]],
-                            fp_array,
-                        ]).reshape(1, -1)
-                        pka_pred = _pka_model.predict(pka_feat)[0]
-                        st.session_state[StateKey.PREDICTED_PKA] = float(pka_pred)
+                        pka_acidic, pka_basic = predict_pka_pair(_pka_models, features, fp_array)
+                        pka_primary, pka_kind = resolve_pka_pair(pka_acidic, pka_basic)
+                        st.session_state[StateKey.PREDICTED_PKA_ACIDIC] = pka_acidic
+                        st.session_state[StateKey.PREDICTED_PKA_BASIC] = pka_basic
+                        st.session_state[StateKey.PREDICTED_PKA] = pka_primary
                 except Exception:
+                    st.session_state[StateKey.PREDICTED_PKA_ACIDIC] = None
+                    st.session_state[StateKey.PREDICTED_PKA_BASIC] = None
                     st.session_state[StateKey.PREDICTED_PKA] = None
 
                 # ── Auto+: OOD 动态模型选择 ──
@@ -352,6 +353,8 @@ if predict_button and model_ready:
                     "name": mol_name,
                     "logS": _logS,
                     "pKa": _pKa,
+                    "pKa_acidic": st.session_state.get(StateKey.PREDICTED_PKA_ACIDIC),
+                    "pKa_basic": st.session_state.get(StateKey.PREDICTED_PKA_BASIC),
                     "timestamp": datetime.datetime.now().strftime("%H:%M"),
                 }
                 history = st.session_state[StateKey.PREDICTION_HISTORY]
@@ -430,6 +433,8 @@ with st.expander(t("app.batch.title"), expanded=False):
                     _c_level = "Solubility Level" if _is_en else "溶解度等级"
                     _c_rf = "RF_pred" if _is_en else "RF 预测"
                     _c_gnn = "GNN_pred" if _is_en else "GNN 预测"
+                    _c_pka_acidic = "pKa(acidic)" if _is_en else "pKa(酸性)"
+                    _c_pka_basic = "pKa(basic)" if _is_en else "pKa(碱性)"
                     _invalid = "Invalid SMILES" if _is_en else "无效 SMILES"
 
                     # Step 1: compute features for all molecules (RDKit is fast)
@@ -443,6 +448,8 @@ with st.expander(t("app.batch.title"), expanded=False):
                                 "logS": None,
                                 _c_level: _invalid,
                                 "pKa": None,
+                                _c_pka_acidic: None,
+                                _c_pka_basic: None,
                                 "MolWt": None,
                                 "LogP": None,
                             })
@@ -465,24 +472,31 @@ with st.expander(t("app.batch.title"), expanded=False):
                         # RF prediction (always needed)
                         rf_batch = model.predict(X_batch)
 
-                        # pKa prediction (lazy-loaded, cached after first use)
+                        # pKa prediction (separate acidic/basic models, lazy-loaded)
                         try:
-                            _pka_model = load_pka_model()
+                            _pka_models = load_pka_models()
                         except Exception:
-                            _pka_model = None
-                        if _pka_model is not None:
-                            X_batch_pka = np.vstack([
-                                np.hstack([
-                                    [f[k] for k in ["MolWt", "LogP", "NumHDonors", "NumHAcceptors",
-                                                     "TPSA", "NumRotatableBonds", "NumAromaticRings",
-                                                     "NumAliphaticRings"]],
-                                    fp,
-                                ])
-                                for f, fp in features_list
+                            _pka_models = None
+                        X_batch_pka = np.vstack([
+                            np.hstack([
+                                [f[k] for k in PKA_FEATURE_KEYS],
+                                fp,
                             ])
-                            pKa_batch = _pka_model.predict(X_batch_pka)
+                            for f, fp in features_list
+                        ])
+                        if _pka_models is not None:
+                            _pka_acidic_model, _pka_basic_model = _pka_models
+                            pKa_acidic_batch = (
+                                _pka_acidic_model.predict(X_batch_pka)
+                                if _pka_acidic_model is not None else [None] * len(features_list)
+                            )
+                            pKa_basic_batch = (
+                                _pka_basic_model.predict(X_batch_pka)
+                                if _pka_basic_model is not None else [None] * len(features_list)
+                            )
                         else:
-                            pKa_batch = [None] * len(features_list)
+                            pKa_acidic_batch = [None] * len(features_list)
+                            pKa_basic_batch = [None] * len(features_list)
 
                         # For Auto+ mode: compute OOD for all, GNN only where needed
                         need_gnn = [False] * len(features_list)
@@ -531,12 +545,12 @@ with st.expander(t("app.batch.title"), expanded=False):
 
                             if batch_model_type == "Auto":
                                 ood_risk = ood_risks[j]
-                                if ood_risk == "LOW" and gnn_val is not None:
-                                    logS = predict_solubility_weighted(rf_val, gnn_val)
-                                elif gnn_val is not None:
-                                    logS = gnn_val
-                                else:
-                                    logS = rf_val
+                                # Use the exact Auto+ strategy as single prediction:
+                                # severe disagreement -> GNN, OOD != LOW -> GNN,
+                                # otherwise 0.45*RF + 0.55*GNN.
+                                logS, actual_m, _ = predict_solubility_auto(
+                                    ood_risk, rf_val, gnn_val
+                                )
                             elif batch_model_type == "GNN":
                                 logS = gnn_val if gnn_val is not None else rf_val
                             elif batch_model_type == "Ensemble":
@@ -548,18 +562,24 @@ with st.expander(t("app.batch.title"), expanded=False):
                             else:
                                 logS = rf_val
 
-                            pKa_val = float(pKa_batch[j]) if _pka_model is not None else None
+                            pKa_acidic_val = (
+                                float(pKa_acidic_batch[j]) if pKa_acidic_batch[j] is not None else None
+                            )
+                            pKa_basic_val = (
+                                float(pKa_basic_batch[j]) if pKa_basic_batch[j] is not None else None
+                            )
+                            pKa_val, _pka_kind = resolve_pka_pair(pKa_acidic_val, pKa_basic_val)
                             level = get_solubility_level(logS)[0]
 
                             if batch_model_type == "Auto":
-                                ood_risk = ood_risks[j]
-                                actual_m = "Ensemble(W)" if ood_risk == "LOW" else "GNN"
                                 row = {
                                     "SMILES": smiles_list[idx],
                                     "logS": f"{logS:.3f}",
                                     _c_model: f"Auto→{actual_m}",
                                     _c_level: level,
                                     "pKa": f"{pKa_val:.2f}" if pKa_val is not None else "?",
+                                    _c_pka_acidic: f"{pKa_acidic_val:.2f}" if pKa_acidic_val is not None else "?",
+                                    _c_pka_basic: f"{pKa_basic_val:.2f}" if pKa_basic_val is not None else "?",
                                     "MolWt": f"{features['MolWt']:.1f}",
                                     "LogP": f"{features['LogP']:.2f}",
                                     _c_rf: f"{rf_val:.3f}",
@@ -573,6 +593,8 @@ with st.expander(t("app.batch.title"), expanded=False):
                                     _c_model: batch_model_type,
                                     _c_level: level,
                                     "pKa": f"{pKa_val:.2f}" if pKa_val is not None else "?",
+                                    _c_pka_acidic: f"{pKa_acidic_val:.2f}" if pKa_acidic_val is not None else "?",
+                                    _c_pka_basic: f"{pKa_basic_val:.2f}" if pKa_basic_val is not None else "?",
                                     "MolWt": f"{features['MolWt']:.1f}",
                                     "LogP": f"{features['LogP']:.2f}",
                                     _c_rf: f"{rf_val:.3f}",
@@ -586,6 +608,8 @@ with st.expander(t("app.batch.title"), expanded=False):
                                     _c_model: batch_model_type,
                                     _c_level: level,
                                     "pKa": f"{pKa_val:.2f}" if pKa_val is not None else "?",
+                                    _c_pka_acidic: f"{pKa_acidic_val:.2f}" if pKa_acidic_val is not None else "?",
+                                    _c_pka_basic: f"{pKa_basic_val:.2f}" if pKa_basic_val is not None else "?",
                                     "MolWt": f"{features['MolWt']:.1f}",
                                     "LogP": f"{features['LogP']:.2f}",
                                 }

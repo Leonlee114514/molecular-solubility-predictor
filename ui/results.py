@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 from matplotlib.patches import Patch
 
 from ui.plots import mol_to_dark_image, mol_to_dark_image_with_importance
-from model import get_pka_type, get_solubility_level, get_shap_explainer
+from model import get_pka_type, get_solubility_level, get_shap_explainer, resolve_pka_pair
 from core.ai_client import explain_with_kimi
 from core.i18n import t, get_lang
 from core.cache import (
@@ -39,9 +39,14 @@ def render_results(model):
 
         # ── 预计算pKa相关变量（供多Tab使用）──
         pka_val = st.session_state.get(StateKey.PREDICTED_PKA)
+        pka_acidic = st.session_state.get(StateKey.PREDICTED_PKA_ACIDIC)
+        pka_basic = st.session_state.get(StateKey.PREDICTED_PKA_BASIC)
+        pka_kind = None
+        if pka_acidic is not None or pka_basic is not None:
+            pka_val, pka_kind = resolve_pka_pair(pka_acidic, pka_basic)
         pka_type = pka_label = pka_css = pka_text_color = pka_desc = None
         if pka_val is not None:
-            pka_type, pka_label, pka_css, pka_text_color, pka_desc = get_pka_type(pka_val)
+            pka_type, pka_label, pka_css, pka_text_color, pka_desc = get_pka_type(pka_val, kind=pka_kind)
 
         # ── 溶解度判定（供多Tab使用）──
         interp, color, css_class = get_solubility_level(prediction)
@@ -109,7 +114,8 @@ def render_results(model):
             _tab_solubility(features, prediction, interp, color, css_class, model)
 
         with tab_pka:
-            _tab_pka(pka_val, pka_type, pka_label, pka_css, pka_text_color, pka_desc, features)
+            _tab_pka(pka_val, pka_type, pka_label, pka_css, pka_text_color, pka_desc,
+                     features, pka_acidic=pka_acidic, pka_basic=pka_basic, pka_kind=pka_kind)
 
         with tab_pharm:
             _tab_pharmacology(features, prediction, pka_val, pka_type, pka_label, pka_css, pka_text_color, pka_desc)
@@ -352,10 +358,30 @@ def _tab_solubility(features, prediction, interp, color, css_class, model):
             st.info(insight_text)
 
 
-def _tab_pka(pka_val, pka_type, pka_label, pka_css, pka_text_color, pka_desc, features):
-    """Tab 2: pKa acidity/basicity prediction."""
-    if pka_val is not None:
-        st.markdown(f"""<div class="card-title">{t('result.pka.card_title')}</div>""", unsafe_allow_html=True)
+def _tab_pka(pka_val, pka_type, pka_label, pka_css, pka_text_color, pka_desc, features,
+             pka_acidic=None, pka_basic=None, pka_kind=None):
+    """Tab 2: pKa acidity/basicity prediction (acidic + basic pKa shown separately)."""
+    if pka_val is None:
+        st.info(t("result.pka.model_unavailable_short"))
+        return
+
+    st.markdown(f"""<div class="card-title">{t('result.pka.card_title')}</div>""", unsafe_allow_html=True)
+
+    if pka_acidic is not None and pka_basic is not None:
+        col_acid, col_base, col_type = st.columns(3)
+        with col_acid:
+            st.metric(t("result.pka.metric_acidic"), f"{pka_acidic:.2f}")
+        with col_base:
+            st.metric(t("result.pka.metric_basic"), f"{pka_basic:.2f}")
+        with col_type:
+            st.markdown(f"""
+            <div class="{pka_css}" style="margin-top: 0.2rem;">
+                <div style="font-size: 1rem; font-weight: 700; color: {pka_text_color};">-> {pka_label}</div>
+                <div style="font-size: 0.8rem; color: var(--ob-text-tertiary); margin-top: 0.3rem;">{pka_desc}</div>
+            </div>
+            """, unsafe_allow_html=True)
+        st.caption(t("result.pka.dual_note"))
+    else:
         col_pka1, col_pka2 = st.columns(2)
         with col_pka1:
             st.metric(t("result.pka.metric"), f"{pka_val:.2f}")
@@ -367,60 +393,80 @@ def _tab_pka(pka_val, pka_type, pka_label, pka_css, pka_text_color, pka_desc, fe
             </div>
             """, unsafe_allow_html=True)
 
-        st.markdown("<br>", unsafe_allow_html=True)
-        st.markdown(f"""<div class="card-title">{t('result.pka.decomp_title')}</div>""", unsafe_allow_html=True)
-        chem_factors = cached_pka_analysis(st.session_state[StateKey.PREDICTED_SMILES], pka_val)
-        if chem_factors:
-            names = list(chem_factors.keys())
-            vals = list(chem_factors.values())
-            colors = ['#a78bfa' if v > 0 else '#22d3ee' for v in vals]
-            setup_plt_dark()
-            fig, ax = plt.subplots(figsize=(8, 4.5))
-            bars = ax.barh(range(len(vals)), vals, color=colors, edgecolor=(1, 1, 1, 0.15), height=0.6, linewidth=0.5)
-            ax.invert_yaxis()
-            ax.axvline(x=0, color='#f0f0f5', linewidth=1.0, alpha=0.4)
-            for bar, val in zip(bars, vals):
-                width = bar.get_width()
-                label_x = width * 0.5
-                ax.text(label_x, bar.get_y() + bar.get_height()/2,
-                        f'{val:+.2f}', va='center', ha='center', fontsize=10, fontweight='bold',
-                        color='#ffffff',
-                        bbox=dict(boxstyle='round,pad=0.25', facecolor=(0, 0, 0, 0.35),
-                                  edgecolor='none', alpha=0.9))
-            ax.set_yticks(range(len(names)))
-            ax.set_yticklabels(names, fontsize=10)
-            pka_unit = t("result.pka.unit_acid") if pka_val < 7 else t("result.pka.unit_base")
-            ax.set_xlabel(t("result.pka.chart_xlabel", unit=pka_unit), fontsize=11)
-            ax.set_title(t("result.pka.chart_title", val=pka_val), fontsize=12, pad=12)
-            ax.spines['top'].set_visible(False)
-            ax.spines['right'].set_visible(False)
-            ax.spines['left'].set_visible(False)
-            ax.spines['bottom'].set_color('#33334d')
-            legend_type = t("result.pka.legend_type_acid") if pka_val < 7 else t("result.pka.legend_type_base")
-            legend_elements = [
-                Patch(facecolor='#a78bfa', label=t("result.pka.legend_enhance", type=legend_type)),
-                Patch(facecolor='#22d3ee', label=t("result.pka.legend_weaken", type=legend_type))
-            ]
-            ax.legend(handles=legend_elements, loc='upper right', fontsize=9,
-                      framealpha=0.8, facecolor='#1a1a2e', edgecolor=(1, 1, 1, 0.1))
-            plt.tight_layout()
-            st.pyplot(fig, width="stretch")
-            plt.close(fig)
-            st.caption(t("result.pka.factor_guide"))
-            st.markdown(f"""
-            <div style="margin-top: 0.3rem; padding: 0.65rem 0.9rem; background: rgba(124, 58, 237, 0.06); border-left: 2px solid rgba(124, 58, 237, 0.3); border-radius: 4px; font-size: 0.82rem; color: #a0a0b5; line-height: 1.9;">
-            <b style="color: #c4b5fd;">{t('result.pka.glossary_title')}</b> &nbsp;{t('result.pka.glossary_click_hint')}<br>
-            &bull; {t('result.pka.glossary_inductive')}<br>
-            &bull; {t('result.pka.glossary_resonance')}<br>
-            &bull; {t('result.pka.glossary_intra_hb')}<br>
-            &bull; {t('result.pka.glossary_steric')}<br>
-            &bull; {t('result.pka.glossary_hybrid')}
-            </div>
-            """, unsafe_allow_html=True)
-        else:
-            st.info(t("result.pka.unavailable_short"))
-    else:
-        st.info(t("result.pka.model_unavailable_short"))
+    st.markdown("<br>", unsafe_allow_html=True)
+    st.markdown(f"""<div class="card-title">{t('result.pka.decomp_title')}</div>""", unsafe_allow_html=True)
+
+    primary_title = t("result.pka.chart_title", val=pka_val)
+    if pka_kind == "amphoteric":
+        primary_title += f" · {t('model.pka.type.amphoteric_display')}"
+    _render_pka_factor_chart(pka_val, title=primary_title)
+
+    if pka_acidic is not None and pka_basic is not None:
+        for value, label in (
+            (pka_acidic, t("result.pka.metric_acidic")),
+            (pka_basic, t("result.pka.metric_basic")),
+        ):
+            if abs(value - pka_val) > 0.05:
+                _render_pka_factor_chart(
+                    value,
+                    title=t("result.pka.chart_title_pair", val=value, label=label),
+                )
+
+    st.caption(t("result.pka.factor_guide"))
+    st.markdown(f"""
+    <div style="margin-top: 0.3rem; padding: 0.65rem 0.9rem; background: rgba(124, 58, 237, 0.06); border-left: 2px solid rgba(124, 58, 237, 0.3); border-radius: 4px; font-size: 0.82rem; color: #a0a0b5; line-height: 1.9;">
+    <b style="color: #c4b5fd;">{t('result.pka.glossary_title')}</b> &nbsp;{t('result.pka.glossary_click_hint')}<br>
+    &bull; {t('result.pka.glossary_inductive')}<br>
+    &bull; {t('result.pka.glossary_resonance')}<br>
+    &bull; {t('result.pka.glossary_intra_hb')}<br>
+    &bull; {t('result.pka.glossary_steric')}<br>
+    &bull; {t('result.pka.glossary_hybrid')}
+    </div>
+    """, unsafe_allow_html=True)
+
+
+def _render_pka_factor_chart(pka_val, title=None):
+    """Render the pKa chemistry-factor decomposition chart for one pKa value."""
+    chem_factors = cached_pka_analysis(st.session_state[StateKey.PREDICTED_SMILES], pka_val)
+    if not chem_factors:
+        st.info(t("result.pka.unavailable_short"))
+        return
+
+    names = list(chem_factors.keys())
+    vals = list(chem_factors.values())
+    colors = ['#a78bfa' if v > 0 else '#22d3ee' for v in vals]
+    setup_plt_dark()
+    fig, ax = plt.subplots(figsize=(8, 4.5))
+    bars = ax.barh(range(len(vals)), vals, color=colors, edgecolor=(1, 1, 1, 0.15), height=0.6, linewidth=0.5)
+    ax.invert_yaxis()
+    ax.axvline(x=0, color='#f0f0f5', linewidth=1.0, alpha=0.4)
+    for bar, val in zip(bars, vals):
+        width = bar.get_width()
+        label_x = width * 0.5
+        ax.text(label_x, bar.get_y() + bar.get_height()/2,
+                f'{val:+.2f}', va='center', ha='center', fontsize=10, fontweight='bold',
+                color='#ffffff',
+                bbox=dict(boxstyle='round,pad=0.25', facecolor=(0, 0, 0, 0.35),
+                          edgecolor='none', alpha=0.9))
+    ax.set_yticks(range(len(names)))
+    ax.set_yticklabels(names, fontsize=10)
+    pka_unit = t("result.pka.unit_acid") if pka_val < 7 else t("result.pka.unit_base")
+    ax.set_xlabel(t("result.pka.chart_xlabel", unit=pka_unit), fontsize=11)
+    ax.set_title(title or t("result.pka.chart_title", val=pka_val), fontsize=12, pad=12)
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    ax.spines['left'].set_visible(False)
+    ax.spines['bottom'].set_color('#33334d')
+    legend_type = t("result.pka.legend_type_acid") if pka_val < 7 else t("result.pka.legend_type_base")
+    legend_elements = [
+        Patch(facecolor='#a78bfa', label=t("result.pka.legend_enhance", type=legend_type)),
+        Patch(facecolor='#22d3ee', label=t("result.pka.legend_weaken", type=legend_type))
+    ]
+    ax.legend(handles=legend_elements, loc='upper right', fontsize=9,
+              framealpha=0.8, facecolor='#1a1a2e', edgecolor=(1, 1, 1, 0.1))
+    plt.tight_layout()
+    st.pyplot(fig, width="stretch")
+    plt.close(fig)
 
 
 def _tab_pharmacology(features, prediction, pka_val, pka_type, pka_label, pka_css, pka_text_color, pka_desc):
@@ -629,7 +675,8 @@ def _tab_pharmacology(features, prediction, pka_val, pka_type, pka_label, pka_cs
     admet = cached_admet(
         st.session_state[StateKey.PREDICTED_SMILES],
         tuple(features.items()),
-        pka_val
+        pka_val,
+        pka_kind=pka_type,
     )
 
     adme_tabs = st.tabs([

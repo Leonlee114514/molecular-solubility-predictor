@@ -11,7 +11,11 @@ export interface HealthResponse {
   status: string;
   models: {
     rf: HealthModel;
-    pka: HealthModel;
+    pka: {
+      available: boolean;
+      acidic_loaded: boolean;
+      basic_loaded: boolean;
+    };
     gnn: HealthModel;
     ood: HealthModel;
   };
@@ -28,6 +32,8 @@ export interface PredictionResult {
   model_disagreement: boolean;
   pka: number | null;
   pka_kind: "acid" | "base" | "amphoteric" | null;
+  pka_acidic: number | null;
+  pka_basic: number | null;
   ood_risk: "LOW" | "MEDIUM" | "HIGH" | "UNKNOWN" | null;
   ood_score: number | null;
   ood_max_tanimoto: number | null;

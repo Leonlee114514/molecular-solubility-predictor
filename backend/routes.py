@@ -60,6 +60,7 @@ class PredictRequest(BaseModel):
 class AnalysisRequest(BaseModel):
     smiles: str
     pka: float | None = None
+    pka_kind: str | None = None  # resolved acid/base/amphoteric from the predictor
     logs: float | None = None  # predicted logS, for the solubility × pKa linkage prose
     lang: str = "zh"
 
@@ -100,7 +101,14 @@ def health():
         "status": "ok",
         "models": {
             "rf": _flag("_SOLUBILITY_MODEL_PATH", "_solubility_model"),
-            "pka": _flag("_PKA_MODEL_PATH", "_pka_model"),
+            "pka": {
+                "available": any(
+                    getattr(svc, name).exists()
+                    for name in ("_PKA_ACIDIC_MODEL_PATH", "_PKA_BASIC_MODEL_PATH")
+                ),
+                "acidic_loaded": getattr(svc, "_pka_acidic_model", None) is not None,
+                "basic_loaded": getattr(svc, "_pka_basic_model", None) is not None,
+            },
             "gnn": {"available": svc.gnn_files_exist(),
                     "loaded": getattr(svc, "_gnn_model", None) is not None},
             "ood": _flag("_OOD_DETECTOR_PATH", "_ood_detector"),
@@ -226,7 +234,11 @@ def analysis(req: AnalysisRequest):
         raise HTTPException(status_code=400, detail=f"Invalid SMILES: {req.smiles!r}")
     features, _ = result
 
-    pka_type = _pka_type_of(req.pka) if req.pka is not None else None
+    pka_type = (
+        req.pka_kind
+        if req.pka_kind in ("acid", "base", "amphoteric")
+        else (_pka_type_of(req.pka) if req.pka is not None else None)
+    )
 
     try:
         with language_context(req.lang):
@@ -237,7 +249,7 @@ def analysis(req: AnalysisRequest):
                 ),
                 "lipinski": analyze_lipinski(features),
                 "druglikeness": analyze_druglikeness(req.smiles.strip()),
-                "admet": analyze_admet(req.smiles.strip(), features, req.pka),
+                "admet": analyze_admet(req.smiles.strip(), features, req.pka, pka_kind=pka_type),
                 "ionization": (
                     _ionization_profile(req.pka, pka_type)
                     if req.pka is not None else None

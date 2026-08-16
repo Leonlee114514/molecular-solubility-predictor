@@ -79,6 +79,8 @@ class TestPredict:
         assert len(data["shap_values"]) == 14
         assert data["ood_risk"] in ("LOW", "MEDIUM", "HIGH", "UNKNOWN")
         assert data["pka"] is None or isinstance(data["pka"], float)
+        assert data["pka_acidic"] is None or isinstance(data["pka_acidic"], float)
+        assert data["pka_basic"] is None or isinstance(data["pka_basic"], float)
         if data["pka"] is not None:
             assert data["pka_kind"] in ("acid", "base", "amphoteric")
         # JSON round-trip already proved numpy types were converted
