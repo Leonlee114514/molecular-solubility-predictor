@@ -56,7 +56,7 @@ export default function PreviewPanel({ result }: PreviewPanelProps) {
           </div>
           <div>
             <p className="text-xs text-ob-faint">{t("result.preview.mol_weight")}</p>
-            <p className="mt-1 text-2xl font-semibold tabular-nums text-cyan-300">
+            <p className="mt-1 text-2xl font-semibold tabular-nums text-nebula">
               {info ? `${info.mw.toFixed(1)} Da` : "…"}
             </p>
           </div>

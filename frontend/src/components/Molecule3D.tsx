@@ -29,7 +29,7 @@ export default function Molecule3D({ smiles }: Molecule3DProps) {
         if (disposed || !containerRef.current) return;
         containerRef.current.innerHTML = "";
         const viewer = createViewer(containerRef.current, {
-          backgroundColor: "#1a1a2e",
+          backgroundColor: "#fffdf9",
         });
         viewer.addModel(molblock, "mol");
         // Ball-and-stick, same style as the old py3Dmol rendering.
@@ -78,7 +78,7 @@ export default function Molecule3D({ smiles }: Molecule3DProps) {
         <div
           ref={containerRef}
           className="h-[420px] w-full overflow-hidden rounded-xl border border-ob-border"
-          style={{ background: "#1a1a2e" }}
+          style={{ background: "#fffdf9" }}
         />
         {loading && (
           <div className="absolute inset-0 flex items-center justify-center text-sm text-ob-muted">

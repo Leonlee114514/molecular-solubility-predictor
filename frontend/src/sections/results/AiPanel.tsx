@@ -86,12 +86,12 @@ export default function AiPanel({ result }: AiPanelProps) {
         <>
           <p className="text-xs text-ob-faint">{t("result.ai.need_manual")}</p>
           {noKey && (
-            <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-300">
+            <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-700">
               {t("ai.error.no_key")}
             </div>
           )}
           {error && (
-            <div className="rounded-xl border border-red-500/50 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+            <div className="rounded-xl border border-red-500/50 bg-red-500/10 px-4 py-3 text-sm text-red-700">
               {error}
             </div>
           )}

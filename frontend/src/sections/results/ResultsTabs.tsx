@@ -16,9 +16,9 @@ interface ResultsTabsProps {
 }
 
 function solubilityLevel(logS: number): { key: string; color: string } {
-  if (logS > 0) return { key: "result.solubility.high", color: "#34d399" };
-  if (logS > -2) return { key: "result.solubility.moderate", color: "#fbbf24" };
-  return { key: "result.solubility.poor", color: "#f87171" };
+  if (logS > 0) return { key: "result.solubility.high", color: "#15803d" };
+  if (logS > -2) return { key: "result.solubility.moderate", color: "#a16207" };
+  return { key: "result.solubility.poor", color: "#b91c1c" };
 }
 
 const MODEL_BADGE_KEYS: Record<string, string> = {
@@ -29,10 +29,10 @@ const MODEL_BADGE_KEYS: Record<string, string> = {
 };
 
 const MODEL_COLORS: Record<string, string> = {
-  RF: "#34d399",
-  GNN: "#a78bfa",
-  Ensemble: "#fbbf24",
-  "Ensemble(W)": "#f97316",
+  RF: "#15803d",
+  GNN: "#2c5282",
+  Ensemble: "#a16207",
+  "Ensemble(W)": "#9a3412",
 };
 
 const PKA_KIND_KEYS: Record<string, string> = {
@@ -42,9 +42,9 @@ const PKA_KIND_KEYS: Record<string, string> = {
 };
 
 const PKA_KIND_COLORS: Record<string, string> = {
-  acid: "#a78bfa",
-  base: "#22d3ee",
-  amphoteric: "#fbbf24",
+  acid: "#2c5282",
+  base: "#b45309",
+  amphoteric: "#a16207",
 };
 
 /** Strip simple **bold** markdown markers from backend strings. */
@@ -83,7 +83,7 @@ function OodBanner({ result }: { result: PredictionResult }) {
 
   if (risk === "LOW") {
     return (
-      <div className="rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-300">
+      <div className="rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-700">
         {plain(t("result.ood.low"))}
       </div>
     );
@@ -93,8 +93,8 @@ function OodBanner({ result }: { result: PredictionResult }) {
   const titleKey = isHigh ? "result.ood.high.title" : "result.ood.medium.title";
   const descKey = isHigh ? "result.ood.high.desc" : "result.ood.medium.desc";
   const cls = isHigh
-    ? "border-red-500/50 bg-red-500/10 text-red-300"
-    : "border-amber-500/50 bg-amber-500/10 text-amber-300";
+    ? "border-red-500/50 bg-red-500/10 text-red-700"
+    : "border-amber-500/50 bg-amber-500/10 text-amber-700";
 
   return (
     <div className={`rounded-xl border px-4 py-3 text-sm ${cls}`}>
@@ -114,7 +114,7 @@ export default function ResultsTabs({ result }: ResultsTabsProps) {
 
   const level = solubilityLevel(result.logS_final);
   const badgeKey = MODEL_BADGE_KEYS[result.model_used];
-  const badgeColor = MODEL_COLORS[result.model_used] ?? "#a78bfa";
+  const badgeColor = MODEL_COLORS[result.model_used] ?? "#2c5282";
 
   return (
     <section className="flex flex-col gap-4">
@@ -149,7 +149,7 @@ export default function ResultsTabs({ result }: ResultsTabsProps) {
           </span>
         )}
         {result.pka != null && (
-          <span className="flex items-center gap-2 rounded-full border border-cyan-500/40 bg-cyan-500/10 px-3 py-1 text-xs text-cyan-300">
+          <span className="flex items-center gap-2 rounded-full border border-cyan-500/40 bg-cyan-500/10 px-3 py-1 text-xs text-nebula">
             <span className="font-semibold tabular-nums">pKa {result.pka.toFixed(2)}</span>
             {result.pka_kind && PKA_KIND_KEYS[result.pka_kind] && (
               <span style={{ color: PKA_KIND_COLORS[result.pka_kind] }}>

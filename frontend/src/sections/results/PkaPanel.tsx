@@ -28,17 +28,17 @@ const KIND_META: Record<string, { key: string; descKey: string; color: string }>
   acid: {
     key: "model.pka.type.acidic_display",
     descKey: "model.pka.type.acidic_desc",
-    color: "#a78bfa",
+    color: "#2c5282",
   },
   base: {
     key: "model.pka.type.basic_display",
     descKey: "model.pka.type.basic_desc",
-    color: "#22d3ee",
+    color: "#b45309",
   },
   amphoteric: {
     key: "model.pka.type.amphoteric_display",
     descKey: "model.pka.type.amphoteric_desc",
-    color: "#fbbf24",
+    color: "#a16207",
   },
 };
 
@@ -69,7 +69,11 @@ export default function PkaPanel({ result, analysis }: PkaPanelProps) {
     );
   }
 
-  const isAcid = pka < 7;
+  // The acid/base unit copy follows the resolved kind (structural evidence from
+  // the backend). pka_kind is always present whenever pka is - both come from
+  // the same resolution step in services/prediction.py - so no numeric fallback
+  // is needed here, and the copy can no longer contradict the badge below.
+  const isAcid = result.pka_kind === "acid";
   const unit = isAcid ? t("result.pka.unit_acid") : t("result.pka.unit_base");
   const legendType = isAcid ? t("result.pka.legend_type_acid") : t("result.pka.legend_type_base");
 
@@ -79,7 +83,7 @@ export default function PkaPanel({ result, analysis }: PkaPanelProps) {
       <div className="glass-card flex flex-wrap items-center gap-6 p-5">
         <div>
           <p className="text-xs text-ob-faint">{t("result.pka.metric")}</p>
-          <p className="mt-1 text-5xl font-bold tabular-nums text-cyan-300">
+          <p className="mt-1 text-5xl font-bold tabular-nums text-nebula">
             {pka.toFixed(2)}
           </p>
         </div>
@@ -87,13 +91,13 @@ export default function PkaPanel({ result, analysis }: PkaPanelProps) {
           <div className="flex items-end gap-6">
             <div>
               <p className="text-xs text-ob-faint">{t("result.pka.metric_acidic")}</p>
-              <p className="mt-1 text-2xl font-semibold tabular-nums text-violet-300">
+              <p className="mt-1 text-2xl font-semibold tabular-nums text-nebula">
                 {result.pka_acidic.toFixed(2)}
               </p>
             </div>
             <div>
               <p className="text-xs text-ob-faint">{t("result.pka.metric_basic")}</p>
-              <p className="mt-1 text-2xl font-semibold tabular-nums text-cyan-300">
+              <p className="mt-1 text-2xl font-semibold tabular-nums text-nebula">
                 {result.pka_basic.toFixed(2)}
               </p>
             </div>
@@ -125,7 +129,7 @@ export default function PkaPanel({ result, analysis }: PkaPanelProps) {
           {t("result.pka.decomp_title")}
         </h3>
         {analysis.loading && <p className="text-sm text-ob-faint">{t("common.loading")}</p>}
-        {analysis.error && <p className="text-sm text-red-400">{analysis.error}</p>}
+        {analysis.error && <p className="text-sm text-red-700">{analysis.error}</p>}
         {!analysis.loading && !analysis.error && rows.length === 0 && (
           <p className="text-sm text-ob-muted">{t("result.pka.unavailable_short")}</p>
         )}
@@ -139,49 +143,51 @@ export default function PkaPanel({ result, analysis }: PkaPanelProps) {
                 <BarChart data={rows} layout="vertical" margin={{ left: 8, right: 48, top: 4, bottom: 4 }}>
                   <XAxis
                     type="number"
-                    stroke="#6b6b7b"
-                    tick={{ fill: "#a0a0b0", fontSize: 11 }}
-                    axisLine={{ stroke: "#2a2a3a" }}
+                    stroke="#b8b2a8"
+                    tick={{ fill: "#5c574f", fontSize: 11 }}
+                    axisLine={{ stroke: "#ded8cd" }}
                     tickLine={false}
                   />
                   <YAxis
                     type="category"
                     dataKey="name"
                     width={170}
-                    stroke="#6b6b7b"
-                    tick={{ fill: "#d0d0e0", fontSize: 11 }}
+                    stroke="#b8b2a8"
+                    tick={{ fill: "#5c574f", fontSize: 11 }}
                     axisLine={false}
                     tickLine={false}
                   />
                   <Tooltip
-                    cursor={{ fill: "rgba(124,58,237,0.08)" }}
+                    cursor={{ fill: "rgba(28,26,23,0.05)" }}
                     contentStyle={{
-                      background: "rgba(26,26,46,0.95)",
-                      border: "1px solid rgba(255,255,255,0.12)",
-                      borderRadius: 10,
+                      background: "#fffdf9",
+                      border: "1px solid rgba(28,26,23,0.12)",
+                      borderRadius: 6,
                       fontSize: 12,
+                      boxShadow: "0 2px 8px rgba(28,26,23,0.08)",
                     }}
-                    labelStyle={{ color: "#f0f0f5" }}
+                    labelStyle={{ color: "#1c1a17", fontWeight: 600 }}
+                    itemStyle={{ color: "#2c5282" }}
                     formatter={(value: number) => [value.toFixed(2), unit]}
                   />
                   <Bar dataKey="value" radius={[3, 3, 3, 3]} barSize={20}>
                     {rows.map((row) => (
-                      <Cell key={row.name} fill={row.value > 0 ? "#a78bfa" : "#22d3ee"} />
+                      <Cell key={row.name} fill={row.value > 0 ? "#2c5282" : "#b45309"} />
                     ))}
                     <LabelList
                       dataKey="value"
                       position="right"
                       formatter={(v: number) => (v > 0 ? `+${v.toFixed(2)}` : v.toFixed(2))}
-                      style={{ fill: "#a0a0b0", fontSize: 11 }}
+                      style={{ fill: "#5c574f", fontSize: 11 }}
                     />
                   </Bar>
                 </BarChart>
               </ResponsiveContainer>
             </div>
             <p className="text-xs text-ob-faint">
-              <span style={{ color: "#a78bfa" }}>■</span> {tf("result.pka.legend_enhance", { type: legendType })}
+              <span style={{ color: "#2c5282" }}>■</span> {tf("result.pka.legend_enhance", { type: legendType })}
               {"  "}
-              <span style={{ color: "#22d3ee" }}>■</span> {tf("result.pka.legend_weaken", { type: legendType })}
+              <span style={{ color: "#b45309" }}>■</span> {tf("result.pka.legend_weaken", { type: legendType })}
             </p>
             <p className="text-xs text-ob-muted">
               <GlossaryText text={t("result.pka.factor_guide")} />

@@ -1,9 +1,8 @@
 """Tests for services/prediction.py — framework-free unified prediction service."""
 
-import os
-
 import pytest
 
+from core.artifacts import gnn_available
 from services.prediction import PredictionResult, predict_batch, run_prediction
 
 # ── Well-known SMILES ──
@@ -17,12 +16,9 @@ DESCRIPTOR_KEYS = [
     "FractionCSP3", "NumSaturatedRings", "HallKierAlpha", "Chi0v", "Chi1v",
 ]
 
-_GNN_FILES = [
-    os.path.join("output_v2", f)
-    for f in ("gnn_solubility_model_v4.pt", "gnn_solubility_model_v3.pt", "gnn_solubility_model.pt")
-]
-_GNN_AVAILABLE = any(os.path.exists(p) for p in _GNN_FILES)
-requires_gnn = pytest.mark.skipif(not _GNN_AVAILABLE, reason="GNN model files not found")
+# GNN availability comes from the shared artifact registry, so these tests skip
+# under exactly the same condition the service itself uses (core.artifacts).
+requires_gnn = pytest.mark.skipif(not gnn_available(), reason="GNN model files not found")
 
 MODEL_USED_LABELS = {"RF", "GNN", "Ensemble", "Ensemble(W)"}
 OOD_RISKS = {"LOW", "MEDIUM", "HIGH", "UNKNOWN"}
@@ -126,21 +122,13 @@ class TestPka:
         assert isinstance(result.pka, float)
         assert result.pka_kind in PKA_KINDS
 
-    def test_pka_kind_thresholds(self):
-        """Legacy pKa kind enum: <6 acid, >8 base, else amphoteric."""
-        from services.prediction import _pka_kind
-        assert _pka_kind(4.76) == "acid"
-        assert _pka_kind(5.99) == "acid"
-        assert _pka_kind(9.5) == "base"
-        assert _pka_kind(8.01) == "base"
-        assert _pka_kind(7.0) == "amphoteric"
-
     def test_auto_select_always_ensembles_when_gnn_available(self):
         """OOD/disagreement no longer route to pure GNN."""
-        from services.prediction import _auto_select
-        pred, label = _auto_select("HIGH", -1.0, -2.5)
+        from services.prediction import auto_predict
+        pred, label, disagreement = auto_predict("HIGH", -1.0, -2.5)
         assert label == "Ensemble(W)"
         assert pred == pytest.approx(-1.75, abs=0.01)
+        assert disagreement == pytest.approx(1.5, abs=0.01)
 
     def test_pka_pair_resolution(self):
         """Separate acid/base pKa values resolve to amphoteric for amino acids."""
@@ -151,8 +139,10 @@ class TestPka:
         primary, kind = _resolve_pka_pair(4.20, 2.00)
         assert kind == "acid"
         assert primary == pytest.approx(4.20)
+        # Same-side pair: both values below pH 7, so the one nearer pH 7 wins.
+        # (This used to be forced to "amphoteric", which mislabels weak bases.)
         primary, kind = _resolve_pka_pair(14.00, 0.60)
-        assert kind == "amphoteric"
+        assert kind == "base"
         assert primary == pytest.approx(0.60)
 
 

@@ -22,7 +22,7 @@ export default function LanguageToggle() {
       <DropdownMenuTrigger asChild>
         <button
           type="button"
-          className="flex items-center gap-1.5 rounded-xl border border-ob-border/60 bg-ob-surface/60 px-3 py-2 text-xs text-ob-muted backdrop-blur-xl transition-all hover:border-nebula/50 hover:text-ob-text hover:shadow-glow/30"
+          className="flex items-center gap-1.5 rounded-lg border border-ob-border bg-ob-surface px-3 py-2 text-xs text-ob-muted transition-colors hover:border-nebula/50 hover:text-ob-text"
         >
           <Globe className="size-3.5" />
           <span>{current === "zh" ? "中文" : "EN"}</span>
@@ -31,7 +31,7 @@ export default function LanguageToggle() {
       <DropdownMenuContent
         align="end"
         sideOffset={6}
-        className="min-w-[120px] border-ob-border/50 bg-ob-surface/60 backdrop-blur-2xl"
+        className="min-w-[120px] border-ob-border bg-ob-surface"
       >
         <DropdownMenuRadioGroup value={current} onValueChange={switchTo}>
           <DropdownMenuRadioItem

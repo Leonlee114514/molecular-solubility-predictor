@@ -1,131 +1,123 @@
-"""
-DisSolve - Shared plotting and molecular visualization utilities.
-Centralises dark theme configuration, CJK font setup, and molecule rendering.
+"""DisSolve - 2D molecular structure rendering.
+
+Used by the FastAPI backend (/api/mol/2d). Two palettes share one code path:
+"paper" is what the React UI requests, "dark" is the palette of the Streamlit UI
+that was retired in favour of the React port - it is kept as a rendering
+baseline (and for a future dark mode), not because anything calls it today.
 """
 
 import numpy as np
-import matplotlib.pyplot as plt
-from rdkit import Chem
-from rdkit.Chem import Descriptors, AllChem, Draw
-from ui.components import get_cjk_font
 
-DARK_THEME = {
-    "figure.facecolor": "#0a0a0f",
-    "axes.facecolor": "#1e1e2e",
-    "axes.edgecolor": "#2a2a3a",
-    "axes.labelcolor": "#a0a0b0",
-    "xtick.color": "#a0a0b0",
-    "ytick.color": "#a0a0b0",
-    "text.color": "#f0f0f5",
+
+# 2D structure rendering themes. "dark" is the Streamlit app's palette, "paper"
+# is the light React UI's: paper background, ink-coloured bonds, no bloom. Both
+# go through the same code path so the two UIs cannot drift apart structurally.
+_THEMES = {
+    "dark": {
+        "bg": (42, 42, 60),
+        "bond_line_width": 3,
+        "atom_palette": {
+            6:  (0.82, 0.82, 0.92),
+            7:  (0.35, 0.65, 1.00),
+            8:  (1.00, 0.40, 0.40),
+            9:  (0.35, 0.90, 0.55),
+            16: (1.00, 0.85, 0.30),
+            17: (0.35, 0.90, 0.55),
+            15: (1.00, 0.65, 0.20),
+        },
+        "lift_dark_bonds": True,
+        "glow": True,
+        "legend_bg": (42, 42, 60, 255),
+        "legend_fg": (205, 205, 220, 255),
+        "legend_frame": (125, 125, 150, 255),
+    },
+    "paper": {
+        "bg": (255, 253, 249),
+        "bond_line_width": 2,
+        "atom_palette": {
+            6:  (0.11, 0.10, 0.09),
+            7:  (0.12, 0.32, 0.51),
+            8:  (0.72, 0.11, 0.11),
+            9:  (0.08, 0.50, 0.24),
+            16: (0.54, 0.43, 0.23),
+            17: (0.08, 0.50, 0.24),
+            15: (0.63, 0.40, 0.13),
+        },
+        "lift_dark_bonds": False,
+        "glow": False,
+        "legend_bg": (255, 253, 249, 255),
+        "legend_fg": (92, 87, 79, 255),
+        "legend_frame": (200, 194, 184, 255),
+    },
 }
 
 
-def setup_plt_dark():
-    """Apply the DisSolve dark theme and CJK font to matplotlib globals."""
-    plt.rcParams.update(DARK_THEME)
-    plt.rcParams["axes.unicode_minus"] = False
-    cjk = get_cjk_font()
-    if cjk:
-        plt.rcParams["font.family"] = cjk
-
-
-def show_3d_molecule(smiles):
-    """Generate interactive 3D ball-and-stick model HTML using py3Dmol."""
-    try:
-        import py3Dmol
-        mol = Chem.MolFromSmiles(smiles)
-        if mol is None:
-            return None
-        mol = Chem.AddHs(mol)
-        AllChem.EmbedMolecule(mol, AllChem.ETKDGv3())
-        AllChem.MMFFOptimizeMolecule(mol, maxIters=500)
-
-        from rdkit.Geometry import Point3D
-        conf = mol.GetConformer()
-        n_atoms = mol.GetNumAtoms()
-        cx = sum(conf.GetAtomPosition(i).x for i in range(n_atoms)) / n_atoms
-        cy = sum(conf.GetAtomPosition(i).y for i in range(n_atoms)) / n_atoms
-        cz = sum(conf.GetAtomPosition(i).z for i in range(n_atoms)) / n_atoms
-        for i in range(n_atoms):
-            pos = conf.GetAtomPosition(i)
-            conf.SetAtomPosition(i, Point3D(pos.x - cx, pos.y - cy, pos.z - cz))
-
-        mol = Chem.RemoveHs(mol)
-        mb = Chem.MolToMolBlock(mol)
-        view = py3Dmol.view(width=480, height=420)
-        view.addModel(mb, 'mol')
-        view.setStyle({'stick': {'radius': 0.18}, 'sphere': {'scale': 0.3}})
-        view.setBackgroundColor('#1a1a2e')
-        view.zoomTo()
-        html = view._make_html()
-        return f'<div style="width:100%;max-width:100%;display:flex;justify-content:center;border-radius:12px;">{html}</div>'
-    except Exception:
-        return None
-
-
-def mol_to_dark_image(mol, size=(500, 400)):
-    """Render a 2D molecular structure image with dark theme."""
-    from io import BytesIO
+def _compose_on_theme(img, alpha, size, cfg):
+    """Composite a transparent RDKit render onto the theme's background."""
     from PIL import Image, ImageFilter
-    from rdkit.Chem.Draw import rdMolDraw2D
 
     w, h = size
-    BG = np.array([42, 42, 60], dtype=np.uint8)
+    arr = np.array(img, dtype=np.float32)
+    bg = np.full((h, w, 4), np.append(np.array(cfg["bg"]), [255]), dtype=np.float32)
+    composed = arr * alpha + bg * (1 - alpha)
+
+    if cfg["lift_dark_bonds"]:
+        # RDKit draws bonds near-black; against a dark background they have to
+        # be lifted. On paper they are already correct, so this is skipped.
+        fg_mask = alpha[:, :, 0] > 0.3
+        dark_bond = fg_mask & (composed[:, :, :3].max(axis=2) < 70)
+        composed[dark_bond, 0] = np.clip(composed[dark_bond, 0] + 110, 0, 255)
+        composed[dark_bond, 1] = np.clip(composed[dark_bond, 1] + 95, 0, 255)
+        composed[dark_bond, 2] = np.clip(composed[dark_bond, 2] + 120, 0, 255)
+
+    if cfg["glow"]:
+        glow = img.filter(ImageFilter.GaussianBlur(radius=2))
+        composed = composed + np.array(glow, dtype=np.float32) * alpha * 0.2
+
+    return Image.fromarray(np.clip(composed, 0, 255).astype(np.uint8), "RGBA")
+
+
+def mol_to_dark_image(mol, size=(500, 400), theme="dark"):
+    """Render a 2D molecular structure.
+
+    theme="dark" (the default) matches the Streamlit app; theme="paper" is the
+    light React UI - paper background, ink-coloured bonds, no glow.
+    """
+    from io import BytesIO
+    from PIL import Image
+    from rdkit.Chem.Draw import rdMolDraw2D
+
+    cfg = _THEMES[theme]
+    w, h = size
 
     draw = rdMolDraw2D.MolDraw2DCairo(w, h)
     opts = draw.drawOptions()
     opts.clearBackground = False
-    opts.bondLineWidth = 3
+    opts.bondLineWidth = cfg["bond_line_width"]
     opts.multipleBondOffset = 0.18
     opts.padding = 0.08
     opts.legendFontSize = 22
-
-    opts.updateAtomPalette({
-        6:  (0.82, 0.82, 0.92),
-        7:  (0.35, 0.65, 1.00),
-        8:  (1.00, 0.40, 0.40),
-        9:  (0.35, 0.90, 0.55),
-        16: (1.00, 0.85, 0.30),
-        17: (0.35, 0.90, 0.55),
-        15: (1.00, 0.65, 0.20),
-    })
+    opts.updateAtomPalette(cfg["atom_palette"])
 
     draw.DrawMolecule(mol)
     draw.FinishDrawing()
 
-    png_data = draw.GetDrawingText()
-    img = Image.open(BytesIO(png_data)).convert("RGBA")
-    arr = np.array(img, dtype=np.float32)
-
-    alpha = arr[:, :, 3:4] / 255.0
-    bg_layer = np.full((h, w, 4), np.append(BG, [255]), dtype=np.float32)
-    composed = arr * alpha + bg_layer * (1 - alpha)
-
-    fg_mask = alpha[:, :, 0] > 0.3
-    dark_bond = fg_mask & (composed[:, :, :3].max(axis=2) < 70)
-    composed[dark_bond, 0] = np.clip(composed[dark_bond, 0] + 110, 0, 255)
-    composed[dark_bond, 1] = np.clip(composed[dark_bond, 1] + 95, 0, 255)
-    composed[dark_bond, 2] = np.clip(composed[dark_bond, 2] + 120, 0, 255)
-
-    glow = img.filter(ImageFilter.GaussianBlur(radius=2))
-    glow_arr = np.array(glow, dtype=np.float32) * alpha * 0.2
-    composed = np.clip(composed + glow_arr, 0, 255).astype(np.uint8)
-
-    return Image.fromarray(composed, "RGBA")
+    img = Image.open(BytesIO(draw.GetDrawingText())).convert("RGBA")
+    alpha = np.array(img, dtype=np.float32)[:, :, 3:4] / 255.0
+    return _compose_on_theme(img, alpha, size, cfg)
 
 
-def _importance_color(norm):
-    """Map normalized importance (0..1) to the purple→yellow highlight colour.
+def _importance_color(norm, theme="dark"):
+    """Map normalized importance (0..1) to the highlight colour (0-1 floats).
 
-    Must stay in sync with the per-bond gradient used in
-    mol_to_dark_image_with_importance.
+    The single source for both the per-bond highlight and the legend bar, so
+    the two can no longer disagree.
     """
     n = max(0.0, min(1.0, norm))
-    return (
-        int(round((0.55 + 0.45 * n) * 255)),
-        int(round((0.25 + 0.65 * n) * 255)),
-        int(round((0.90 - 0.80 * n) * 255)),
-    )
+    if theme == "paper":
+        # Ink blue -> deep amber: legible against a paper background.
+        return (0.12 + 0.51 * n, 0.32 + 0.08 * n, 0.51 - 0.38 * n)
+    return (0.55 + 0.45 * n, 0.25 + 0.65 * n, 0.90 - 0.80 * n)
 
 
 def _cjk_font_path():
@@ -160,20 +152,19 @@ def _cjk_font_path():
     return None
 
 
-def _draw_importance_legend(img, w, h):
-    """Append a horizontal purple→yellow importance scale below a structure image.
+def _draw_importance_legend(img, w, h, theme="dark"):
+    """Append a horizontal importance scale below a structure image.
 
     Gives the per-bond saturation gradient an explicit reference: left end is
-    low importance (dim purple), right end is high importance (bright yellow).
-    Labels are bilingual (低/Low, 高/High) when a CJK font is available.
+    low importance, right end is high. Labels are bilingual (低/Low, 高/High)
+    when a CJK font is available. Colours follow the rendering theme.
     """
     from PIL import Image, ImageDraw, ImageFont
 
+    cfg = _THEMES[theme]
     bar_w, bar_h = 180, 12
     gap_top, gap_bottom = 16, 20
-    canvas = Image.new(
-        "RGBA", (w, h + gap_top + bar_h + gap_bottom), (42, 42, 60, 255)
-    )
+    canvas = Image.new("RGBA", (w, h + gap_top + bar_h + gap_bottom), cfg["legend_bg"])
     canvas.paste(img, (0, 0))
     draw = ImageDraw.Draw(canvas)
 
@@ -181,8 +172,12 @@ def _draw_importance_legend(img, w, h):
     by = h + gap_top
     for i in range(bar_w):
         norm = i / (bar_w - 1)
-        draw.line([(bx + i, by), (bx + i, by + bar_h)], fill=_importance_color(norm))
-    draw.rectangle([bx - 1, by - 1, bx + bar_w, by + bar_h], outline=(125, 125, 150, 255))
+        rgb = _importance_color(norm, theme)
+        draw.line(
+            [(bx + i, by), (bx + i, by + bar_h)],
+            fill=tuple(int(round(c * 255)) for c in rgb) + (255,),
+        )
+    draw.rectangle([bx - 1, by - 1, bx + bar_w, by + bar_h], outline=cfg["legend_frame"])
 
     font = None
     fp = _cjk_font_path()
@@ -200,94 +195,68 @@ def _draw_importance_legend(img, w, h):
     draw.text(
         (bx - draw.textlength(low, font=font) - 12, y),
         low,
-        fill=(205, 205, 220, 255),
+        fill=cfg["legend_fg"],
         font=font,
     )
     draw.text(
         (bx + bar_w + 12, y),
         high,
-        fill=(205, 205, 220, 255),
+        fill=cfg["legend_fg"],
         font=font,
     )
     return canvas
 
 
-def mol_to_dark_image_with_importance(mol, bond_weights, size=(500, 400)):
+def mol_to_dark_image_with_importance(mol, bond_weights, size=(500, 400), theme="dark"):
     """Render a 2D molecular structure with bonds highlighted by GNN importance.
 
-    Important bonds are drawn in brighter/warmer colors (purple → yellow).
-    Less important bonds appear dimmer.
+    Important bonds are drawn in warmer/saturated colours; less important bonds
+    appear dimmer. `theme` picks the palette (see _THEMES) - "paper" for the
+    light React UI, "dark" for the Streamlit app.
 
     Args:
         mol: RDKit Mol object.
         bond_weights: dict mapping bond_idx -> importance (0~1).
                       Bonds not in the dict get a subtle default colour.
         size: (width, height) in pixels.
+        theme: "dark" (default) or "paper".
 
     Returns:
         PIL Image (RGBA) with highlighted bonds.
     """
     from io import BytesIO
-    from PIL import Image, ImageFilter
+    from PIL import Image
     from rdkit.Chem.Draw import rdMolDraw2D
 
+    cfg = _THEMES[theme]
     w, h = size
-    BG = np.array([42, 42, 60], dtype=np.uint8)
 
     if not bond_weights:
         # Fall back to standard rendering
-        return mol_to_dark_image(mol, size)
+        return mol_to_dark_image(mol, size, theme)
 
-    # Compute highlight colours per bond using a purple→orange→yellow gradient
+    # Per-bond highlight colours, from the same gradient the legend uses.
     max_w = max(bond_weights.values()) if bond_weights else 1.0
-    # RDKit bond highlight colours: dict bondIdx -> (r, g, b) in 0-1
     highlight_colours = {}
-    bond_line_widths = {}
     for bidx, wgt in bond_weights.items():
         norm = wgt / max_w if max_w > 0 else 0.0
-        # Colour gradient: dim purple (0.3→0.6 intensity) → bright yellow-gold
-        r = 0.55 + 0.45 * norm
-        g = 0.25 + 0.65 * norm
-        b = 0.90 - 0.80 * norm
-        highlight_colours[bidx] = (r, g, b)
-        # Line width: thicker for more important bonds
-        bond_line_widths[bidx] = 3 + 5 * norm
+        highlight_colours[bidx] = _importance_color(norm, theme)
 
     drawer = rdMolDraw2D.MolDraw2DCairo(w, h)
     opts = drawer.drawOptions()
     opts.clearBackground = False
-    opts.bondLineWidth = 3
+    opts.bondLineWidth = cfg["bond_line_width"]
     opts.multipleBondOffset = 0.18
     opts.padding = 0.08
     opts.legendFontSize = 22
-
-    opts.updateAtomPalette({
-        6:  (0.82, 0.82, 0.92),
-        7:  (0.35, 0.65, 1.00),
-        8:  (1.00, 0.40, 0.40),
-        9:  (0.35, 0.90, 0.55),
-        16: (1.00, 0.85, 0.30),
-        17: (0.35, 0.90, 0.55),
-        15: (1.00, 0.65, 0.20),
-    })
+    opts.updateAtomPalette(cfg["atom_palette"])
 
     # Use RDKit's highlight bonds API (positional args for highlight_bonds)
     highlight_bond_list = list(highlight_colours.keys())
     drawer.DrawMolecule(mol, None, highlight_bond_list, None, highlight_colours)
     drawer.FinishDrawing()
 
-    png_data = drawer.GetDrawingText()
-    img = Image.open(BytesIO(png_data)).convert("RGBA")
-    arr = np.array(img, dtype=np.float32)
-
-    alpha = arr[:, :, 3:4] / 255.0
-    bg_layer = np.full((h, w, 4), np.append(BG, [255]), dtype=np.float32)
-    composed = arr * alpha + bg_layer * (1 - alpha)
-
-    # Enhance bright bonds with a subtle glow
-    glow = img.filter(ImageFilter.GaussianBlur(radius=2))
-    glow_arr = np.array(glow, dtype=np.float32) * alpha * 0.2
-    composed = np.clip(composed + glow_arr, 0, 255).astype(np.uint8)
-
-    out = Image.fromarray(composed, "RGBA")
-    return _draw_importance_legend(out, w, h)
+    img = Image.open(BytesIO(drawer.GetDrawingText())).convert("RGBA")
+    alpha = np.array(img, dtype=np.float32)[:, :, 3:4] / 255.0
+    composed = _compose_on_theme(img, alpha, size, cfg)
+    return _draw_importance_legend(composed, w, h, theme)

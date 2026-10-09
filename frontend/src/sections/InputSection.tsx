@@ -57,7 +57,7 @@ function QuickSelectCard({ onSelect }: InputSectionProps) {
         {t("input.method1.select_label")}
         <div className="max-h-44 overflow-y-auto rounded-lg border border-ob-border bg-ob-bg/60">
           {loadError && (
-            <p className="px-3 py-2 text-xs text-red-400">{t("app.error.network")}</p>
+            <p className="px-3 py-2 text-xs text-red-700">{t("app.error.network")}</p>
           )}
           {!loadError && molecules.length === 0 && (
             <p className="px-3 py-2 text-xs text-ob-faint">…</p>
@@ -148,7 +148,7 @@ function NameSearchCard({ onSelect }: InputSectionProps) {
         </button>
       </div>
 
-      {error && <p className="text-xs text-red-400">{error}</p>}
+      {error && <p className="text-xs text-red-700">{error}</p>}
 
       {result && (
         <div className="flex flex-col gap-2 text-sm">
@@ -157,7 +157,7 @@ function NameSearchCard({ onSelect }: InputSectionProps) {
               key={`exact-${m.name}`}
               type="button"
               onClick={() => onSelect(m.smiles, m.name)}
-              className="rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-3 py-2 text-left text-emerald-300 transition-colors hover:bg-emerald-500/20"
+              className="rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-3 py-2 text-left text-emerald-700 transition-colors hover:bg-emerald-500/20"
             >
               {t("input.method2.exact_match", { name: m.name, smiles: m.smiles })}
             </button>
@@ -167,7 +167,7 @@ function NameSearchCard({ onSelect }: InputSectionProps) {
               key={`fuzzy-${m.name}`}
               type="button"
               onClick={() => onSelect(m.smiles, m.name)}
-              className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-left text-amber-300 transition-colors hover:bg-amber-500/20"
+              className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-left text-amber-700 transition-colors hover:bg-amber-500/20"
             >
               {t("input.method2.fuzzy_match", { name: query.trim(), best: m.name })}
             </button>
@@ -177,7 +177,7 @@ function NameSearchCard({ onSelect }: InputSectionProps) {
               <button
                 type="button"
                 onClick={() => onSelect(result.pubchem!.smiles!, query.trim())}
-                className="rounded-lg border border-cyan-500/40 bg-cyan-500/10 px-3 py-2 text-left text-cyan-300 transition-colors hover:bg-cyan-500/20"
+                className="rounded-lg border border-cyan-500/40 bg-cyan-500/10 px-3 py-2 text-left text-nebula transition-colors hover:bg-cyan-500/20"
               >
                 {t("input.method2.pubchem_success", { status: result.pubchem.status })}
               </button>
@@ -228,7 +228,13 @@ function DirectSmilesCard({ selectedSmiles, onSelect }: InputSectionProps) {
           <input
             type="text"
             value={draft}
-            onChange={(e) => setDraft(e.target.value)}
+            onChange={(e) => {
+              setDraft(e.target.value);
+              // Keep the prediction input in sync so a pasted SMILES does not
+              // need the ✓ press before "predict" will accept it. The ✓ button
+              // stays as the explicit "use this" affordance.
+              onSelect(e.target.value);
+            }}
             onKeyDown={(e) => {
               if (e.key === "Enter" && draft.trim()) onSelect(draft.trim());
             }}
@@ -303,7 +309,7 @@ function FileUploadCard({ onSelect }: InputSectionProps) {
         />
       </label>
       {status && (
-        <p className={`text-xs ${status.ok ? "text-emerald-400" : "text-red-400"}`}>
+        <p className={`text-xs ${status.ok ? "text-emerald-700" : "text-red-700"}`}>
           {status.text}
         </p>
       )}

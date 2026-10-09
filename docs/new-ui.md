@@ -1,12 +1,12 @@
 # DisSolve — New React UI
 
 DisSolve predicts aqueous solubility (logS), pKa, and drug-likeness properties
-from molecular structure. This document covers the React frontend introduced to
-replace the legacy Streamlit UI.
+from molecular structure. This document covers the React frontend and the
+FastAPI backend it talks to.
 
-> The Streamlit app (`app.py` + `ui/`) is kept as the **legacy reference UI**.
-> It still runs (`streamlit run app.py`) and remains the semantic reference for
-> the React port. Do not delete it unless the maintainer decides to.
+> The Streamlit UI this replaced has been removed (it was `app.py` + `ui/` +
+> `assets/`, recoverable from git history), so the React app is now the only UI.
+> `ui/plots.py` remains: the backend uses it for 2D structure PNGs.
 
 ## Architecture
 
@@ -39,6 +39,12 @@ replace the legacy Streamlit UI.
   shadcn/ui, react-i18next (zh/en), recharts, 3Dmol.js (lazy-loaded),
   react-markdown. State lives in `pages/Home.tsx`; results render through
   `sections/results/ResultsTabs.tsx` (5 tabs).
+- **UI components** — only four shadcn/ui components are reachable from app code
+  (`accordion`, `dropdown-menu`, `progress`, `tabs`), and they are the only ones
+  kept in `src/components/ui/`. The other 49 generated files were removed on
+  2026-10-09 (recoverable from git history) so that `tsc` and code search are
+  not traversing unreachable components. Add one back with
+  `npx shadcn@latest add <name>` when a feature actually needs it.
 - **Backend** — FastAPI (`backend/routes.py`), thin HTTP layer over the
   framework-free `services/prediction.py`. Batch tasks run in daemon threads
   (`backend/tasks.py`, in-memory registry).

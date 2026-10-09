@@ -74,54 +74,67 @@ function ShapChart({ result }: { result: PredictionResult }) {
           <BarChart data={rows} layout="vertical" margin={{ left: 8, right: 48, top: 4, bottom: 4 }}>
             <XAxis
               type="number"
-              stroke="#6b6b7b"
-              tick={{ fill: "#a0a0b0", fontSize: 11 }}
-              axisLine={{ stroke: "#2a2a3a" }}
+              stroke="#b8b2a8"
+              tick={{ fill: "#5c574f", fontSize: 11 }}
+              axisLine={{ stroke: "#ded8cd" }}
               tickLine={false}
             />
             <YAxis
               type="category"
               dataKey="name"
-              width={190}
-              stroke="#6b6b7b"
-              tick={{ fill: "#d0d0e0", fontSize: 11 }}
+              width={104}
+              stroke="#b8b2a8"
+              tick={{ fill: "#5c574f", fontSize: 11 }}
+              tickFormatter={shortDescriptor}
               axisLine={false}
               tickLine={false}
             />
             <Tooltip
-              cursor={{ fill: "rgba(124,58,237,0.08)" }}
+              cursor={{ fill: "rgba(28,26,23,0.05)" }}
               contentStyle={{
-                background: "rgba(26,26,46,0.95)",
-                border: "1px solid rgba(255,255,255,0.12)",
-                borderRadius: 10,
+                background: "#fffdf9",
+                border: "1px solid rgba(28,26,23,0.12)",
+                borderRadius: 6,
                 fontSize: 12,
+                boxShadow: "0 2px 8px rgba(28,26,23,0.08)",
               }}
-              labelStyle={{ color: "#f0f0f5" }}
-              itemStyle={{ color: "#a78bfa" }}
+              labelStyle={{ color: "#1c1a17", fontWeight: 600 }}
+              itemStyle={{ color: "#2c5282" }}
               formatter={(value: number) => [value.toFixed(4), t("result.solubility.shap_xlabel")]}
             />
             <Bar dataKey="value" radius={[3, 3, 3, 3]} barSize={16}>
               {rows.map((row) => (
-                <Cell key={row.name} fill={row.value > 0 ? "#a78bfa" : "#06b6d4"} />
+                <Cell key={row.name} fill={row.value > 0 ? "#2c5282" : "#b45309"} />
               ))}
               <LabelList
                 dataKey="value"
                 position="right"
                 formatter={(v: number) => (v > 0 ? `+${v.toFixed(3)}` : v.toFixed(3))}
-                style={{ fill: "#a0a0b0", fontSize: 11 }}
+                style={{ fill: "#5c574f", fontSize: 11 }}
               />
             </Bar>
           </BarChart>
         </ResponsiveContainer>
       </div>
       <p className="text-xs text-ob-faint">
-        <span style={{ color: "#a78bfa" }}>■</span> {t("result.solubility.shap_legend_pos")}
+        <span style={{ color: "#2c5282" }}>■</span> {t("result.solubility.shap_legend_pos")}
         {"  "}
-        <span style={{ color: "#06b6d4" }}>■</span> {t("result.solubility.shap_legend_neg")}
+        <span style={{ color: "#b45309" }}>■</span> {t("result.solubility.shap_legend_neg")}
       </p>
       <p className="text-xs text-ob-muted">{t("result.solubility.shap_guide")}</p>
     </div>
   );
+}
+
+/**
+ * Axis labels arrive as full descriptor names ("Molecular Flexibility (Hall-Kier α)").
+ * Axis space is tight, so the tick shows the trailing parenthesised short form and
+ * the full name stays available in the tooltip - recharts' tickFormatter only
+ * changes the tick text, not the value the tooltip labels itself with.
+ */
+function shortDescriptor(name: string): string {
+  const match = name.match(/[（(]\s*([^（()）]+?)\s*[)）]\s*$/);
+  return match ? match[1] : name;
 }
 
 /* ---------- SHAP insight (ported from ui/results.py) ---------- */
@@ -261,7 +274,7 @@ function GnnSection({ smiles }: { smiles: string }) {
           {busy ? t("result.gnn.spinner") : `⚛ ${t("result.gnn.run_btn")}`}
         </button>
       )}
-      {error && <p className="text-xs text-red-400">{error}</p>}
+      {error && <p className="text-xs text-red-700">{error}</p>}
 
       {data && (
         <>
@@ -312,7 +325,7 @@ function GnnSection({ smiles }: { smiles: string }) {
                       <span className="text-ob-muted">{f.name}</span>
                       <div className="mt-0.5 h-2 w-4/5 overflow-hidden rounded-full bg-ob-bg">
                         <div
-                          className="h-full rounded-full bg-cyan-400"
+                          className="h-full rounded-full bg-nebula"
                           style={{ width: `${Math.min(100, f.value * 100)}%` }}
                         />
                       </div>
@@ -354,16 +367,16 @@ export default function SolubilityPanel({ result }: SolubilityPanelProps) {
       <div className="glass-card p-4 font-mono text-xs leading-relaxed text-ob-muted">
         <b className="text-ob-text">{t("result.solubility.guide")}</b>
         <br />
-        <span className="text-emerald-400">&gt;</span> logS &gt; 0: {t("result.solubility.high_hint")}
+        <span className="text-emerald-700">&gt;</span> logS &gt; 0: {t("result.solubility.high_hint")}
         <br />
         <span className="text-stargold">&gt;</span> -2 &lt; logS &lt; 0: {t("result.solubility.moderate")}
         <br />
-        <span className="text-red-400">&gt;</span> logS &lt; -2: {t("result.solubility.poor_hint")}
+        <span className="text-red-700">&gt;</span> logS &lt; -2: {t("result.solubility.poor_hint")}
       </div>
 
       {/* Disagreement warning */}
       {diff != null && diff > 0.5 && (
-        <div className="rounded-xl border border-red-500/50 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+        <div className="rounded-xl border border-red-500/50 bg-red-500/10 px-4 py-3 text-sm text-red-700">
           {diff > 1.0
             ? (result.model_selected === "auto"
                 ? tf("result.solubility.severe_disagree_auto", { diff })
@@ -386,7 +399,7 @@ export default function SolubilityPanel({ result }: SolubilityPanelProps) {
             </span>
           )}
           <br />
-          <span className="text-emerald-400">{t("result.solubility.ensemble_rf")}</span>{" "}
+          <span className="text-emerald-700">{t("result.solubility.ensemble_rf")}</span>{" "}
           {rf.toFixed(3)}
           {"  |  "}
           <span className="text-nebula-light">{t("result.solubility.ensemble_gnn")}</span>{" "}

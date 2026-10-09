@@ -11,17 +11,31 @@ interface HistorySectionProps {
 }
 
 function logSColor(logS: number | null): string {
-  if (logS == null) return "#6b6b7b";
-  if (logS > 0) return "#34d399";
-  if (logS > -2) return "#fbbf24";
-  return "#f87171";
+  if (logS == null) return "#8f887e";
+  if (logS > 0) return "#15803d";
+  if (logS > -2) return "#a16207";
+  return "#b91c1c";
 }
 
-function pkaColor(pka: number | null): string {
-  if (pka == null) return "#6b6b7b";
-  if (pka < 5) return "#a78bfa";
-  if (pka > 9) return "#22d3ee";
-  return "#fbbf24";
+/**
+ * Band colour for a history entry, taken from the resolved pka_kind so it
+ * matches the badge colours in the result tabs (PkaPanel KIND_META). Entries
+ * stored before pka_kind existed fall back to the neutral colour rather than
+ * re-deriving a band from the raw number, which is what used to drift away
+ * from the backend's thresholds (core/chemistry.py).
+ */
+function pkaColor(entry: HistoryEntry): string {
+  if (entry.pKa == null) return "#8f887e";
+  switch (entry.result?.pka_kind) {
+    case "acid":
+      return "#2c5282";
+    case "base":
+      return "#8a6d3b";
+    case "amphoteric":
+      return "#a16207";
+    default:
+      return "#8f887e";
+  }
 }
 
 function relativeTime(timestamp: number, justNow: string): string {
@@ -71,7 +85,7 @@ export default function HistorySection({ entries, onReuse, onClear }: HistorySec
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {entries.map((entry, i) => {
               const sColor = logSColor(entry.logS);
-              const pColor = pkaColor(entry.pKa);
+              const pColor = pkaColor(entry);
               return (
                 <div
                   key={`${entry.timestamp}-${entry.smiles}`}
@@ -136,7 +150,7 @@ export default function HistorySection({ entries, onReuse, onClear }: HistorySec
             }}
             className={`self-end rounded-lg border px-3 py-1.5 text-xs transition-colors ${
               confirming
-                ? "border-red-500/60 bg-red-500/15 text-red-300 hover:bg-red-500/25"
+                ? "border-red-500/60 bg-red-500/15 text-red-700 hover:bg-red-500/25"
                 : "border-ob-border bg-ob-surface/60 text-ob-muted hover:text-ob-text"
             }`}
           >

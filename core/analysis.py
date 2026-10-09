@@ -6,9 +6,9 @@ Split from features.py to keep module responsibilities clean.
 import math
 import gzip
 import pickle
-import numpy as np
 from rdkit import Chem
 from rdkit.Chem import Descriptors, rdFingerprintGenerator, rdMolDescriptors
+from core.chemistry import classify_pka
 from core.i18n import t, get_lang
 
 
@@ -302,7 +302,6 @@ def analyze_admet(smiles, features, pka_val=None, pka_kind=None):
     tpsa = features["TPSA"]
     hbd = features["NumHDonors"]
     hba = features["NumHAcceptors"]
-    rot_bonds = features["NumRotatableBonds"]
 
     # Absorption
     absorption_factors = []
@@ -314,7 +313,7 @@ def analyze_admet(smiles, features, pka_val=None, pka_kind=None):
         absorption_factors.append(t("analysis.admet.absorption.tpsa_high"))
 
     if pka_val is not None:
-        pka_effective_kind = pka_kind or ("acid" if pka_val < 6 else ("base" if pka_val > 8 else "amphoteric"))
+        pka_effective_kind = pka_kind or classify_pka(pka_val)
         if pka_effective_kind == "acid":
             absorption_factors.append(t("analysis.admet.absorption.pka_acid", val=pka_val))
         elif pka_effective_kind == "base":

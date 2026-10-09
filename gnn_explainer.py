@@ -11,8 +11,6 @@ Reference: "GNNExplainer: Generating Explanations for Graph Neural Networks"
 
 import torch
 import torch.nn.functional as F
-import numpy as np
-from rdkit import Chem
 
 
 # ── Internal forward with edge weights (replicates SolubilityGNN.forward) ──

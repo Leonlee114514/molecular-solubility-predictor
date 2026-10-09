@@ -29,6 +29,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import subprocess
 import sys
 import time
 from concurrent.futures import ProcessPoolExecutor
@@ -42,10 +43,9 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 os.chdir(PROJECT_ROOT)
 sys.path.insert(0, str(PROJECT_ROOT))
 
-PKA_FEATURE_KEYS = (
-    "MolWt", "LogP", "NumHDonors", "NumHAcceptors",
-    "TPSA", "NumRotatableBonds", "NumAromaticRings", "NumAliphaticRings",
-)
+# Feature ordering is a training/inference contract: imported from the app so the
+# two can never drift apart (see features.PKA_FEATURE_KEYS).
+from features import PKA_FEATURE_KEYS  # noqa: E402
 
 RF_PARAMS = {
     "n_estimators": 200,
@@ -165,6 +165,49 @@ def train_one(name: str, path: Path, target_col: str, limit: int | None, workers
     }
 
 
+def _git(*args):
+    """Run a git command in the project root; None when git is unavailable."""
+    try:
+        out = subprocess.run(
+            ["git", *args],
+            cwd=PROJECT_ROOT,
+            capture_output=True,
+            text=True,
+            check=True,
+            timeout=15,
+        )
+        return out.stdout.strip()
+    except Exception:
+        return None
+
+
+def provenance(limit):
+    """Which code and which data produced these artifacts.
+
+    Without this, an artifact in output_v2/ cannot be traced back to a script
+    revision - the question "is this model reproducible?" had no answer.
+    """
+    return {
+        "script": Path(__file__).name,
+        "commit": _git("rev-parse", "HEAD"),
+        "worktree_dirty": bool(_git("status", "--porcelain")),
+        "quick_mode": bool(limit),
+        "datasets": {
+            name: {"path": rel_path, "rows": _row_count(PROJECT_ROOT / rel_path)}
+            for name, rel_path, _ in DATASETS
+        },
+    }
+
+
+def _row_count(path):
+    """Data rows (excluding the header), or None when the file is missing."""
+    try:
+        with open(path, "r", encoding="utf-8", errors="replace") as f:
+            return max(sum(1 for _ in f) - 1, 0)
+    except OSError:
+        return None
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--quick", action="store_true", help="use only 5000 rows per dataset")
@@ -173,7 +216,11 @@ def main():
 
     print(f"Training separate pKa models (workers={args.workers}, quick={args.quick})")
     limit = 5000 if args.quick else None
-    config = {"generated_at": time.strftime("%Y-%m-%d %H:%M:%S"), "models": {}}
+    config = {
+        "generated_at": time.strftime("%Y-%m-%d %H:%M:%S"),
+        "provenance": provenance(limit),
+        "models": {},
+    }
 
     for name, rel_path, target_col in DATASETS:
         path = PROJECT_ROOT / rel_path

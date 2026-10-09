@@ -36,23 +36,24 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 os.chdir(PROJECT_ROOT)
 sys.path.insert(0, str(PROJECT_ROOT))
 
+from core.artifacts import GNN_CLEAN_FILE, OOD_DETECTOR, OUTPUT_DIR, RF_CANDIDATES  # noqa: E402
 from features import compute_features  # noqa: E402
 from ood_detector import load_ood_detector  # noqa: E402
 
-RF_ARTIFACT_CANDIDATES = [
-    PROJECT_ROOT / "output_v2" / "solubility_model_v6_clean.pkl.gz",
-    PROJECT_ROOT / "output_v2" / "solubility_model_v5.pkl.gz",
-]
+# Paths come from the shared artifact registry. The priority order below is this
+# script's own: the clean candidate is evaluated FIRST on purpose (comparing it
+# against the shipped weights is the point of scripts/evaluate_models.py).
+RF_ARTIFACT_CANDIDATES = [model for model, _ in RF_CANDIDATES]
 RF_ARTIFACT = next((p for p in RF_ARTIFACT_CANDIDATES if p.exists()), RF_ARTIFACT_CANDIDATES[0])
-GNN_CLEAN_CANDIDATE = PROJECT_ROOT / "output_v2" / "gnn_solubility_model_v5_clean.pt"
+GNN_CLEAN_CANDIDATE = GNN_CLEAN_FILE
 GNN_CANDIDATES = [
     (GNN_CLEAN_CANDIDATE, 256),
-    (PROJECT_ROOT / "output_v2" / "gnn_solubility_model_v4.pt", 256),
-    (PROJECT_ROOT / "output_v2" / "gnn_solubility_model_v3.pt", 128),
-    (PROJECT_ROOT / "output_v2" / "gnn_solubility_model.pt", 128),
+    (OUTPUT_DIR / "gnn_solubility_model_v4.pt", 256),
+    (OUTPUT_DIR / "gnn_solubility_model_v3.pt", 128),
+    (OUTPUT_DIR / "gnn_solubility_model.pt", 128),
 ]
-OOD_ARTIFACT = PROJECT_ROOT / "output_v2" / "ood_detector.pkl.gz"
-REPORT_PATH = PROJECT_ROOT / "output_v2" / "evaluation_report.json"
+OOD_ARTIFACT = OOD_DETECTOR
+REPORT_PATH = OUTPUT_DIR / "evaluation_report.json"
 
 RF_PARAMS = {
     "n_estimators": 800,

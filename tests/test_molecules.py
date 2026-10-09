@@ -2,16 +2,13 @@
 
 import json
 import os
-import pytest
 
 from molecules import (
     _load_molecule_db,
-    build_search_index,
     MOLECULE_DB,
     SEARCH_INDEX,
     load_cache,
     save_cache,
-    pubchem_cache,
 )
 
 

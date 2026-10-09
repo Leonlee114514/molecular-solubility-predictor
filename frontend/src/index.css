@@ -2,37 +2,47 @@
 @tailwind components;
 @tailwind utilities;
 
+/*
+ * DisSolve paper theme.
+ *
+ * Warm off-white surfaces, ink text, hairline rules, a single accent (ink
+ * blue). No glass blur, no glow, no gradient text, no motion - the interface
+ * is meant to read like a printed report rather than a dashboard.
+ */
 @layer base {
   :root {
-    /* DisSolve nebula theme — always dark (mirrors assets/theme.py) */
-    --background: 237 34% 12%;
-    --foreground: 240 20% 95%;
-    --card: 240 28% 14%;
-    --card-foreground: 240 20% 95%;
-    --popover: 240 28% 14%;
-    --popover-foreground: 240 20% 95%;
-    --primary: 262 83% 58%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 240 20% 20%;
-    --secondary-foreground: 240 20% 95%;
-    --muted: 240 15% 22%;
-    --muted-foreground: 240 10% 66%;
-    --accent: 240 20% 22%;
-    --accent-foreground: 240 20% 95%;
-    --destructive: 0 72% 51%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 240 15% 24%;
-    --input: 240 15% 24%;
-    --ring: 262 83% 58%;
-    --radius: 1rem;
-    --sidebar-background: 240 28% 14%;
-    --sidebar-foreground: 240 20% 95%;
-    --sidebar-primary: 262 83% 58%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 20% 22%;
-    --sidebar-accent-foreground: 240 20% 95%;
-    --sidebar-border: 240 15% 24%;
-    --sidebar-ring: 262 83% 58%;
+    --background: 38 31% 94%;
+    --foreground: 30 10% 10%;
+    --card: 40 60% 99%;
+    --card-foreground: 30 10% 10%;
+    --popover: 40 60% 99%;
+    --popover-foreground: 30 10% 10%;
+    --primary: 213 51% 25%;
+    --primary-foreground: 40 60% 99%;
+    --secondary: 38 20% 90%;
+    --secondary-foreground: 30 10% 10%;
+    --muted: 38 18% 91%;
+    --muted-foreground: 33 7% 34%;
+    --accent: 38 20% 90%;
+    --accent-foreground: 30 10% 10%;
+    --destructive: 0 62% 38%;
+    --destructive-foreground: 40 60% 99%;
+    --border: 30 8% 78%;
+    --input: 30 8% 78%;
+    --ring: 213 51% 25%;
+    --radius: 0.375rem;
+    --sidebar-background: 38 31% 94%;
+    --sidebar-foreground: 30 10% 10%;
+    --sidebar-primary: 213 51% 25%;
+    --sidebar-primary-foreground: 40 60% 99%;
+    --sidebar-accent: 38 20% 90%;
+    --sidebar-accent-foreground: 30 10% 10%;
+    --sidebar-border: 30 8% 78%;
+    --sidebar-ring: 213 51% 25%;
+  }
+
+  html {
+    color-scheme: light;
   }
 
   * {
@@ -48,35 +58,38 @@
       'PingFang SC',
       'Microsoft YaHei',
       sans-serif;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
   }
 }
 
 @layer components {
+  /* Paper card: opaque surface, hairline border, no blur, no shadow.
+     `.glass-card` is kept as an alias so the existing call sites do not have
+     to change; new code should use `.paper-card`. */
+  .paper-card,
   .glass-card {
-    @apply rounded-2xl border;
-    background: rgba(26, 26, 46, 0.72);
-    border-color: rgba(255, 255, 255, 0.08);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
+    @apply rounded-md border;
+    background: #fffdf9;
+    border-color: rgba(28, 26, 23, 0.12);
   }
 
+  /* Plain ink title. The class name is kept for existing callers; the gradient
+     fill is gone. */
   .gradient-title {
-    background: linear-gradient(120deg, #a78bfa 0%, #7c3aed 45%, #06b6d4 100%);
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
+    color: #1c1a17;
+    letter-spacing: -0.01em;
   }
 
   .gloss-term {
-    color: #a78bfa;
+    color: #2c5282;
     text-decoration: underline dotted;
     text-underline-offset: 3px;
     cursor: help;
-    transition: color 0.15s ease;
   }
 
   .gloss-term:hover {
-    color: #c4b5fd;
+    color: #1f3a5f;
   }
 
   /* AI-explanation markdown (react-markdown output) */
@@ -101,18 +114,18 @@
   .md-body strong { @apply font-semibold text-ob-text; }
   .md-body em { @apply italic; }
   .md-body code {
-    @apply rounded bg-ob-bg px-1 py-0.5 font-mono text-xs text-nebula-light;
+    @apply rounded border border-ob-border bg-ob-bg px-1 py-0.5 font-mono text-xs text-nebula;
   }
   .md-body pre {
-    @apply mb-2 overflow-x-auto rounded-lg border border-ob-border bg-ob-bg p-3;
+    @apply mb-2 overflow-x-auto rounded-md border border-ob-border bg-ob-bg p-3;
   }
-  .md-body pre code { @apply bg-transparent p-0; }
+  .md-body pre code { @apply border-0 bg-transparent p-0; }
   .md-body blockquote {
-    @apply mb-2 border-l-2 border-nebula/50 pl-3 text-ob-faint;
+    @apply mb-2 border-l-2 border-ob-border pl-3 text-ob-faint;
   }
   .md-body table { @apply mb-2 w-full text-xs; }
   .md-body th,
   .md-body td { @apply border border-ob-border px-2 py-1; }
   .md-body hr { @apply my-3 border-ob-border; }
-  .md-body a { @apply text-cyan-300 underline; }
+  .md-body a { @apply text-nebula underline; }
 }

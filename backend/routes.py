@@ -20,6 +20,7 @@ from pydantic import BaseModel
 
 from backend import prediction_result_to_dict, to_jsonable
 from backend.tasks import registry
+from core.chemistry import PKA_KINDS, classify_pka, pharma_strength
 from core.i18n import language_context
 
 logger = logging.getLogger(__name__)
@@ -137,12 +138,8 @@ def predict(req: PredictRequest):
 # ── Analysis (pKa factors, Lipinski, drug-likeness, ADME/Tox) ──
 
 def _pka_type_of(pka: float) -> str:
-    """Same thresholds as model.get_pka_type."""
-    if pka < 6:
-        return "acid"
-    if pka > 8:
-        return "base"
-    return "amphoteric"
+    """Band classification, shared with model.get_pka_type (core.chemistry)."""
+    return classify_pka(pka)
 
 
 # Physiological environments for the ionization profile (mirrors ui/results.py).
@@ -172,15 +169,15 @@ def _ionization_profile(pka: float, pka_type: str) -> list[dict]:
 
 def _pharma_analysis_key(pka: float, pka_type: str) -> str:
     """Structured key for the pharmacological-analysis box (frontend translates)."""
-    if pka_type == "acid":
-        return "strong_acid" if pka < 4 else "mid_acid"
-    if pka_type == "base":
-        return "strong_base" if pka > 9 else "weak_base"
-    return "amphoteric"
+    return pharma_strength(pka, pka_type)
 
 
 def _linkage_prose(logs: float, pka: float, pka_type: str) -> str:
-    """Solubility × pKa linkage sentences, ported from ui/results.py (translated)."""
+    """Solubility x pKa linkage sentences, matching ui/results.py's wording.
+
+    The strength decision comes from core.chemistry.pharma_strength, so this
+    module no longer carries its own copy of the 4 / 9 thresholds.
+    """
     from core.i18n import t
 
     parts = []
@@ -190,25 +187,24 @@ def _linkage_prose(logs: float, pka: float, pka_type: str) -> str:
         parts.append(t("result.pharma.linkage.moderate"))
     else:
         parts.append(t("result.pharma.linkage.poor"))
-    if pka_type == "acid":
-        parts.append(
-            t("result.pharma.linkage.pka_weak_acid", val=pka)
-            if pka < 4
-            else t("result.pharma.linkage.pka_mid_acid", val=pka)
-        )
-    elif pka_type == "base":
-        parts.append(
-            t("result.pharma.linkage.pka_strong_base", val=pka)
-            if pka > 9
-            else t("result.pharma.linkage.pka_weak_base", val=pka)
-        )
+
+    strength = pharma_strength(pka, pka_type)
+    if strength == "strong_acid":
+        parts.append(t("result.pharma.linkage.pka_weak_acid", val=pka))
+    elif strength == "mid_acid":
+        parts.append(t("result.pharma.linkage.pka_mid_acid", val=pka))
+    elif strength == "strong_base":
+        parts.append(t("result.pharma.linkage.pka_strong_base", val=pka))
+    elif strength == "weak_base":
+        parts.append(t("result.pharma.linkage.pka_weak_base", val=pka))
     else:
         parts.append(t("result.pharma.linkage.pka_neutral", val=pka))
-    if logs > 0 and pka_type == "acid" and pka < 4:
+
+    if logs > 0 and strength == "strong_acid":
         parts.append(t("result.pharma.linkage.combo_good"))
-    elif logs < -2 and pka_type == "base" and pka > 9:
+    elif logs < -2 and strength == "strong_base":
         parts.append(t("result.pharma.linkage.combo_challenging"))
-    elif logs > 0 and pka_type == "base" and pka > 9:
+    elif logs > 0 and strength == "strong_base":
         parts.append(t("result.pharma.linkage.combo_acceptable"))
     return " | ".join(parts)
 
@@ -236,7 +232,7 @@ def analysis(req: AnalysisRequest):
 
     pka_type = (
         req.pka_kind
-        if req.pka_kind in ("acid", "base", "amphoteric")
+        if req.pka_kind in PKA_KINDS
         else (_pka_type_of(req.pka) if req.pka is not None else None)
     )
 
@@ -362,7 +358,10 @@ async def mol_parse_file(file: UploadFile = File(...)):
 
 @router.get("/mol/2d")
 def mol_2d(smiles: str = Query(...), bonds: str | None = Query(None)):
-    """Dark-theme 2D structure PNG (reuses ui.plots.mol_to_dark_image).
+    """Paper-theme 2D structure PNG (reuses ui.plots.mol_to_dark_image).
+
+    The React UI is the light "paper" theme, so these images are rendered light;
+    the Streamlit app draws its own dark ones server-side.
 
     Optional `bonds` highlights GNN-important bonds via
     ui.plots.mol_to_dark_image_with_importance. Format: "i-j:w,i-j:w,..."
@@ -408,11 +407,11 @@ def mol_2d(smiles: str = Query(...), bonds: str | None = Query(None)):
         if bond_weights:
             from ui.plots import mol_to_dark_image_with_importance
 
-            img = mol_to_dark_image_with_importance(mol, bond_weights)
+            img = mol_to_dark_image_with_importance(mol, bond_weights, theme="paper")
         else:
             from ui.plots import mol_to_dark_image
 
-            img = mol_to_dark_image(mol)
+            img = mol_to_dark_image(mol, theme="paper")
         buf = io.BytesIO()
         img.save(buf, format="PNG")
         png = buf.getvalue()

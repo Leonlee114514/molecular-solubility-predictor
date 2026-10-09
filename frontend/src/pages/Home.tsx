@@ -113,7 +113,7 @@ export default function Home() {
           >
             {loading ? t("app.predict.status") : t("app.predict_btn")}
           </button>
-          {error && <p className="max-w-xl text-center text-sm text-red-400">{error}</p>}
+          {error && <p className="max-w-xl text-center text-sm text-red-700">{error}</p>}
         </div>
 
         {result && <ResultsTabs result={result} />}

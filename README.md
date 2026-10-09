@@ -2,8 +2,7 @@
 
 Predict aqueous solubility (logS) of organic molecules using Machine Learning.
 
-[![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://chem-ml-project.streamlit.app)
-[![Tests](https://github.com/minlangli26-cyber/chem-ml-project/actions/workflows/test.yml/badge.svg)](https://github.com/minlangli26-cyber/chem-ml-project/actions/workflows/test.yml)
+[![Tests](https://github.com/Leonlee114514/molecular-solubility-predictor/actions/workflows/test.yml/badge.svg)](https://github.com/Leonlee114514/molecular-solubility-predictor/actions/workflows/test.yml)
 
 ##  Overview
 
@@ -17,9 +16,22 @@ This web application predicts how well a molecule dissolves in water (**logS**) 
 
 Built as a high school chemistry + machine learning project.
 
-##  Live Demo
+##  Architecture
 
-> Replace this badge/link once deployed on [Streamlit Community Cloud](https://streamlit.io/cloud).
+A React frontend over a FastAPI backend, both sitting on one framework-free prediction service:
+
+```
+React (frontend/)  --HTTP/JSON-->  FastAPI (backend/)  -->  services/prediction.py
+                                                                    |
+                                                    model artifacts (core/artifacts.py)
+                                                    chemistry constants (core/chemistry.py)
+```
+
+`services/prediction.py` decides *what a value means*; `frontend/` decides *how it looks*.
+See [`docs/new-ui.md`](docs/new-ui.md) for the API summary and run steps.
+
+> The Streamlit UI that originally fronted this project was retired in favour of the React port.
+> It lived in `app.py`, `ui/`, `assets/` and `.streamlit/` and is recoverable from git history.
 
 ##  Screenshots
 
@@ -31,7 +43,8 @@ Built as a high school chemistry + machine learning project.
 
 | Layer | Technology |
 |-------|------------|
-| Frontend | Streamlit |
+| Frontend | React 19 + TypeScript + Vite + Tailwind (shadcn/ui) |
+| Backend | FastAPI (uvicorn) |
 | ML Model | Scikit-learn (Random Forest) + PyTorch GIN |
 | Cheminformatics | RDKit |
 | Fingerprint | Morgan (ECFP4, 1024-bit) |
@@ -44,42 +57,45 @@ Built as a high school chemistry + machine learning project.
 
 ```
 .
-├── app.py                      # Main Streamlit application
+├── pka_resolve.py              # Structural + numeric pKa pair resolution
 ├── features.py                 # Molecular feature computation
 ├── molecules.py                # Local DB + PubChem search
-├── model.py                    # Model loading & inference
 ├── gnn_model.py                # Graph Neural Network (GIN)
+├── gnn_explainer.py            # GNNExplainer (bond / feature attribution)
 ├── ood_detector.py             # Out-of-Distribution detection
 │
-├── core/                       # Business logic modules
+├── services/                   # Framework-free prediction service
+│   └── prediction.py           # Single prediction entry point
+├── backend/                    # FastAPI app backing the React UI
+│   ├── main.py
+│   ├── routes.py               # /api endpoints
+│   └── tasks.py                # In-memory batch task registry
+├── core/                       # Business logic + shared constants
 │   ├── analysis.py             # pKa, Lipinski, ADME/Tox
 │   ├── ai_client.py            # Kimi AI explanation client
-│   ├── cache.py                # Streamlit caching wrappers
-│   └── state_keys.py           # Session state constants
-│
-├── ui/                         # UI rendering
-│   ├── components.py           # Header, footer, input areas
-│   ├── results.py              # 5-tab results display
-│   └── plots.py                # 2D/3D molecule visualization
-│
-├── assets/                     # CSS theme & JS effects
+│   ├── artifacts.py            # Model/data artifact registry (single source)
+│   ├── chemistry.py            # pKa band + strength thresholds (single source)
+│   └── i18n.py                 # zh/en strings (server-side translation)
+├── ui/
+│   └── plots.py                # 2D structure rendering (theme-aware PNG)
+├── frontend/                   # React 19 + Vite UI (see docs/new-ui.md)
 │
 ├── tests/                      # Unit tests (pytest)
-│   ├── test_features.py
-│   ├── test_analysis.py
-│   ├── test_model.py
-│   ├── test_molecules.py
-│   └── test_ood_detector.py
+│   ├── test_features.py / test_analysis.py / test_molecules.py
+│   ├── test_ood_detector.py / test_pka_resolve.py / test_chemistry.py
+│   └── test_prediction_service.py / test_backend_api.py
 │
+├── scripts/                    # Training + evaluation scripts
 ├── output_v2/                  # Trained models + evaluation report
 │   ├── solubility_model_v6_clean.pkl.gz  # clean RF
-│   ├── gnn_solubility_model_v5.pt        # clean GNN
+│   ├── gnn_solubility_model_v5_clean.pt  # clean GNN
 │   ├── pka_acidic_model.pkl / pka_basic_model.pkl
 │   └── evaluation_report.json
 ├── data/                       # Training datasets (CSV)
-├── docs/                       # Screenshots
+├── docs/                       # Screenshots + docs/new-ui.md
 ├── .env                        # API keys (not tracked)
-├── requirements.txt
+├── requirements.txt            # runtime dependencies
+├── requirements-dev.txt        # runtime + pytest + flake8
 ├── .gitignore
 └── README.md
 ```
@@ -89,8 +105,8 @@ Built as a high school chemistry + machine learning project.
 ### 1. Clone the repository
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/chem-ml-project.git
-cd chem-ml-project
+git clone https://github.com/Leonlee114514/molecular-solubility-predictor.git
+cd molecular-solubility-predictor
 ```
 
 ### 2. Create a virtual environment
@@ -140,13 +156,29 @@ python scripts/train_model_v2.py
 
 Or use the pre-trained models already tracked in `output_v2/`.
 
-### 6. Run the app
+### 6. Run it
+
+Two processes: the API and the UI.
 
 ```bash
-streamlit run app.py
+# terminal 1 — FastAPI backend on :8000
+venv/Scripts/python.exe -m uvicorn backend.main:app --port 8000
+
+# terminal 2 — React dev server on :3000 (proxies /api to :8000)
+cd frontend
+npm install
+npm run dev
 ```
 
-The app will open at `http://localhost:8501`.
+The UI opens at `http://localhost:3000`. If port 8000 is already taken, start the backend
+elsewhere and point the proxy at it:
+
+```bash
+# bash
+VITE_API_TARGET=http://localhost:8010 npm run dev
+# Windows PowerShell
+$env:VITE_API_TARGET='http://localhost:8010'; npm run dev
+```
 
 ##  How It Works
 
@@ -158,7 +190,7 @@ The app will open at `http://localhost:8501`.
 
 ### Feature Engineering
 
-For each molecule, RDKit extracts 8 molecular descriptors + 1024-bit Morgan fingerprint:
+For each molecule, RDKit extracts 13 molecular descriptors + a 1024-bit Morgan fingerprint:
 
 | Feature | Description |
 |---------|-------------|
@@ -170,6 +202,10 @@ For each molecule, RDKit extracts 8 molecular descriptors + 1024-bit Morgan fing
 | NumRotatableBonds | Molecular flexibility |
 | NumAromaticRings | Aromatic ring count |
 | NumAliphaticRings | Aliphatic ring count |
+| FractionCSP3 | Fraction of sp³ carbons |
+| NumSaturatedRings | Saturated ring count |
+| HallKierAlpha | Molecular flexibility (Hall–Kier α) |
+| Chi0v / Chi1v | Valence connectivity indices (order 0 / 1) |
 | Morgan FP | 1024-bit circular fingerprint (ECFP4) |
 
 ### Prediction Interpretation
@@ -229,19 +265,18 @@ which writes `output_v2/pka_models_config.json`.
 
 ##  Deployment
 
-### Streamlit Community Cloud (Free)
+Two pieces to host: the FastAPI backend (`uvicorn backend.main:app`) and the built frontend
+(`cd frontend && npm run build`, then serve `frontend/dist/`).
 
-1. Push your code to GitHub (include `requirements.txt`)
-2. Go to [share.streamlit.io](https://share.streamlit.io)
-3. Connect your repo and select `app.py`
-4. Add `KIMI_API_KEY` in **Secrets management**
-5. Deploy!
+### Notes
 
-### Important Deployment Notes
-
-- **Model files**: `solubility_model_v5.pkl.gz` (~83 MB) and the pKa models (~78 MB each) are tracked in Git. Prefer [Git LFS](https://git-lfs.github.io/) or GitHub Releases if the repo grows larger.
-- **RDKit**: Streamlit Cloud supports it via `requirements.txt`, but build time may be long. Consider using a lighter base image if needed.
-- **PubChem API**: The app includes rate limiting (1.2s delay) and SSL workarounds for Chinese networks.
+- **API key**: `KIMI_API_KEY` must be in the environment (`.env` locally). Without it the
+  AI-explanation endpoint returns 503; everything else keeps working.
+- **Model files**: the RF / pKa / GNN artifacts under `output_v2/` are tracked with Git LFS
+  (~90 MB, plus ~78 MB per pKa model). Run `git lfs install` before cloning, or fetch them separately.
+- **Same-origin**: the frontend calls `/api/...` on its own origin, so a deployment needs either
+  a reverse proxy to the backend or `VITE_API_TARGET` set at build time.
+- **PubChem API**: the app includes rate limiting (1.2s delay) and SSL workarounds for Chinese networks.
 
 ##  Contributing
 

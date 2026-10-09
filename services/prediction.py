@@ -34,39 +34,34 @@ import gzip
 import logging
 import threading
 from dataclasses import dataclass
-from pathlib import Path
 
 import joblib
 import numpy as np
 
+from core.artifacts import (
+    OOD_DETECTOR,
+    OUTPUT_DIR,
+    PKA_ACIDIC_MODEL,
+    PKA_BASIC_MODEL,
+    PKA_LEGACY_MODEL,
+    RF_CANDIDATES,
+    existing_gnn,
+    gnn_available,
+)
 from features import PKA_FEATURE_KEYS, compute_features
+from pka_resolve import resolve_pka_pair
 
 logger = logging.getLogger(__name__)
 
-# ── Paths (resolved from the project root, not the CWD) ──
-_PROJECT_ROOT = Path(__file__).resolve().parent.parent
-_OUTPUT_DIR = _PROJECT_ROOT / "output_v2"
-
-_SOLUBILITY_MODEL_CANDIDATES = (
-    (_OUTPUT_DIR / "solubility_model_v6_clean.pkl.gz", _OUTPUT_DIR / "descriptor_names_v6_clean.pkl"),
-    (_OUTPUT_DIR / "solubility_model_v5.pkl.gz", _OUTPUT_DIR / "descriptor_names_v5.pkl"),
-)
-# Kept as attributes for backend/routes.py health reporting compatibility.
-_SOLUBILITY_MODEL_PATH = _OUTPUT_DIR / "solubility_model_v6_clean.pkl.gz"
-_DESCRIPTOR_NAMES_PATH = _OUTPUT_DIR / "descriptor_names_v6_clean.pkl"
-_PKA_ACIDIC_MODEL_PATH = _OUTPUT_DIR / "pka_acidic_model.pkl"
-_PKA_BASIC_MODEL_PATH = _OUTPUT_DIR / "pka_basic_model.pkl"
-_PKA_LEGACY_MODEL_PATH = _OUTPUT_DIR / "pka_model.pkl"
-_OOD_DETECTOR_PATH = _OUTPUT_DIR / "ood_detector.pkl.gz"
-
-# Same priority / hidden-dim mapping as model.load_gnn_model (V4 -> V3 -> V2).
-_GNN_CANDIDATES = (
-    ("gnn_solubility_model_v5.pt", 256),
-    ("gnn_solubility_model_v5_clean.pt", 256),
-    ("gnn_solubility_model_v4.pt", 256),
-    ("gnn_solubility_model_v3.pt", 128),
-    ("gnn_solubility_model.pt", 128),
-)
+# ── Artifact paths: declared once in core.artifacts, resolved from the project
+# root rather than the CWD. The module-level aliases below are kept because
+# backend/routes.py reads them by attribute name for its health report.
+_SOLUBILITY_MODEL_PATH = RF_CANDIDATES[0][0]
+_DESCRIPTOR_NAMES_PATH = RF_CANDIDATES[0][1]
+_PKA_ACIDIC_MODEL_PATH = PKA_ACIDIC_MODEL
+_PKA_BASIC_MODEL_PATH = PKA_BASIC_MODEL
+_PKA_LEGACY_MODEL_PATH = PKA_LEGACY_MODEL
+_OOD_DETECTOR_PATH = OOD_DETECTOR
 
 _VALID_MODES = ("auto", "rf", "gnn", "ensemble")
 
@@ -132,7 +127,7 @@ def _get_solubility_model():
     if _solubility_model is None:
         with _lock:
             if _solubility_model is None:
-                for model_path, desc_path in _SOLUBILITY_MODEL_CANDIDATES:
+                for model_path, desc_path in RF_CANDIDATES:
                     if model_path.exists() and desc_path.exists():
                         logger.info("Loading RF solubility model from %s", model_path)
                         _solubility_model = _load_joblib(model_path)
@@ -203,8 +198,8 @@ def _get_ood_detector():
 
 
 def gnn_files_exist():
-    """Quick file-existence check for GNN weights (mirrors app.py's gnn_ready)."""
-    return any((_OUTPUT_DIR / name).exists() for name, _ in _GNN_CANDIDATES)
+    """Quick file-existence check for GNN weights (see core.artifacts)."""
+    return gnn_available()
 
 
 def _get_gnn():
@@ -218,15 +213,9 @@ def _get_gnn():
 
                     from gnn_model import ATOM_FEATURE_DIM, MoleculeGraphEncoder, SolubilityGNN
 
-                    model_path = None
-                    hidden_dim = 128
-                    for fname, hdim in _GNN_CANDIDATES:
-                        candidate = _OUTPUT_DIR / fname
-                        if candidate.exists():
-                            model_path, hidden_dim = candidate, hdim
-                            break
+                    model_path, hidden_dim = existing_gnn()
                     if model_path is None:
-                        logger.warning("No GNN model file found in %s", _OUTPUT_DIR)
+                        logger.warning("No GNN model file found in %s", OUTPUT_DIR)
                     else:
                         logger.info(
                             "Loading GNN model from %s (hidden_dim=%d)", model_path, hidden_dim
@@ -246,8 +235,12 @@ def _get_gnn():
     return _gnn_model, _gnn_encoder
 
 
-def _get_shap_explainer(rf_model):
-    """Lazy-create the SHAP TreeExplainer for the RF model."""
+def get_shap_explainer(rf_model):
+    """Lazy-create the SHAP TreeExplainer for the RF model (process-wide singleton).
+
+    Public because model.get_shap_explainer and ui/results.py both reuse this
+    instance instead of building a second explainer.
+    """
     global _shap_explainer
     if _shap_explainer is None:
         with _lock:
@@ -283,64 +276,40 @@ def _gnn_predict(smiles):
         return None
 
 
-def _ensemble(rf_pred, gnn_pred):
-    """Simple 0.5*RF + 0.5*GNN average (model.predict_solubility_ensemble)."""
-    return 0.5 * rf_pred + 0.5 * gnn_pred
+# ── Ensemble / Auto strategy: the single implementation ──
+# The simple 0.5/0.5 average beat both single models and the earlier 0.45/0.55
+# weighting on the clean seed=2026 hold-out (output_v2/evaluation_report.json).
+RF_WEIGHT = 0.5
 
 
-def _auto_select(ood_risk, rf_pred, gnn_pred):
-    """Auto strategy (model.predict_solubility_auto): always ensemble when possible.
+def ensemble_predict(rf_pred, gnn_pred):
+    """Weighted RF/GNN average using the shared default weight."""
+    return RF_WEIGHT * rf_pred + (1.0 - RF_WEIGHT) * gnn_pred
 
-    OOD/disagreement are reported as warnings by the caller, not used for routing.
-    Returns (prediction, actual_model_label).
+
+def auto_predict(ood_risk, rf_pred, gnn_pred):
+    """Auto strategy: weighted ensemble whenever the GNN is available.
+
+    OOD risk and model disagreement are surfaced as warnings by the caller and
+    are deliberately NOT used for routing - routing on them did not improve
+    accuracy on the clean hold-out.
+
+    Returns (prediction, model_label, disagreement); disagreement is 0.0 when
+    no GNN prediction was produced.
     """
     if gnn_pred is None:
-        return rf_pred, "RF"
-    return _ensemble(rf_pred, gnn_pred), "Ensemble(W)"
+        return rf_pred, "RF", 0.0
+    return ensemble_predict(rf_pred, gnn_pred), "Ensemble(W)", abs(rf_pred - gnn_pred)
 
 
-def _pka_kind(pka_val):
-    """Legacy raw acid/base/amphoteric enum (thresholds from model.get_pka_type)."""
-    if pka_val < 6:
-        return "acid"
-    if pka_val > 8:
-        return "base"
-    return "amphoteric"
+def _resolve_pka_pair(pka_acidic, pka_basic, smiles=None):
+    """Delegate to the single shared implementation (see pka_resolve).
 
-
-def _resolve_pka_pair(pka_acidic, pka_basic):
-    """Mirror of model.resolve_pka_pair (kept framework-free).
-
-    Returns (primary_pka, kind). Kind is acid/base/amphoteric, or None when
-    no model produced a value.
+    Kept as a thin wrapper so the name stays available to existing importers.
+    Returns (primary_pka, kind); kind is acid/base/amphoteric, or None when no
+    model produced a value.
     """
-    if pka_acidic is None and pka_basic is None:
-        return None, None
-
-    acidic_relevant = pka_acidic is not None and pka_acidic < 7.0
-    basic_relevant = pka_basic is not None and pka_basic > 7.0
-
-    if acidic_relevant and basic_relevant:
-        kind = "amphoteric"
-    elif acidic_relevant:
-        kind = "acid"
-    elif basic_relevant:
-        kind = "base"
-    elif pka_acidic is not None and pka_basic is not None:
-        kind = "amphoteric"
-    elif pka_acidic is not None:
-        kind = "acid" if pka_acidic < 7 else "base"
-    else:
-        kind = "base" if pka_basic > 7 else "acid"
-
-    values = [v for v in (pka_acidic, pka_basic) if v is not None]
-    if kind == "acid" and pka_acidic is not None:
-        primary = pka_acidic
-    elif kind == "base" and pka_basic is not None:
-        primary = pka_basic
-    else:
-        primary = min(values, key=lambda v: abs(v - 7.0))
-    return float(primary), kind
+    return resolve_pka_pair(pka_acidic, pka_basic, smiles=smiles)
 
 
 def _run_ood_check(features, fp_array):
@@ -356,16 +325,17 @@ def _run_ood_check(features, fp_array):
         return "UNKNOWN", None
 
 
-def _compute_shap(rf_model, features, fp_array):
+def compute_shap(rf_model, features, fp_array):
     """SHAP contributions with RAW English names: 13 descriptor keys + "MorganFP".
 
-    Replicates the aggregation logic of model.get_shap_contributions (descriptor
-    values first, fingerprint bits summed into one entry) without translation.
+    The aggregation (descriptor values first, fingerprint bits summed into one
+    entry) lives here; model.get_shap_contributions delegates to it and only
+    translates the names for display.
     Returns (values, names, base_value) or (None, None, None) on failure.
     """
     try:
         X = np.hstack([list(features.values()), fp_array]).reshape(1, -1)
-        explainer = _get_shap_explainer(rf_model)
+        explainer = get_shap_explainer(rf_model)
         shap_values = explainer.shap_values(X)[0]
         n_desc = len(features)  # descriptor values come first in the RF input vector
         desc_shap = shap_values[:n_desc]
@@ -427,7 +397,7 @@ def _predict_one(smiles, mode):
                 pka_acidic = float(acidic_model.predict(pka_feat)[0])
             if basic_model is not None:
                 pka_basic = float(basic_model.predict(pka_feat)[0])
-            pka_val, pka_kind = _resolve_pka_pair(pka_acidic, pka_basic)
+            pka_val, pka_kind = _resolve_pka_pair(pka_acidic, pka_basic, smiles=smiles)
     except Exception:
         logger.exception("pKa prediction failed")
         pka_acidic = pka_basic = pka_val = pka_kind = None
@@ -439,14 +409,14 @@ def _predict_one(smiles, mode):
         # Auto always wants GNN when available (weighted ensemble and pure GNN both use it)
         if gnn_files_exist():
             gnn_pred = _gnn_predict(smiles)
-        prediction, model_used = _auto_select(ood_risk, rf_pred, gnn_pred)
+        prediction, model_used, _ = auto_predict(ood_risk, rf_pred, gnn_pred)
     else:
         if mode in ("gnn", "ensemble") and gnn_files_exist():
             gnn_pred = _gnn_predict(smiles)
         if mode == "gnn":
             prediction = gnn_pred if gnn_pred is not None else rf_pred
         elif mode == "ensemble":
-            prediction = _ensemble(rf_pred, gnn_pred) if gnn_pred is not None else rf_pred
+            prediction = ensemble_predict(rf_pred, gnn_pred) if gnn_pred is not None else rf_pred
         else:
             prediction = rf_pred
         # For explicit modes app.py records the requested model as the actual one
@@ -460,7 +430,7 @@ def _predict_one(smiles, mode):
     if model_used in _SHAP_DISABLED_MODELS:
         shap_values = shap_names = shap_base = None
     else:
-        shap_values, shap_names, shap_base = _compute_shap(rf_model, features, fp_array)
+        shap_values, shap_names, shap_base = compute_shap(rf_model, features, fp_array)
 
     return PredictionResult(
         smiles=smiles,

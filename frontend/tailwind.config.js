@@ -5,20 +5,23 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        // DisSolve nebula theme (mirrors assets/theme.py)
+        // DisSolve paper theme: warm off-white surfaces, ink text, one accent.
+        // `orbit` and `stargold` keep their names so existing class usages keep
+        // working, but they resolve to quiet neutrals instead of the neon
+        // cyan/amber of the old dark theme.
         nebula: {
-          DEFAULT: "#7c3aed",
-          light: "#a78bfa",
+          DEFAULT: "#1f3a5f",
+          light: "#2c5282",
         },
-        orbit: "#06b6d4",
-        stargold: "#fbbf24",
+        orbit: "#6b7280",
+        stargold: "#8a6d3b",
         ob: {
-          bg: "#131328",
-          surface: "#1a1a2e",
-          text: "#f0f0f5",
-          muted: "#a0a0b0",
-          faint: "#6b6b7b",
-          border: "rgba(255,255,255,0.08)",
+          bg: "#f5f2ec",
+          surface: "#fffdf9",
+          text: "#1c1a17",
+          muted: "#5c574f",
+          faint: "#8f887e",
+          border: "rgba(28,26,23,0.12)",
         },
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
@@ -65,15 +68,17 @@ module.exports = {
         },
       },
       borderRadius: {
-        xl: "calc(var(--radius) + 4px)",
+        xl: "calc(var(--radius) + 2px)",
         lg: "var(--radius)",
-        md: "calc(var(--radius) - 2px)",
-        sm: "calc(var(--radius) - 4px)",
-        xs: "calc(var(--radius) - 6px)",
+        md: "calc(var(--radius) - 1px)",
+        sm: "calc(var(--radius) - 2px)",
+        xs: "calc(var(--radius) - 3px)",
       },
       boxShadow: {
-        xs: "0 1px 2px 0 rgb(0 0 0 / 0.05)",
-        glow: "0 0 18px rgba(124, 58, 237, 0.35)",
+        xs: "0 1px 2px 0 rgb(28 26 23 / 0.04)",
+        // Kept as a name so existing `shadow-glow` usages resolve to a quiet
+        // hairline rather than a neon halo.
+        glow: "0 1px 2px 0 rgb(28 26 23 / 0.06)",
       },
       keyframes: {
         "accordion-down": {

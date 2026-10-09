@@ -109,8 +109,11 @@ def save_cache():
 
 def _evict_cache_if_needed():
     """Remove oldest entries when cache exceeds MAX_CACHE_ENTRIES.
-    Python dict preserves insertion order (3.7+), so oldest entries are first."""
-    global pubchem_cache
+    Python dict preserves insertion order (3.7+), so oldest entries are first.
+
+    No `global` declaration is needed: the entries are deleted from the existing
+    dict, the name is never rebound.
+    """
     if len(pubchem_cache) <= MAX_CACHE_ENTRIES:
         return
     excess = len(pubchem_cache) - MAX_CACHE_ENTRIES

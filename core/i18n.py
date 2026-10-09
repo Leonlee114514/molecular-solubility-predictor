@@ -1,12 +1,11 @@
-"""
-DisSolve - Internationalization (i18n) module.
-Provides t() translation function and language selector widget.
+"""DisSolve - Internationalization (i18n).
+
+Server-side translation: t() resolves a dot-notation key against the language of
+the current request. Callers set that language with language_context (the FastAPI
+backend does it per request); outside any context the default is 'zh'.
 """
 
 import contextvars
-import streamlit as st
-
-_LANG_KEY = "language"
 
 # ── Request-scoped language override (used by the FastAPI backend) ──
 # When set (via set_request_language / language_context), get_lang() returns
@@ -52,23 +51,14 @@ class language_context:
 
 # ── Engine ──
 
-def init_language():
-    """Initialize language in session state (must be called early in app.py)."""
-    if _LANG_KEY not in st.session_state:
-        st.session_state[_LANG_KEY] = "zh"
-
-
 def get_lang():
-    """Get current language code: 'zh' or 'en'.
+    """Current language code: 'zh' or 'en'.
 
-    Resolution order: request-scoped override (FastAPI) -> Streamlit session
-    state -> default 'zh'. Streamlit app behavior is unchanged when no
-    override is active.
+    Comes from the request-scoped override set by language_context; outside any
+    context it falls back to 'zh'.
     """
     override = _request_lang.get()
-    if override in ("zh", "en"):
-        return override
-    return st.session_state.get(_LANG_KEY, "zh")
+    return override if override in ("zh", "en") else "zh"
 
 
 def t(key, **kwargs):
@@ -89,76 +79,6 @@ def t(key, **kwargs):
         except (KeyError, ValueError):
             pass
     return text
-
-
-def render_language_selector():
-    """Render a floating top-right frosted-glass language dropdown.
-
-    Uses a native st.selectbox pinned to the top-right corner via the
-    ``st-key-lang_selector`` container class. Opening it produces a
-    frosted-glass popup (styling lives in the theme CSS + the CSS below).
-    """
-    st.markdown(_LANG_SELECTOR_CSS, unsafe_allow_html=True)
-
-    current = get_lang()
-    options = ["中文", "English"]
-    index = 0 if current == "zh" else 1
-
-    with st.container(key="lang_selector"):
-        choice = st.selectbox(
-            "Language",
-            options,
-            index=index,
-            key="lang_select_widget",
-            label_visibility="collapsed",
-        )
-
-    new_lang = "zh" if options.index(choice) == 0 else "en"
-    if new_lang != current:
-        st.session_state[_LANG_KEY] = new_lang
-        st.rerun()
-
-
-# CSS for the floating language dropdown (kept near the code it styles).
-_LANG_SELECTOR_CSS = """
-<style>
-/* ─── Floating language selector — top-right, frosted glass ─── */
-div.st-key-lang_selector {
-    position: fixed !important;
-    top: 1.1rem !important;
-    right: 1.1rem !important;
-    z-index: 1000 !important;
-    width: fit-content !important;
-}
-div.st-key-lang_selector [data-testid="stSelectbox"] > div { padding: 0 !important; }
-div.st-key-lang_selector [data-baseweb="select"] > div {
-    display: flex !important;
-    align-items: center !important;
-    min-height: 40px !important;
-    padding: 0.4rem 0.95rem !important;
-    border-radius: 999px !important;
-    border: 1px solid rgba(255, 255, 255, 0.14) !important;
-    background: linear-gradient(135deg, rgba(45, 45, 70, 0.55) 0%, rgba(24, 24, 42, 0.55) 100%) !important;
-    -webkit-backdrop-filter: blur(14px) saturate(150%) !important;
-    backdrop-filter: blur(14px) saturate(150%) !important;
-    box-shadow: 0 6px 24px -6px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(124, 58, 237, 0.10), 0 0 22px rgba(124, 58, 237, 0.08) !important;
-    color: var(--ob-text-primary) !important;
-    font-weight: 600 !important;
-    transition: border-color 0.2s ease, box-shadow 0.2s ease !important;
-}
-div.st-key-lang_selector [data-baseweb="select"] > div:hover {
-    border-color: rgba(167, 139, 250, 0.55) !important;
-    box-shadow: 0 8px 30px -6px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(124, 58, 237, 0.22), 0 0 28px rgba(124, 58, 237, 0.15) !important;
-}
-div.st-key-lang_selector [data-baseweb="select"] svg {
-    color: var(--ob-nebula-light) !important;
-    margin-left: 0.5rem !important;
-}
-@media (max-width: 768px) {
-    div.st-key-lang_selector { top: 0.6rem !important; right: 0.6rem !important; }
-}
-</style>
-"""
 
 
 # ── Translation dictionary ──
@@ -462,8 +382,8 @@ _ALL: dict[str, dict[str, str]] = {
 
     "result.solubility.shap_title": {"zh": "SHAP 可解释性", "en": "SHAP Explainability"},
     "result.solubility.shap_guide": {
-        "zh": "SHAP 值显示各分子特征对溶解度预测的贡献方向与幅度，红色=推动易溶，蓝色=推动难溶。",
-        "en": "SHAP values show the contribution of each molecular feature to the solubility prediction. Red = increases solubility, blue = decreases solubility.",
+        "zh": "SHAP 值显示各分子特征对溶解度预测的贡献方向与幅度：正值推动易溶，负值推动难溶。",
+        "en": "SHAP values show each feature's contribution to the prediction: positive values increase solubility, negative values decrease it.",
     },
     "result.solubility.shap_positive": {"zh": "推动易溶 (正贡献)", "en": "Increases solubility (+)"},
     "result.solubility.shap_negative": {"zh": "推动难溶 (负贡献)", "en": "Decreases solubility (−)"},
@@ -488,8 +408,8 @@ _ALL: dict[str, dict[str, str]] = {
     "result.pka.weaken_base": {"zh": "减弱碱性", "en": "Weakens basicity"},
     "result.pka.how_to_read": {"zh": "如何读懂这张图", "en": "How to read this chart"},
     "result.pka.how_to_read_desc": {
-        "zh": "紫色条表示增强酸性的因素（拉电子/共轭稳定），青色条表示增强碱性的因素（推电子）。",
-        "en": "Purple bars show factors that enhance acidity (electron-withdrawing / resonance stabilization). Cyan bars show factors that enhance basicity (electron-donating).",
+        "zh": "增强酸性的因素（拉电子/共轭稳定）与增强碱性的因素（推电子）分别用两种颜色标出，对应关系见下方图例。",
+        "en": "Factors that enhance acidity (electron-withdrawing / resonance stabilization) and factors that enhance basicity (electron-donating) are drawn in two colours; the legend below maps them.",
     },
     "result.pka.legend_enhance_acid": {"zh": "增强酸性", "en": "Enhances acidity"},
     "result.pka.legend_weaken_acid": {"zh": "减弱酸性", "en": "Weakens acidity"},
@@ -845,8 +765,8 @@ _ALL: dict[str, dict[str, str]] = {
     "result.pka.legend_type_acid": {"zh": "酸性", "en": "acidity"},
     "result.pka.legend_type_base": {"zh": "碱性", "en": "basicity"},
     "result.pka.factor_guide": {
-        "zh": "**如何读懂这张图**：紫色条越长 = 该因素越推动分子**释放/结合质子**；青色条越长 = 该因素越**抵抗**质子转移。和 SHAP 不同，这些不是机器学习权重，而是**真实的结构化学效应**。",
-        "en": "**How to read this chart**: Longer purple bars = factor promotes **proton donation/acceptance**; longer cyan bars = factor **resists** proton transfer. Unlike SHAP, these are not ML weights but **real structural chemistry effects**.",
+        "zh": "**如何读懂这张图**：某个方向上的条越长 = 该因素越推动分子**释放/结合质子**；反方向的条越长 = 该因素越**抵抗**质子转移。和 SHAP 不同，这些不是机器学习权重，而是**真实的结构化学效应**。",
+        "en": "**How to read this chart**: the longer the bar in a factor's direction, the more it promotes **proton donation/acceptance**; a long bar in the opposite direction means the factor **resists** proton transfer. Unlike SHAP, these are not ML weights but **real structural chemistry effects**.",
     },
     "result.pka.glossary_title": {"zh": "图表术语速查", "en": "Chart Glossary"},
     "result.pka.glossary_inductive": {"zh": "**诱导效应**（Inductive Effect）— 电负性原子通过 σ 键吸引或排斥电子，从而影响质子的结合与释放", "en": "**Inductive Effect** — electronegative atoms attract or repel electrons through σ bonds, affecting proton binding and release"},

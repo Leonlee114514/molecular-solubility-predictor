@@ -2,7 +2,6 @@
 Lightweight 3-layer GIN with global mean pooling — pure PyTorch, no PyG/DGL needed.
 """
 
-import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F

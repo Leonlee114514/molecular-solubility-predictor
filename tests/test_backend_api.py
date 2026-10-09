@@ -6,13 +6,13 @@ lifecycle, CSV batch upload, and the AI-explanation no-key error path
 (monkeypatched — never calls the real API).
 """
 
-import os
 import time
 
 import pytest
 from fastapi.testclient import TestClient
 
 from backend.main import app
+from core.artifacts import gnn_available
 
 # ── Well-known SMILES ──
 CAFFEINE = "CN1C=NC2=C1C(=O)N(C(=O)N2C)C"
@@ -25,18 +25,8 @@ DESCRIPTOR_KEYS = [
     "FractionCSP3", "NumSaturatedRings", "HallKierAlpha", "Chi0v", "Chi1v",
 ]
 
-_GNN_FILES = [
-    os.path.join("output_v2", f)
-    for f in (
-        "gnn_solubility_model_v5.pt",
-        "gnn_solubility_model_v5_clean.pt",
-        "gnn_solubility_model_v4.pt",
-        "gnn_solubility_model_v3.pt",
-        "gnn_solubility_model.pt",
-    )
-]
-_GNN_AVAILABLE = any(os.path.exists(p) for p in _GNN_FILES)
-requires_gnn = pytest.mark.skipif(not _GNN_AVAILABLE, reason="GNN model files not found")
+# GNN availability comes from the shared artifact registry (core.artifacts).
+requires_gnn = pytest.mark.skipif(not gnn_available(), reason="GNN model files not found")
 
 
 @pytest.fixture(scope="module")

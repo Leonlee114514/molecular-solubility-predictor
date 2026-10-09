@@ -15,10 +15,10 @@ interface BatchSectionProps {
 type Phase = "idle" | "ready" | "running" | "done" | "error";
 
 const OOD_COLORS: Record<string, string> = {
-  LOW: "#34d399",
-  MEDIUM: "#fbbf24",
-  HIGH: "#f87171",
-  UNKNOWN: "#6b6b7b",
+  LOW: "#15803d",
+  MEDIUM: "#a16207",
+  HIGH: "#b91c1c",
+  UNKNOWN: "#8f887e",
 };
 
 // Raw enums from the API map to i18n keys so both languages localize.
@@ -320,13 +320,13 @@ export default function BatchSection({ mode }: BatchSectionProps) {
           )}
 
           {/* Error */}
-          {error && <p className="text-sm text-red-400">{error}</p>}
+          {error && <p className="text-sm text-red-700">{error}</p>}
 
           {/* Results */}
           {phase === "done" && (
             <div className="flex flex-col gap-3">
               <div className="flex flex-wrap items-center gap-3">
-                <p className="text-sm text-emerald-300">
+                <p className="text-sm text-emerald-700">
                   {tf("app.batch.complete", { n: rows.length })}
                   <span className="ml-2 text-xs text-ob-muted">
                     {tf("app.batch.rows_ok", { ok: okCount, total: rows.length })}
@@ -335,7 +335,7 @@ export default function BatchSection({ mode }: BatchSectionProps) {
                 <button
                   type="button"
                   onClick={download}
-                  className="rounded-lg border border-cyan-500/50 bg-cyan-500/10 px-4 py-1.5 text-xs text-cyan-300 transition-colors hover:bg-cyan-500/20"
+                  className="rounded-lg border border-cyan-500/50 bg-cyan-500/10 px-4 py-1.5 text-xs text-nebula transition-colors hover:bg-cyan-500/20"
                 >
                   {t("app.batch.download_btn")}
                 </button>
@@ -369,10 +369,10 @@ export default function BatchSection({ mode }: BatchSectionProps) {
                       isBatchRowError(row) ? (
                         <tr key={i} className="border-b border-ob-border/50 bg-red-500/5">
                           <td className="px-3 py-1.5 text-ob-faint">{i + 1}</td>
-                          <td className="max-w-[240px] truncate px-3 py-1.5 font-mono text-red-300">
+                          <td className="max-w-[240px] truncate px-3 py-1.5 font-mono text-red-700">
                             {row.smiles}
                           </td>
-                          <td colSpan={4} className="px-3 py-1.5 text-red-400">
+                          <td colSpan={4} className="px-3 py-1.5 text-red-700">
                             {t("app.batch.table.error")}: {row.error}
                           </td>
                         </tr>
@@ -388,7 +388,7 @@ export default function BatchSection({ mode }: BatchSectionProps) {
                           <td className="px-3 py-1.5 text-ob-muted">
                             {t(MODEL_BADGE_KEYS[row.model_used] ?? row.model_used)}
                           </td>
-                          <td className="px-3 py-1.5 tabular-nums text-cyan-300">
+                          <td className="px-3 py-1.5 tabular-nums text-nebula">
                             {row.pka != null ? row.pka.toFixed(2) : "—"}
                           </td>
                           <td className="px-3 py-1.5">

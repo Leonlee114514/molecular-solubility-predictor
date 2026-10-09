@@ -12,6 +12,7 @@ import torch
 
 warnings.filterwarnings("ignore")
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+from core.artifacts import OUTPUT_DIR, RF_CANDIDATES, existing_gnn
 from features import compute_features
 from gnn_model import load_gnn_model, SolubilityGNN, MoleculeGraphEncoder, ATOM_FEATURE_DIM
 from sklearn.metrics import r2_score, mean_squared_error
@@ -20,28 +21,17 @@ from rdkit import Chem
 SEED = 42
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
-# ── 1. Load latest models ──
-# Try the clean V6 first, then V5/V4 fallbacks
-rf_path = "output_v2/solubility_model_v6_clean.pkl.gz"
-if not os.path.exists(rf_path):
-    rf_path = "output_v2/solubility_model_v5.pkl.gz"
-if not os.path.exists(rf_path):
-    rf_path = "output_v2/solubility_model_v5.pkl"
-if not os.path.exists(rf_path):
-    rf_path = "output_v2/solubility_model_v4.pkl"
+# ── 1. Load latest models (paths and priority order come from core.artifacts) ──
+rf_path = next((model for model, _ in RF_CANDIDATES if model.exists()), RF_CANDIDATES[0][0])
 rf = joblib.load(rf_path)
 print(f"RF: {rf_path}")
 
-gnn_path = "output_v2/gnn_solubility_model_v4.pt"
+gnn_path, gnn_hidden = existing_gnn()
+if gnn_path is None:
+    raise SystemExit(f"No GNN checkpoint found in {OUTPUT_DIR}")
 gnn_encoder = MoleculeGraphEncoder()
-for fname, hdim in [("gnn_solubility_model_v5.pt", 256), ("gnn_solubility_model_v5_clean.pt", 256), ("gnn_solubility_model_v4.pt", 256), ("gnn_solubility_model_v3.pt", 128)]:
-    p = os.path.join("output_v2", fname)
-    if os.path.exists(p):
-        gnn_path = p
-        gnn_hidden = hdim
-        break
 gnn = SolubilityGNN(atom_dim=ATOM_FEATURE_DIM, hidden_dim=gnn_hidden, num_layers=3)
-gnn.load_state_dict(torch.load(gnn_path, map_location=DEVICE, weights_only=True))
+gnn.load_state_dict(torch.load(str(gnn_path), map_location=DEVICE, weights_only=True))
 gnn.to(DEVICE)
 gnn.eval()
 print(f"GNN: {gnn_path} (hidden={gnn_hidden})")

@@ -33,9 +33,9 @@ export default function ModelSelector({ mode, onChange, gnnAvailable }: ModelSel
               disabled={disabled}
               title={disabled ? missingTip : undefined}
               onClick={() => onChange(opt.value)}
-              className={`rounded-xl border px-4 py-2 text-sm transition-all ${
+              className={`rounded-xl border px-4 py-2 text-sm transition-colors ${
                 active
-                  ? "border-nebula bg-nebula/30 text-white shadow-glow"
+                  ? "border-nebula bg-nebula/10 font-medium text-nebula"
                   : disabled
                     ? "cursor-not-allowed border-ob-border bg-ob-surface/40 text-ob-faint"
                     : "border-ob-border bg-ob-surface/70 text-ob-muted hover:border-nebula/60 hover:text-ob-text"

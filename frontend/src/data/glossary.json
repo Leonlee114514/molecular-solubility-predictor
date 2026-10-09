@@ -34,8 +34,8 @@
     ],
     "en": "pKa",
     "cn": "酸解离常数",
-    "def": "酸解离常数的负对数，衡量分子给出质子的倾向。pKa 越低酸性越强，pKa 越高碱性越强。pKa < 5 为酸性，5-9 为两性/中性，> 9 为碱性。",
-    "defEn": "The negative logarithm of the acid dissociation constant. Lower pKa = stronger acid; higher pKa = stronger base. pKa < 5 = acidic, 5-9 = amphoteric/neutral, > 9 = basic."
+    "def": "酸解离常数的负对数，衡量分子给出质子的倾向。pKa 越低酸性越强，pKa 越高碱性越强。pKa < 6 为酸性，6-8 为两性/中性，> 8 为碱性。",
+    "defEn": "The negative logarithm of the acid dissociation constant. Lower pKa = stronger acid; higher pKa = stronger base. pKa < 6 = acidic, 6-8 = amphoteric/neutral, > 8 = basic."
   },
   {
     "keys": [
@@ -274,8 +274,8 @@
     ],
     "en": "Amphoteric",
     "cn": "两性分子",
-    "def": "同时含酸性基团与碱性基团的分子，如既有羧基（-COOH）又有氨基（-NH2）的氨基酸。两性分子在酸性环境中呈阳离子、在碱性环境中呈阴离子。本应用中 pKa 介于 5-9 的分子被归为两性/中性。",
-    "defEn": "A molecule containing both acidic and basic groups, such as an amino acid with carboxyl (-COOH) and amino (-NH2) groups. Amphoteric molecules are cationic in acidic environments and anionic in basic ones. In this app, molecules with pKa between 5 and 9 are classified as amphoteric/neutral."
+    "def": "同时含酸性基团与碱性基团的分子，如既有羧基（-COOH）又有氨基（-NH2）的氨基酸。两性分子在酸性环境中呈阳离子、在碱性环境中呈阴离子。本应用中 pKa 介于 6-8 的分子被归为两性/中性。",
+    "defEn": "A molecule containing both acidic and basic groups, such as an amino acid with carboxyl (-COOH) and amino (-NH2) groups. Amphoteric molecules are cationic in acidic environments and anionic in basic ones. In this app, molecules with pKa between 6 and 8 are classified as amphoteric/neutral."
   },
   {
     "keys": [
