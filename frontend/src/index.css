@@ -3,42 +3,96 @@
 @tailwind utilities;
 
 /*
- * DisSolve paper theme.
+ * DisSolve design tokens — "analytical report" system.
  *
- * Warm off-white surfaces, ink text, hairline rules, a single accent (ink
- * blue). No glass blur, no glow, no gradient text, no motion - the interface
- * is meant to read like a printed report rather than a dashboard.
+ * One type of surface (paper), one ink ladder, one brand ink, three verdict
+ * colours. Everything below is the single source of truth: tailwind.config.js
+ * only points at these variables, components only point at the Tailwind names.
+ *
+ * Token rules:
+ *   - paper.* is a 4-step surface ladder; never invent a fifth beige.
+ *   - ink.* is a 3-step text ladder; every step is audited against paper.bg.
+ *   - brand.* is the only hue allowed for chrome (buttons, links, selection).
+ *   - ok / warn / danger are verdict colours. They mark a judgement about the
+ *     prediction, never decoration, never a category.
  */
 @layer base {
   :root {
-    --background: 38 31% 94%;
-    --foreground: 30 10% 10%;
-    --card: 40 60% 99%;
-    --card-foreground: 30 10% 10%;
-    --popover: 40 60% 99%;
-    --popover-foreground: 30 10% 10%;
-    --primary: 213 51% 25%;
-    --primary-foreground: 40 60% 99%;
-    --secondary: 38 20% 90%;
-    --secondary-foreground: 30 10% 10%;
-    --muted: 38 18% 91%;
-    --muted-foreground: 33 7% 34%;
-    --accent: 38 20% 90%;
-    --accent-foreground: 30 10% 10%;
-    --destructive: 0 62% 38%;
-    --destructive-foreground: 40 60% 99%;
-    --border: 30 8% 78%;
-    --input: 30 8% 78%;
-    --ring: 213 51% 25%;
-    --radius: 0.375rem;
-    --sidebar-background: 38 31% 94%;
-    --sidebar-foreground: 30 10% 10%;
-    --sidebar-primary: 213 51% 25%;
-    --sidebar-primary-foreground: 40 60% 99%;
-    --sidebar-accent: 38 20% 90%;
-    --sidebar-accent-foreground: 30 10% 10%;
-    --sidebar-border: 30 8% 78%;
-    --sidebar-ring: 213 51% 25%;
+    /* ---------- paper: surface ladder ---------- */
+    --ob-bg: 40 31% 94.3%;        /* #f5f2ec page */
+    --ob-surface: 40 100% 98.8%;  /* #fffdf9 card */
+    --ob-sunken: 37 17% 91%;      /* #ece9e4 rails, tab strip, table head */
+    --ob-well: 40 26% 86.7%;      /* #e6e0d4 tracks, inset fills */
+    --ob-rule: 30 8% 78%;         /* hairline border */
+
+    /* ---------- ink: text ladder (ratios on paper.bg) ---------- */
+    --ob-text: 36 10% 10%;        /* #1c1a17 — 15.5:1 body */
+    --ob-muted: 37 8% 33.5%;      /* #5c574f — 6.4:1 secondary */
+    --ob-faint: 32 7% 40.6%;      /* #6f6860 — 4.9:1 label/caption floor */
+
+    /* ---------- brand: one ink blue ---------- */
+    --brand: 215 51% 24.7%;       /* #1f3a5f */
+    --brand-strong: 215 55% 19%;  /* pressed / darkest */
+    --brand-soft: 213 49% 34.1%;  /* #2c5282 links, hover */
+
+    /* ---------- verdict ---------- */
+    --ok: 144 71% 26.7%;          /* #14743a — 5.2:1 */
+    --warn: 37 87% 30%;           /* #8f5d0a — 5.0:1 */
+    --danger: 0 74% 41.8%;        /* #b91c1c — 5.8:1 */
+
+    /* ---------- geometry ---------- */
+    /* 4px base. card 3px / control 4px / panel 6px keeps the print feel and
+       removes the old 5/6/8px near-duplicates. */
+    --radius: 0.25rem;
+
+    /* ---------- layout ---------- */
+    /* One page measure for the whole app: 72rem is the widest a 4-column
+       descriptor grid still reads as a column of text; the gutter grows with
+       the viewport so the measure, not the padding, sets the line length. */
+    --page-max: 72rem;
+    --page-gutter: clamp(1rem, 4vw, 2rem);
+    --section-gap: clamp(1.5rem, 2.4vw, 2rem);
+
+    /* ---------- elevation ---------- */
+    --shadow-hairline: 0 1px 0 hsl(36 10% 10% / 0.05);
+    --shadow-pop: 0 1px 2px hsl(36 10% 10% / 0.06),
+      0 8px 24px -8px hsl(36 10% 10% / 0.14);
+
+    /* ---------- motion ---------- */
+    --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+    --ease-inout: cubic-bezier(0.4, 0, 0.2, 1);
+    --dur-fast: 120ms;
+    --dur-base: 180ms;
+    --dur-slow: 240ms;
+
+    /* ---------- shadcn bridge (only the 4 components in ui/ read these) ---------- */
+    --background: var(--ob-bg);
+    --foreground: var(--ob-text);
+    --card: var(--ob-surface);
+    --card-foreground: var(--ob-text);
+    --popover: var(--ob-surface);
+    --popover-foreground: var(--ob-text);
+    --primary: var(--brand);
+    --primary-foreground: 40 100% 98.8%;
+    --secondary: var(--ob-sunken);
+    --secondary-foreground: var(--ob-text);
+    --muted: var(--ob-sunken);
+    --muted-foreground: var(--ob-muted);
+    --accent: var(--ob-sunken);
+    --accent-foreground: var(--ob-text);
+    --destructive: var(--danger);
+    --destructive-foreground: 40 100% 98.8%;
+    --border: var(--ob-rule);
+    --input: var(--ob-rule);
+    --ring: var(--brand);
+    --sidebar-background: var(--ob-bg);
+    --sidebar-foreground: var(--ob-text);
+    --sidebar-primary: var(--brand);
+    --sidebar-primary-foreground: 40 100% 98.8%;
+    --sidebar-accent: var(--ob-sunken);
+    --sidebar-accent-foreground: var(--ob-text);
+    --sidebar-border: var(--ob-rule);
+    --sidebar-ring: var(--brand);
   }
 
   html {
@@ -51,45 +105,91 @@
 
   body {
     @apply bg-background text-foreground;
+    /* No webfont is loaded anywhere in this app (no <link>, no @import, no
+       @font-face), so a first choice of 'Space Grotesk' could never render -
+       every user silently got the fallback. Use an explicit, offline-safe
+       system stack that keeps Latin and CJK in one family. */
     font-family:
-      'Space Grotesk',
       ui-sans-serif,
       system-ui,
+      -apple-system,
+      'Segoe UI',
+      Roboto,
+      'Helvetica Neue',
       'PingFang SC',
+      'Hiragino Sans GB',
       'Microsoft YaHei',
       sans-serif;
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
   }
+
+  /* Keyboard focus. Several controls set `outline-none` and only recolor their
+     border on :focus, which is easy to miss. This restores a real ring for
+     every element that still has its UA outline. Tailwind utilities load after
+     @layer base, so the shadcn components that draw their own ring keep theirs. */
+  :focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
+  }
+
+  /* Respect the OS "reduce motion" setting - the accordion/tabs/menu
+     transitions and the caret blink otherwise animate unconditionally. */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
 }
 
 @layer components {
+  /* Page measure. One shell for every screen: the gutter is a token, the
+     rhythm between blocks is a token, and the bottom padding keeps the last
+     card off the viewport edge. Nothing else sets max-width or horizontal
+     padding. */
+  .page-shell {
+    display: flex;
+    flex-direction: column;
+    gap: var(--section-gap);
+    width: 100%;
+    max-width: var(--page-max);
+    margin-inline: auto;
+    padding-inline: var(--page-gutter);
+    padding-block-end: 4rem;
+  }
+
   /* Paper card: opaque surface, hairline border, no blur, no shadow.
      `.glass-card` is kept as an alias so the existing call sites do not have
      to change; new code should use `.paper-card`. */
   .paper-card,
   .glass-card {
     @apply rounded-md border;
-    background: #fffdf9;
-    border-color: rgba(28, 26, 23, 0.12);
+    background: hsl(var(--ob-surface));
+    border-color: hsl(var(--ob-rule));
   }
 
   /* Plain ink title. The class name is kept for existing callers; the gradient
      fill is gone. */
   .gradient-title {
-    color: #1c1a17;
-    letter-spacing: -0.01em;
+    color: hsl(var(--ob-text));
+    letter-spacing: -0.015em;
   }
 
   .gloss-term {
-    color: #2c5282;
+    color: hsl(var(--brand-soft));
     text-decoration: underline dotted;
     text-underline-offset: 3px;
     cursor: help;
+    transition: color var(--dur-fast) var(--ease-out);
   }
 
   .gloss-term:hover {
-    color: #1f3a5f;
+    color: hsl(var(--brand));
   }
 
   /* AI-explanation markdown (react-markdown output) */
@@ -114,7 +214,7 @@
   .md-body strong { @apply font-semibold text-ob-text; }
   .md-body em { @apply italic; }
   .md-body code {
-    @apply rounded border border-ob-border bg-ob-bg px-1 py-0.5 font-mono text-xs text-nebula;
+    @apply rounded border border-ob-border bg-ob-bg px-1 py-0.5 font-mono text-xs text-brand-soft;
   }
   .md-body pre {
     @apply mb-2 overflow-x-auto rounded-md border border-ob-border bg-ob-bg p-3;
@@ -127,5 +227,5 @@
   .md-body th,
   .md-body td { @apply border border-ob-border px-2 py-1; }
   .md-body hr { @apply my-3 border-ob-border; }
-  .md-body a { @apply text-nebula underline; }
+  .md-body a { @apply text-brand-soft underline; }
 }

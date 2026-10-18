@@ -1,6 +1,9 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
+import { Alert } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { descriptorLabel } from "@/data/descriptors";
 import AiPanel from "@/sections/results/AiPanel";
@@ -15,10 +18,18 @@ interface ResultsTabsProps {
   result: PredictionResult;
 }
 
-function solubilityLevel(logS: number): { key: string; color: string } {
-  if (logS > 0) return { key: "result.solubility.high", color: "#15803d" };
-  if (logS > -2) return { key: "result.solubility.moderate", color: "#a16207" };
-  return { key: "result.solubility.poor", color: "#b91c1c" };
+type Verdict = "ok" | "warn" | "danger";
+
+const VERDICT_TEXT: Record<Verdict, string> = {
+  ok: "text-ok",
+  warn: "text-warn",
+  danger: "text-danger",
+};
+
+function solubilityLevel(logS: number): { key: string; verdict: Verdict } {
+  if (logS > 0) return { key: "result.solubility.high", verdict: "ok" };
+  if (logS > -2) return { key: "result.solubility.moderate", verdict: "warn" };
+  return { key: "result.solubility.poor", verdict: "danger" };
 }
 
 const MODEL_BADGE_KEYS: Record<string, string> = {
@@ -28,27 +39,14 @@ const MODEL_BADGE_KEYS: Record<string, string> = {
   "Ensemble(W)": "result.solubility.badge_weighted",
 };
 
-const MODEL_COLORS: Record<string, string> = {
-  RF: "#15803d",
-  GNN: "#2c5282",
-  Ensemble: "#a16207",
-  "Ensemble(W)": "#9a3412",
-};
-
 const PKA_KIND_KEYS: Record<string, string> = {
   acid: "model.pka.type.acidic_display",
   base: "model.pka.type.basic_display",
   amphoteric: "model.pka.type.amphoteric_display",
 };
 
-const PKA_KIND_COLORS: Record<string, string> = {
-  acid: "#2c5282",
-  base: "#b45309",
-  amphoteric: "#a16207",
-};
-
 /** Strip simple **bold** markdown markers from backend strings. */
-export function plain(s: string): string {
+function plain(s: string): string {
   return s.replace(/\*\*/g, "");
 }
 
@@ -57,7 +55,7 @@ function OodBanner({ result }: { result: PredictionResult }) {
   const risk = result.ood_risk;
   if (!risk || risk === "UNKNOWN") return null;
 
-  const renderDetails = () => {
+  const details = () => {
     const parts: { label: string; names: string[] }[] = [];
     if (result.ood_out_of_range.length > 0) {
       parts.push({
@@ -70,10 +68,10 @@ function OodBanner({ result }: { result: PredictionResult }) {
     }
     if (parts.length === 0) return null;
     return (
-      <ul className="mt-2 space-y-1 text-xs opacity-90">
+      <ul className="mt-1 space-y-1">
         {parts.map((p) => (
           <li key={p.label}>
-            <span className="font-medium">{p.label}: </span>
+            <span className="font-medium text-ob-text">{p.label}: </span>
             {p.names.map((n) => descriptorLabel(t, n)).join(" · ")}
           </li>
         ))}
@@ -82,26 +80,21 @@ function OodBanner({ result }: { result: PredictionResult }) {
   };
 
   if (risk === "LOW") {
-    return (
-      <div className="rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-700">
-        {plain(t("result.ood.low"))}
-      </div>
-    );
+    return <Alert tone="ok">{plain(t("result.ood.low"))}</Alert>;
   }
 
   const isHigh = risk === "HIGH";
   const titleKey = isHigh ? "result.ood.high.title" : "result.ood.medium.title";
   const descKey = isHigh ? "result.ood.high.desc" : "result.ood.medium.desc";
-  const cls = isHigh
-    ? "border-red-500/50 bg-red-500/10 text-red-700"
-    : "border-amber-500/50 bg-amber-500/10 text-amber-700";
 
   return (
-    <div className={`rounded-xl border px-4 py-3 text-sm ${cls}`}>
-      <p className="font-semibold">{plain(t(titleKey))}</p>
-      <p className="mt-1 text-xs opacity-90">{plain(t(descKey))}</p>
-      {renderDetails()}
-    </div>
+    <Alert
+      tone={isHigh ? "danger" : "warn"}
+      title={plain(t(titleKey))}
+    >
+      <p>{plain(t(descKey))}</p>
+      {details()}
+    </Alert>
   );
 }
 
@@ -114,59 +107,46 @@ export default function ResultsTabs({ result }: ResultsTabsProps) {
 
   const level = solubilityLevel(result.logS_final);
   const badgeKey = MODEL_BADGE_KEYS[result.model_used];
-  const badgeColor = MODEL_COLORS[result.model_used] ?? "#2c5282";
 
   return (
     <section className="flex flex-col gap-4">
       <OodBanner result={result} />
 
       {/* Headline: logS + model badge + pKa chip */}
-      <div className="glass-card flex flex-wrap items-center gap-x-6 gap-y-3 p-5">
+      <Card className="flex flex-wrap items-center gap-x-6 gap-y-3 p-5">
         <div>
           <p className="text-xs text-ob-faint">{t("result.solubility.metric_logs")}</p>
           <p className="flex items-baseline gap-3">
             <span
-              className="text-5xl font-bold tabular-nums"
-              style={{ color: level.color, textShadow: `0 0 24px ${level.color}55` }}
+              className={`text-5xl font-bold tabular-nums ${VERDICT_TEXT[level.verdict]}`}
             >
               {result.logS_final.toFixed(3)}
             </span>
-            <span className="text-base font-medium" style={{ color: level.color }}>
+            <span className={`text-base font-medium ${VERDICT_TEXT[level.verdict]}`}>
               {t(level.key)}
             </span>
           </p>
         </div>
         {badgeKey && (
-          <span
-            className="rounded-full px-3 py-1 text-xs"
-            style={{
-              color: badgeColor,
-              border: `1px solid ${badgeColor}66`,
-              background: `${badgeColor}1f`,
-            }}
-          >
-            {t(badgeKey)}
-          </span>
+          <Badge tone="brand">{t(badgeKey)}</Badge>
         )}
         {result.pka != null && (
-          <span className="flex items-center gap-2 rounded-full border border-cyan-500/40 bg-cyan-500/10 px-3 py-1 text-xs text-nebula">
-            <span className="font-semibold tabular-nums">pKa {result.pka.toFixed(2)}</span>
+          <Badge tone="brand">
+            <span className="font-semibold">pKa {result.pka.toFixed(2)}</span>
             {result.pka_kind && PKA_KIND_KEYS[result.pka_kind] && (
-              <span style={{ color: PKA_KIND_COLORS[result.pka_kind] }}>
-                {t(PKA_KIND_KEYS[result.pka_kind])}
-              </span>
+              <span>{t(PKA_KIND_KEYS[result.pka_kind])}</span>
             )}
-          </span>
+          </Badge>
         )}
-      </div>
+      </Card>
 
       <Tabs value={tab} onValueChange={setTab}>
-        <TabsList className="glass-card h-auto w-full flex-wrap justify-start gap-1 p-1.5">
+        <TabsList className="h-auto w-full flex-wrap justify-start gap-1 rounded-card border border-ob-rule bg-ob-sunken p-1">
           {TAB_IDS.map((id) => (
             <TabsTrigger
               key={id}
               value={id}
-              className="rounded-lg px-3 py-1.5 text-xs data-[state=active]:bg-nebula data-[state=active]:text-white sm:text-sm"
+              className="rounded-control px-3 py-1.5 text-xs text-ob-muted transition-colors duration-fast ease-out hover:bg-ob-surface/70 hover:text-ob-text data-[state=active]:bg-brand data-[state=active]:text-white sm:text-sm"
             >
               {t(`result.tab.${id}`)}
             </TabsTrigger>

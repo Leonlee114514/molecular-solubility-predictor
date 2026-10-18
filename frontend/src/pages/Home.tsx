@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 
 import { api, ApiError } from "@/api/client";
 import LanguageToggle from "@/components/LanguageToggle";
+import { Button } from "@/components/ui/button";
 import { clearHistory, loadHistory, pushHistory, type HistoryEntry } from "@/lib/history";
 import BatchSection from "@/sections/BatchSection";
 import HeaderSection from "@/sections/HeaderSection";
@@ -93,31 +94,42 @@ export default function Home() {
   }, []);
 
   return (
-    <div className="relative min-h-screen bg-ob-bg text-ob-text">
-      {/* Floating language selector — top-right corner */}
-      <div className="fixed right-5 top-5 z-50">
-        <LanguageToggle />
-      </div>
-      <main className="relative z-10 mx-auto flex max-w-6xl flex-col gap-6 px-4 pb-16">
+    <div className="min-h-screen bg-ob-bg text-ob-text">
+      <main className="page-shell">
+        {/* Utility rail: language stays in the document flow so it can never
+            sit on top of the masthead at narrow widths. */}
+        <div className="flex justify-end pt-4">
+          <LanguageToggle />
+        </div>
+
         <HeaderSection />
         <InputSection selectedSmiles={smiles} onSelect={handleSelect} />
-        <HistorySection entries={history} onReuse={handleReuse} onClear={handleClearHistory} />
         <ModelSelector mode={mode} onChange={setMode} gnnAvailable={gnnAvailable} />
 
         <div className="flex flex-col items-center gap-2">
-          <button
-            type="button"
-            disabled={loading}
+          <Button
+            size="lg"
+            loading={loading}
             onClick={() => setRequestSeq((n) => n + 1)}
-            className="rounded-xl bg-nebula px-8 py-3 text-base font-semibold text-white shadow-glow transition-opacity hover:opacity-90 disabled:opacity-50"
+            className="min-w-[12rem]"
           >
             {loading ? t("app.predict.status") : t("app.predict_btn")}
-          </button>
-          {error && <p className="max-w-xl text-center text-sm text-red-700">{error}</p>}
+          </Button>
+          {error && (
+            <p role="alert" className="max-w-xl text-center text-sm text-danger">
+              {error}
+            </p>
+          )}
+          {!result && !loading && !error && (
+            <p className="max-w-xl text-center text-xs text-ob-faint">
+              {t("app.empty.hint")}
+            </p>
+          )}
         </div>
 
         {result && <ResultsTabs result={result} />}
 
+        <HistorySection entries={history} onReuse={handleReuse} onClear={handleClearHistory} />
         <BatchSection mode={mode} />
       </main>
     </div>

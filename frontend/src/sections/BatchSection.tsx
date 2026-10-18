@@ -1,7 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { Upload } from "lucide-react";
 
 import { api, ApiError } from "@/api/client";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { tf } from "@/i18n/format";
 import { extractColumn, parseCsv, sniffSmilesColumn, type CsvPreview } from "@/lib/csv";
@@ -14,11 +17,11 @@ interface BatchSectionProps {
 
 type Phase = "idle" | "ready" | "running" | "done" | "error";
 
-const OOD_COLORS: Record<string, string> = {
-  LOW: "#15803d",
-  MEDIUM: "#a16207",
-  HIGH: "#b91c1c",
-  UNKNOWN: "#8f887e",
+const OOD_TONE: Record<string, "ok" | "warn" | "danger" | "neutral"> = {
+  LOW: "ok",
+  MEDIUM: "warn",
+  HIGH: "danger",
+  UNKNOWN: "neutral",
 };
 
 // Raw enums from the API map to i18n keys so both languages localize.
@@ -187,7 +190,7 @@ export default function BatchSection({ mode }: BatchSectionProps) {
         type="button"
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
-        className="flex w-full items-center justify-between px-5 py-4 text-left transition-colors hover:bg-nebula/10"
+        className="flex w-full items-center justify-between px-5 py-4 text-left transition-colors hover:bg-brand/10"
       >
         <span className="text-sm font-semibold text-ob-text">{t("app.batch.title")}</span>
         <span
@@ -214,11 +217,9 @@ export default function BatchSection({ mode }: BatchSectionProps) {
               const f = e.dataTransfer.files?.[0];
               if (f) void handleFile(f);
             }}
-            className="flex flex-col items-center gap-2 rounded-xl border border-dashed border-ob-border bg-ob-bg/40 px-4 py-6 text-sm text-ob-muted transition-colors hover:border-nebula/60 hover:text-ob-text disabled:opacity-50"
+            className="flex flex-col items-center gap-2 rounded-panel border border-dashed border-ob-border bg-ob-bg/40 px-4 py-6 text-sm text-ob-muted transition-colors hover:border-brand/50 hover:text-ob-text disabled:opacity-50"
           >
-            <span className="text-xl" aria-hidden>
-              📊
-            </span>
+            <Upload className="size-5 text-ob-muted" aria-hidden="true" />
             <span>{file ? file.name : t("app.batch.upload_label")}</span>
           </button>
           <input
@@ -249,7 +250,7 @@ export default function BatchSection({ mode }: BatchSectionProps) {
                   value={colIndex}
                   disabled={phase === "running"}
                   onChange={(e) => setColIndex(Number(e.target.value))}
-                  className="rounded-lg border border-ob-border bg-ob-bg/60 px-2 py-1.5 text-sm text-ob-text outline-none focus:border-nebula"
+                  className="rounded-control border border-ob-border bg-ob-bg/60 px-2 py-1.5 text-sm text-ob-text outline-none focus:border-brand focus:ring-2 focus:ring-brand/25"
                 >
                   {preview.header.map((h, i) => (
                     <option key={`${h}-${i}`} value={i}>
@@ -258,7 +259,7 @@ export default function BatchSection({ mode }: BatchSectionProps) {
                   ))}
                 </select>
               </label>
-              <div className="overflow-x-auto rounded-lg border border-ob-border">
+              <div className="overflow-x-auto rounded-control border border-ob-border">
                 <table className="w-full text-left text-xs">
                   <caption className="px-3 py-1.5 text-left text-ob-faint">
                     {t("app.batch.preview_rows")}
@@ -267,9 +268,10 @@ export default function BatchSection({ mode }: BatchSectionProps) {
                     <tr className="border-b border-ob-border bg-ob-surface/60">
                       {preview.header.map((h, i) => (
                         <th
+                          scope="col"
                           key={`${h}-${i}`}
                           className={`px-3 py-1.5 font-medium ${
-                            i === colIndex ? "text-nebula-light" : "text-ob-muted"
+                            i === colIndex ? "text-brand-soft" : "text-ob-muted"
                           }`}
                         >
                           {h}
@@ -284,7 +286,7 @@ export default function BatchSection({ mode }: BatchSectionProps) {
                           <td
                             key={ci}
                             className={`max-w-[220px] truncate px-3 py-1.5 font-mono ${
-                              ci === colIndex ? "text-nebula-light" : "text-ob-text"
+                              ci === colIndex ? "text-brand-soft" : "text-ob-text"
                             }`}
                           >
                             {r[ci] ?? ""}
@@ -295,14 +297,13 @@ export default function BatchSection({ mode }: BatchSectionProps) {
                   </tbody>
                 </table>
               </div>
-              <button
-                type="button"
-                disabled={phase === "running"}
+              <Button
+                loading={phase === "running"}
                 onClick={() => void start()}
-                className="self-start rounded-xl bg-nebula px-6 py-2.5 text-sm font-semibold text-white shadow-glow transition-opacity hover:opacity-90 disabled:opacity-50"
+                className="self-start"
               >
                 {t("app.batch.start_btn")}
-              </button>
+              </Button>
             </div>
           )}
 
@@ -320,46 +321,46 @@ export default function BatchSection({ mode }: BatchSectionProps) {
           )}
 
           {/* Error */}
-          {error && <p className="text-sm text-red-700">{error}</p>}
+          {error && (
+            <p role="alert" className="text-sm text-danger">
+              {error}
+            </p>
+          )}
 
           {/* Results */}
           {phase === "done" && (
             <div className="flex flex-col gap-3">
               <div className="flex flex-wrap items-center gap-3">
-                <p className="text-sm text-emerald-700">
+                <p className="text-sm text-ok">
                   {tf("app.batch.complete", { n: rows.length })}
                   <span className="ml-2 text-xs text-ob-muted">
                     {tf("app.batch.rows_ok", { ok: okCount, total: rows.length })}
                   </span>
                 </p>
-                <button
-                  type="button"
-                  onClick={download}
-                  className="rounded-lg border border-cyan-500/50 bg-cyan-500/10 px-4 py-1.5 text-xs text-nebula transition-colors hover:bg-cyan-500/20"
-                >
+                <Button variant="secondary" size="sm" onClick={download}>
                   {t("app.batch.download_btn")}
-                </button>
+                </Button>
               </div>
-              <div className="max-h-96 overflow-auto rounded-lg border border-ob-border">
+              <div className="max-h-96 overflow-auto rounded-control border border-ob-border">
                 <table className="w-full text-left text-xs">
                   <thead className="sticky top-0 bg-ob-surface">
                     <tr className="border-b border-ob-border">
-                      <th className="px-3 py-2 font-medium text-ob-muted">
+                      <th scope="col" className="px-3 py-2 font-medium text-ob-muted">
                         {t("app.batch.table.index")}
                       </th>
-                      <th className="px-3 py-2 font-medium text-ob-muted">
+                      <th scope="col" className="px-3 py-2 font-medium text-ob-muted">
                         {t("app.batch.table.smiles")}
                       </th>
-                      <th className="px-3 py-2 font-medium text-ob-muted">
+                      <th scope="col" className="px-3 py-2 font-medium text-ob-muted">
                         {t("app.batch.table.logs")}
                       </th>
-                      <th className="px-3 py-2 font-medium text-ob-muted">
+                      <th scope="col" className="px-3 py-2 font-medium text-ob-muted">
                         {t("app.batch.table.model")}
                       </th>
-                      <th className="px-3 py-2 font-medium text-ob-muted">
+                      <th scope="col" className="px-3 py-2 font-medium text-ob-muted">
                         {t("app.batch.table.pka")}
                       </th>
-                      <th className="px-3 py-2 font-medium text-ob-muted">
+                      <th scope="col" className="px-3 py-2 font-medium text-ob-muted">
                         {t("app.batch.table.ood")}
                       </th>
                     </tr>
@@ -367,12 +368,12 @@ export default function BatchSection({ mode }: BatchSectionProps) {
                   <tbody>
                     {rows.map((row, i) =>
                       isBatchRowError(row) ? (
-                        <tr key={i} className="border-b border-ob-border/50 bg-red-500/5">
+                        <tr key={i} className="border-b border-ob-border/50 bg-danger/5">
                           <td className="px-3 py-1.5 text-ob-faint">{i + 1}</td>
-                          <td className="max-w-[240px] truncate px-3 py-1.5 font-mono text-red-700">
+                          <td className="max-w-[240px] truncate px-3 py-1.5 font-mono text-danger">
                             {row.smiles}
                           </td>
-                          <td colSpan={4} className="px-3 py-1.5 text-red-700">
+                          <td colSpan={4} className="px-3 py-1.5 text-danger">
                             {t("app.batch.table.error")}: {row.error}
                           </td>
                         </tr>
@@ -382,26 +383,20 @@ export default function BatchSection({ mode }: BatchSectionProps) {
                           <td className="max-w-[240px] truncate px-3 py-1.5 font-mono text-ob-text">
                             {row.smiles}
                           </td>
-                          <td className="px-3 py-1.5 tabular-nums text-nebula-light">
+                          <td className="px-3 py-1.5 tabular-nums text-brand-soft">
                             {row.logS_final.toFixed(3)}
                           </td>
                           <td className="px-3 py-1.5 text-ob-muted">
                             {t(MODEL_BADGE_KEYS[row.model_used] ?? row.model_used)}
                           </td>
-                          <td className="px-3 py-1.5 tabular-nums text-nebula">
+                          <td className="px-3 py-1.5 tabular-nums text-brand">
                             {row.pka != null ? row.pka.toFixed(2) : "—"}
                           </td>
                           <td className="px-3 py-1.5">
                             {row.ood_risk ? (
-                              <span
-                                className="rounded-full px-2 py-0.5 text-[10px] font-semibold"
-                                style={{
-                                  color: OOD_COLORS[row.ood_risk] ?? OOD_COLORS.UNKNOWN,
-                                  background: `${OOD_COLORS[row.ood_risk] ?? OOD_COLORS.UNKNOWN}22`,
-                                }}
-                              >
+                              <Badge tone={OOD_TONE[row.ood_risk] ?? "neutral"}>
                                 {t(OOD_KEYS[row.ood_risk] ?? "ood.risk.unknown")}
-                              </span>
+                              </Badge>
                             ) : (
                               <span className="text-ob-faint">—</span>
                             )}

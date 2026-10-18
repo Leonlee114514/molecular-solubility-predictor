@@ -14,3 +14,7 @@ frontend/dist/
 日志.docx
 .dsh-vision-router/
 .brooks-lint-history.json
+
+# Local scratch / tool state
+_临时/
+.workbuddy-ai/

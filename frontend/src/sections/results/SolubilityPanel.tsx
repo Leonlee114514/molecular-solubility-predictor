@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { Lightbulb } from "lucide-react";
 import {
   Bar,
   BarChart,
@@ -13,6 +14,7 @@ import {
 
 import { api, ApiError } from "@/api/client";
 import GlossaryText from "@/components/GlossaryText";
+import { Button } from "@/components/ui/button";
 import { descriptorLabel, GNN_FEATURE_NAMES } from "@/data/descriptors";
 import { tf } from "@/i18n/format";
 import type { GnnExplainResponse, PredictionResult } from "@/types/api";
@@ -69,57 +71,61 @@ function ShapChart({ result }: { result: PredictionResult }) {
             base,
           })}
       </p>
-      <div className="h-72 w-full">
+      <div className="h-72 w-full overflow-hidden text-ob-muted">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={rows} layout="vertical" margin={{ left: 8, right: 48, top: 4, bottom: 4 }}>
             <XAxis
               type="number"
-              stroke="#b8b2a8"
-              tick={{ fill: "#5c574f", fontSize: 11 }}
-              axisLine={{ stroke: "#ded8cd" }}
+              stroke="currentColor"
+              tick={{ fill: "currentColor", fontSize: 11 }}
+              axisLine={{ stroke: "currentColor", strokeOpacity: 0.3 }}
               tickLine={false}
             />
             <YAxis
               type="category"
               dataKey="name"
-              width={104}
-              stroke="#b8b2a8"
-              tick={{ fill: "#5c574f", fontSize: 11 }}
+              width={132}
+              stroke="currentColor"
+              tick={{ fill: "currentColor", fontSize: 11 }}
               tickFormatter={shortDescriptor}
               axisLine={false}
               tickLine={false}
             />
             <Tooltip
-              cursor={{ fill: "rgba(28,26,23,0.05)" }}
+              cursor={{ fill: "hsl(var(--ob-text) / 0.05)" }}
               contentStyle={{
-                background: "#fffdf9",
-                border: "1px solid rgba(28,26,23,0.12)",
-                borderRadius: 6,
+                background: "hsl(var(--ob-surface))",
+                border: "1px solid hsl(var(--ob-rule))",
+                borderRadius: 4,
                 fontSize: 12,
-                boxShadow: "0 2px 8px rgba(28,26,23,0.08)",
+                boxShadow: "var(--shadow-pop)",
               }}
-              labelStyle={{ color: "#1c1a17", fontWeight: 600 }}
-              itemStyle={{ color: "#2c5282" }}
+              labelStyle={{ color: "hsl(var(--ob-text))", fontWeight: 600 }}
+              itemStyle={{ color: "hsl(var(--brand-soft))" }}
               formatter={(value: number) => [value.toFixed(4), t("result.solubility.shap_xlabel")]}
             />
             <Bar dataKey="value" radius={[3, 3, 3, 3]} barSize={16}>
               {rows.map((row) => (
-                <Cell key={row.name} fill={row.value > 0 ? "#2c5282" : "#b45309"} />
+                <Cell
+                  key={row.name}
+                  className={row.value > 0 ? "text-brand" : "text-warn"}
+                  fill="currentColor"
+                />
               ))}
               <LabelList
                 dataKey="value"
                 position="right"
                 formatter={(v: number) => (v > 0 ? `+${v.toFixed(3)}` : v.toFixed(3))}
-                style={{ fill: "#5c574f", fontSize: 11 }}
+                style={{ fill: "hsl(var(--ob-muted))", fontSize: 11 }}
               />
             </Bar>
           </BarChart>
         </ResponsiveContainer>
       </div>
       <p className="text-xs text-ob-faint">
-        <span style={{ color: "#2c5282" }}>■</span> {t("result.solubility.shap_legend_pos")}
+        <span className="text-brand">■</span> {t("result.solubility.shap_legend_pos")}
         {"  "}
-        <span style={{ color: "#b45309" }}>■</span> {t("result.solubility.shap_legend_neg")}
+        <span className="text-warn">■</span> {t("result.solubility.shap_legend_neg")}
       </p>
       <p className="text-xs text-ob-muted">{t("result.solubility.shap_guide")}</p>
     </div>
@@ -134,7 +140,8 @@ function ShapChart({ result }: { result: PredictionResult }) {
  */
 function shortDescriptor(name: string): string {
   const match = name.match(/[（(]\s*([^（()）]+?)\s*[)）]\s*$/);
-  return match ? match[1] : name;
+  const base = match ? match[1] : name;
+  return base.length > 13 ? `${base.slice(0, 12)}…` : base;
 }
 
 /* ---------- SHAP insight (ported from ui/results.py) ---------- */
@@ -206,8 +213,11 @@ function ShapInsight({ result }: { result: PredictionResult }) {
 
   if (!text) return null;
   return (
-    <div className="rounded-xl border border-nebula/25 bg-nebula/8 px-4 py-3 text-sm leading-relaxed text-ob-muted">
-      <span className="font-semibold text-ob-text">💡 {t("result.solubility.shap_insight_title")}</span>
+    <div className="rounded-card border border-brand/30 bg-brand/10 px-4 py-3 text-sm leading-relaxed text-ob-muted">
+      <span className="flex items-center gap-1.5 font-semibold text-ob-text">
+        <Lightbulb className="size-4 text-brand" aria-hidden="true" />
+        {t("result.solubility.shap_insight_title")}
+      </span>
       <br />
       <GlossaryText text={text} />
     </div>
@@ -265,16 +275,16 @@ function GnnSection({ smiles }: { smiles: string }) {
       <p className="text-xs text-ob-faint">{t("result.gnn.desc")}</p>
 
       {!data && (
-        <button
-          type="button"
-          disabled={busy}
+        <Button
+          size="sm"
+          loading={busy}
           onClick={() => void run()}
-          className="self-start rounded-lg bg-nebula px-4 py-2 text-sm text-white transition-opacity hover:opacity-90 disabled:opacity-40"
+          className="self-start"
         >
-          {busy ? t("result.gnn.spinner") : `⚛ ${t("result.gnn.run_btn")}`}
-        </button>
+          {busy ? t("result.gnn.spinner") : t("result.gnn.run_btn")}
+        </Button>
       )}
-      {error && <p className="text-xs text-red-700">{error}</p>}
+      {error && <p className="text-xs text-danger">{error}</p>}
 
       {data && (
         <>
@@ -298,14 +308,15 @@ function GnnSection({ smiles }: { smiles: string }) {
                 <div key={`${a}-${b}`} className="text-sm">
                   <span className="text-ob-faint">#{rank + 1}</span>{" "}
                   <span className="font-medium text-ob-text">{label}</span>
-                  <div className="mt-1 h-3 overflow-hidden rounded-full bg-ob-bg">
+                  <div className="mt-1 h-3 overflow-hidden rounded-full bg-ob-well">
                     <div
                       className="h-full rounded-full"
                       style={{
                         width: `${Math.min(100, imp * 100)}%`,
-                        background: `rgba(${Math.round(140 + 115 * imp)},${Math.round(
-                          60 + 175 * imp,
-                        )},${Math.round(230 - 200 * imp)},0.6)`,
+                        // Importance is depth of ink, not a hue shift: the old
+                        // blue→red ramp read as "safe→dangerous" when it only
+                        // meant "weak→strong bond".
+                        background: `hsl(var(--brand) / ${(0.35 + 0.55 * imp).toFixed(2)})`,
                       }}
                     />
                   </div>
@@ -323,9 +334,9 @@ function GnnSection({ smiles }: { smiles: string }) {
                   {topFeatures.map((f) => (
                     <div key={f.name} className="text-xs">
                       <span className="text-ob-muted">{f.name}</span>
-                      <div className="mt-0.5 h-2 w-4/5 overflow-hidden rounded-full bg-ob-bg">
+                      <div className="mt-0.5 h-2 w-4/5 overflow-hidden rounded-full bg-ob-well">
                         <div
-                          className="h-full rounded-full bg-nebula"
+                          className="h-full rounded-full bg-brand"
                           style={{ width: `${Math.min(100, f.value * 100)}%` }}
                         />
                       </div>
@@ -336,7 +347,7 @@ function GnnSection({ smiles }: { smiles: string }) {
             </div>
           </div>
 
-          <details className="rounded-xl border border-ob-border bg-ob-bg/40 px-4 py-2 text-sm">
+          <details className="rounded-card border border-ob-border bg-ob-bg/40 px-4 py-2 text-sm">
             <summary className="cursor-pointer text-ob-muted hover:text-ob-text">
               {t("result.gnn.how_to_read_title")}
             </summary>
@@ -364,19 +375,19 @@ export default function SolubilityPanel({ result }: SolubilityPanelProps) {
   return (
     <div className="flex flex-col gap-4">
       {/* Interpretation guide */}
-      <div className="glass-card p-4 font-mono text-xs leading-relaxed text-ob-muted">
+      <div className="glass-card p-4 text-xs leading-relaxed text-ob-muted">
         <b className="text-ob-text">{t("result.solubility.guide")}</b>
         <br />
-        <span className="text-emerald-700">&gt;</span> logS &gt; 0: {t("result.solubility.high_hint")}
+        <span className="text-ok">&gt;</span> logS &gt; 0: {t("result.solubility.high_hint")}
         <br />
-        <span className="text-stargold">&gt;</span> -2 &lt; logS &lt; 0: {t("result.solubility.moderate")}
+        <span className="text-warn">&gt;</span> -2 &lt; logS &lt; 0: {t("result.solubility.moderate")}
         <br />
-        <span className="text-red-700">&gt;</span> logS &lt; -2: {t("result.solubility.poor_hint")}
+        <span className="text-danger">&gt;</span> logS &lt; -2: {t("result.solubility.poor_hint")}
       </div>
 
       {/* Disagreement warning */}
       {diff != null && diff > 0.5 && (
-        <div className="rounded-xl border border-red-500/50 bg-red-500/10 px-4 py-3 text-sm text-red-700">
+        <div className="rounded-card border border-danger/50 bg-danger/5 px-4 py-3 text-sm text-danger">
           {diff > 1.0
             ? (result.model_selected === "auto"
                 ? tf("result.solubility.severe_disagree_auto", { diff })
@@ -387,8 +398,8 @@ export default function SolubilityPanel({ result }: SolubilityPanelProps) {
 
       {/* Ensemble components */}
       {isEnsemble && rf != null && gnn != null && diff != null && (
-        <div className="rounded-xl border border-stargold/25 bg-stargold/8 px-4 py-3 text-sm">
-          <b className="text-stargold">
+        <div className="rounded-card border border-ob-rule bg-ob-bg/40 px-4 py-3 text-sm">
+          <b className="text-ob-text">
             {result.model_used === "Ensemble(W)"
               ? t("result.solubility.badge_weighted")
               : t("result.solubility.badge_ensemble")}
@@ -399,15 +410,19 @@ export default function SolubilityPanel({ result }: SolubilityPanelProps) {
             </span>
           )}
           <br />
-          <span className="text-emerald-700">{t("result.solubility.ensemble_rf")}</span>{" "}
-          {rf.toFixed(3)}
+          <span className="text-ob-muted">{t("result.solubility.ensemble_rf")}</span>{" "}
+          <span className="tabular-nums">{rf.toFixed(3)}</span>
           {"  |  "}
-          <span className="text-nebula-light">{t("result.solubility.ensemble_gnn")}</span>{" "}
-          {gnn.toFixed(3)}
+          <span className="text-ob-muted">{t("result.solubility.ensemble_gnn")}</span>{" "}
+          <span className="tabular-nums">{gnn.toFixed(3)}</span>
           <br />
-          <span className="text-stargold">{t("result.solubility.disagreement")}:</span>{" "}
-          {diff.toFixed(3)}{" "}
-          <span className="text-xs text-ob-faint">
+          <span className="text-ob-muted">{t("result.solubility.disagreement")}:</span>{" "}
+          <span className="tabular-nums">{diff.toFixed(3)}</span>{" "}
+          <span
+            className={`text-xs ${
+              diff < 0.5 ? "text-ok" : diff < 1 ? "text-warn" : "text-danger"
+            }`}
+          >
             {diff < 0.5
               ? t("result.solubility.good_agreement")
               : diff < 1.0
@@ -426,7 +441,7 @@ export default function SolubilityPanel({ result }: SolubilityPanelProps) {
           {DESCRIPTOR_ITEMS.map((item) => {
             const value = result.features[item.key];
             return (
-              <div key={item.key} className="rounded-xl border border-ob-border bg-ob-bg/40 p-3">
+              <div key={item.key} className="rounded-card border border-ob-border bg-ob-bg/40 p-3">
                 <p className="text-xs text-ob-faint">{t(item.i18nKey)}</p>
                 <p className="mt-1 text-xl font-semibold tabular-nums text-ob-text">
                   {value != null ? item.format(value) : "—"}
@@ -435,7 +450,7 @@ export default function SolubilityPanel({ result }: SolubilityPanelProps) {
             );
           })}
         </div>
-        <div className="mt-3 rounded-xl border border-cyan-500/20 bg-cyan-500/5 px-4 py-3 text-xs leading-relaxed text-ob-muted">
+        <div className="mt-3 rounded-card border border-brand/20 bg-brand/5 px-4 py-3 text-xs leading-relaxed text-ob-muted">
           <b className="text-ob-text">{t("result.solubility.insight_title")}:</b>
           <ul className="mt-1 list-disc space-y-1 pl-5">
             <li><GlossaryText text={t("result.solubility.insight_tpsa")} /></li>

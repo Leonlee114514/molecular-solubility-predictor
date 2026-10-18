@@ -12,6 +12,7 @@ import {
 } from "recharts";
 
 import GlossaryText from "@/components/GlossaryText";
+import { Badge } from "@/components/ui/badge";
 import { tf } from "@/i18n/format";
 import type { AnalysisResponse, PredictionResult } from "@/types/api";
 
@@ -24,23 +25,31 @@ interface PkaPanelProps {
   };
 }
 
-const KIND_META: Record<string, { key: string; descKey: string; color: string }> = {
+const KIND_META: Record<
+  string,
+  { key: string; descKey: string; tone: "brand" | "warn" }
+> = {
   acid: {
     key: "model.pka.type.acidic_display",
     descKey: "model.pka.type.acidic_desc",
-    color: "#2c5282",
+    tone: "brand",
   },
   base: {
     key: "model.pka.type.basic_display",
     descKey: "model.pka.type.basic_desc",
-    color: "#b45309",
+    tone: "warn",
   },
   amphoteric: {
     key: "model.pka.type.amphoteric_display",
     descKey: "model.pka.type.amphoteric_desc",
-    color: "#a16207",
+    tone: "warn",
   },
 };
+
+/** Axis space is tight; long factor names get one ellipsis instead of wrapping. */
+function shortFactor(name: string): string {
+  return name.length > 12 ? `${name.slice(0, 11)}…` : name;
+}
 
 interface FactorRow {
   name: string;
@@ -83,7 +92,7 @@ export default function PkaPanel({ result, analysis }: PkaPanelProps) {
       <div className="glass-card flex flex-wrap items-center gap-6 p-5">
         <div>
           <p className="text-xs text-ob-faint">{t("result.pka.metric")}</p>
-          <p className="mt-1 text-5xl font-bold tabular-nums text-nebula">
+          <p className="mt-1 text-5xl font-bold tabular-nums text-brand">
             {pka.toFixed(2)}
           </p>
         </div>
@@ -91,13 +100,13 @@ export default function PkaPanel({ result, analysis }: PkaPanelProps) {
           <div className="flex items-end gap-6">
             <div>
               <p className="text-xs text-ob-faint">{t("result.pka.metric_acidic")}</p>
-              <p className="mt-1 text-2xl font-semibold tabular-nums text-nebula">
+              <p className="mt-1 text-2xl font-semibold tabular-nums text-brand">
                 {result.pka_acidic.toFixed(2)}
               </p>
             </div>
             <div>
               <p className="text-xs text-ob-faint">{t("result.pka.metric_basic")}</p>
-              <p className="mt-1 text-2xl font-semibold tabular-nums text-nebula">
+              <p className="mt-1 text-2xl font-semibold tabular-nums text-brand">
                 {result.pka_basic.toFixed(2)}
               </p>
             </div>
@@ -105,16 +114,9 @@ export default function PkaPanel({ result, analysis }: PkaPanelProps) {
         )}
         {kind && (
           <div className="flex flex-col gap-1">
-            <span
-              className="w-fit rounded-full px-3 py-1 text-sm font-semibold"
-              style={{
-                color: kind.color,
-                border: `1px solid ${kind.color}66`,
-                background: `${kind.color}1a`,
-              }}
-            >
+            <Badge tone={kind.tone} className="w-fit px-3 py-1 text-sm font-semibold">
               {t(kind.key)}
-            </span>
+            </Badge>
             <p className="max-w-md text-xs text-ob-muted">{t(kind.descKey)}</p>
             {result.pka_acidic != null && result.pka_basic != null && (
               <p className="max-w-md text-xs text-ob-faint">{t("result.pka.dual_note")}</p>
@@ -129,7 +131,7 @@ export default function PkaPanel({ result, analysis }: PkaPanelProps) {
           {t("result.pka.decomp_title")}
         </h3>
         {analysis.loading && <p className="text-sm text-ob-faint">{t("common.loading")}</p>}
-        {analysis.error && <p className="text-sm text-red-700">{analysis.error}</p>}
+        {analysis.error && <p className="text-sm text-danger">{analysis.error}</p>}
         {!analysis.loading && !analysis.error && rows.length === 0 && (
           <p className="text-sm text-ob-muted">{t("result.pka.unavailable_short")}</p>
         )}
@@ -138,56 +140,61 @@ export default function PkaPanel({ result, analysis }: PkaPanelProps) {
             <p className="text-xs text-ob-faint">
               {tf("result.pka.chart_title", { val: pka })} · {tf("result.pka.chart_xlabel", { unit })}
             </p>
-            <div className="h-64 w-full">
+            <div className="h-64 w-full overflow-hidden text-ob-muted">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={rows} layout="vertical" margin={{ left: 8, right: 48, top: 4, bottom: 4 }}>
                   <XAxis
                     type="number"
-                    stroke="#b8b2a8"
-                    tick={{ fill: "#5c574f", fontSize: 11 }}
-                    axisLine={{ stroke: "#ded8cd" }}
+                    stroke="currentColor"
+                    tick={{ fill: "currentColor", fontSize: 11 }}
+                    axisLine={{ stroke: "currentColor", strokeOpacity: 0.3 }}
                     tickLine={false}
                   />
                   <YAxis
                     type="category"
                     dataKey="name"
-                    width={170}
-                    stroke="#b8b2a8"
-                    tick={{ fill: "#5c574f", fontSize: 11 }}
+                    width={120}
+                    stroke="currentColor"
+                    tick={{ fill: "currentColor", fontSize: 11 }}
+                    tickFormatter={shortFactor}
                     axisLine={false}
                     tickLine={false}
                   />
                   <Tooltip
-                    cursor={{ fill: "rgba(28,26,23,0.05)" }}
+                    cursor={{ fill: "hsl(var(--ob-text) / 0.05)" }}
                     contentStyle={{
-                      background: "#fffdf9",
-                      border: "1px solid rgba(28,26,23,0.12)",
-                      borderRadius: 6,
+                      background: "hsl(var(--ob-surface))",
+                      border: "1px solid hsl(var(--ob-rule))",
+                      borderRadius: 4,
                       fontSize: 12,
-                      boxShadow: "0 2px 8px rgba(28,26,23,0.08)",
+                      boxShadow: "var(--shadow-pop)",
                     }}
-                    labelStyle={{ color: "#1c1a17", fontWeight: 600 }}
-                    itemStyle={{ color: "#2c5282" }}
+                    labelStyle={{ color: "hsl(var(--ob-text))", fontWeight: 600 }}
+                    itemStyle={{ color: "hsl(var(--brand-soft))" }}
                     formatter={(value: number) => [value.toFixed(2), unit]}
                   />
                   <Bar dataKey="value" radius={[3, 3, 3, 3]} barSize={20}>
                     {rows.map((row) => (
-                      <Cell key={row.name} fill={row.value > 0 ? "#2c5282" : "#b45309"} />
+                      <Cell
+                        key={row.name}
+                        className={row.value > 0 ? "text-brand" : "text-warn"}
+                        fill="currentColor"
+                      />
                     ))}
                     <LabelList
                       dataKey="value"
                       position="right"
                       formatter={(v: number) => (v > 0 ? `+${v.toFixed(2)}` : v.toFixed(2))}
-                      style={{ fill: "#5c574f", fontSize: 11 }}
+                      style={{ fill: "hsl(var(--ob-muted))", fontSize: 11 }}
                     />
                   </Bar>
                 </BarChart>
               </ResponsiveContainer>
             </div>
             <p className="text-xs text-ob-faint">
-              <span style={{ color: "#2c5282" }}>■</span> {tf("result.pka.legend_enhance", { type: legendType })}
+              <span className="text-brand">■</span> {tf("result.pka.legend_enhance", { type: legendType })}
               {"  "}
-              <span style={{ color: "#b45309" }}>■</span> {tf("result.pka.legend_weaken", { type: legendType })}
+              <span className="text-warn">■</span> {tf("result.pka.legend_weaken", { type: legendType })}
             </p>
             <p className="text-xs text-ob-muted">
               <GlossaryText text={t("result.pka.factor_guide")} />
@@ -196,8 +203,8 @@ export default function PkaPanel({ result, analysis }: PkaPanelProps) {
         )}
 
         {/* Glossary hints */}
-        <div className="mt-2 rounded-lg border-l-2 border-nebula/40 bg-nebula/6 px-4 py-3 text-xs leading-loose text-ob-muted">
-          <b className="text-nebula-light">{t("result.pka.glossary_title")}</b>
+        <div className="mt-2 rounded-control border-l-2 border-brand/40 bg-brand/10 px-4 py-3 text-xs leading-loose text-ob-muted">
+          <b className="text-brand-soft">{t("result.pka.glossary_title")}</b>
           <ul className="mt-1 space-y-1">
             {(["inductive", "resonance", "intra_hb", "steric", "hybrid"] as const).map((k) => (
               <li key={k}>

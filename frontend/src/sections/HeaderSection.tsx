@@ -4,14 +4,14 @@ export default function HeaderSection() {
   const { t } = useTranslation();
 
   return (
-    <header className="relative flex flex-col items-center gap-4 px-4 pb-6 pt-12 text-center">
-      <p className="text-sm tracking-[0.3em] text-ob-muted uppercase">
+    <header className="flex flex-col items-center gap-3 px-2 pb-2 text-center">
+      <p className="text-xs uppercase tracking-[0.18em] text-ob-muted">
         {t("header.tagline")}
       </p>
-      <h1 className="gradient-title text-5xl font-bold leading-tight md:text-6xl">
+      <h1 className="gradient-title text-4xl font-bold leading-tight md:text-5xl">
         {t("header.title")}
       </h1>
-      <p className="max-w-2xl text-base text-ob-muted md:text-lg">
+      <p className="max-w-xl text-base text-ob-muted">
         {t("header.subtitle")}
       </p>
     </header>

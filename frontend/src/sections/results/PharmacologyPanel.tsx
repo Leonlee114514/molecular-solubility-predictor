@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import {
   Bar,
@@ -43,14 +44,14 @@ const LIPINSKI_ROWS: { i18nKey: string; threshold: string }[] = [
 function LipinskiSection({ analysis }: { analysis: AnalysisResponse }) {
   const { t } = useTranslation();
   const lip = analysis.lipinski;
-  const titleColor = lip.passed >= 4 ? "#15803d" : "#a16207";
+  const passedTone = lip.passed >= 4 ? "text-ok" : "text-warn";
 
   return (
     <div className="glass-card flex flex-col gap-3 p-4">
       <h3 className="text-sm font-semibold text-ob-text">
         {t("result.pharma.lipinski_title")}
       </h3>
-      <p className="text-sm font-semibold" style={{ color: titleColor }}>
+      <p className={`text-sm font-semibold ${passedTone}`}>
         <GlossaryText
           text={tf("result.pharma.lipinski_score_title", {
             score: String(lip.passed),
@@ -64,37 +65,52 @@ function LipinskiSection({ analysis }: { analysis: AnalysisResponse }) {
         {lip.rules.map((rule, i) => {
           const [, , passed, actual] = rule;
           const meta = LIPINSKI_ROWS[i];
+          const value = Number.parseFloat(actual);
+          const limit = Number.parseFloat(meta.threshold.replace(/[^\d.]/g, ""));
+          // The bar shows how close the value is to its own limit, not whether
+          // the rule passed — the old fixed 100% made every row look perfect.
+          const ratio =
+            Number.isFinite(value) && Number.isFinite(limit) && limit > 0
+              ? Math.min(1, value / limit)
+              : 0;
           return (
             <div
               key={meta.i18nKey}
-              className="flex items-center gap-3 rounded-xl border border-ob-border bg-ob-bg/40 px-3 py-2"
+              className="rounded-card border border-ob-rule bg-ob-bg/40 px-3 py-2"
             >
-              <span className="w-40 shrink-0 text-xs text-ob-muted">{t(meta.i18nKey)}</span>
-              <span className="w-16 shrink-0 text-xs text-ob-faint">{meta.threshold}</span>
-              <div
-                className="h-2 flex-1 overflow-hidden rounded-full"
-                style={{ background: "#ede8df" }}
-              >
-                <div
-                  className="h-full rounded-full"
-                  style={{
-                    width: "100%",
-                    background: passed ? "#15803d" : "#b91c1c",
-                    opacity: 0.75,
-                  }}
-                />
+              <div className="flex items-baseline justify-between gap-3">
+                <span className="min-w-0 text-xs text-ob-muted">
+                  {t(meta.i18nKey)}
+                </span>
+                <span
+                  className={`shrink-0 text-xs font-semibold tabular-nums ${
+                    passed ? "text-ok" : "text-danger"
+                  }`}
+                >
+                  {actual}{" "}
+                  {passed
+                    ? t("result.pharma.lipinski_pass")
+                    : t("result.pharma.lipinski_fail")}
+                </span>
               </div>
-              <span
-                className="w-24 shrink-0 text-right text-xs font-semibold tabular-nums"
-                style={{ color: passed ? "#15803d" : "#b91c1c" }}
-              >
-                {actual} {passed ? t("result.pharma.lipinski_pass") : t("result.pharma.lipinski_fail")}
-              </span>
+              <div className="mt-1.5 flex items-center gap-3">
+                <div className="h-1.5 min-w-0 flex-1 overflow-hidden rounded-full bg-ob-well">
+                  <div
+                    className={`h-full rounded-full transition-[width] duration-slow ease-out ${
+                      passed ? "bg-ok/70" : "bg-danger/70"
+                    }`}
+                    style={{ width: `${ratio * 100}%` }}
+                  />
+                </div>
+                <span className="shrink-0 text-xs tabular-nums text-ob-faint">
+                  {meta.threshold}
+                </span>
+              </div>
             </div>
           );
         })}
       </div>
-      <div className="rounded-lg border-l-2 border-nebula/40 bg-nebula/6 px-4 py-3 text-xs leading-relaxed text-ob-muted">
+      <div className="rounded-control border-l-2 border-brand/40 bg-brand/10 px-4 py-3 text-xs leading-relaxed text-ob-muted">
         <GlossaryText text={t("result.pharma.lipinski_history_html")} />
       </div>
     </div>
@@ -122,11 +138,11 @@ function GaugeCard({
 }) {
   return (
     <div className="glass-card flex flex-col items-center gap-2 p-4 text-center">
-      <p className="text-[0.68rem] uppercase tracking-[0.12em] text-ob-faint">{title}</p>
+      <p className="text-2xs uppercase tracking-[0.12em] text-ob-faint">{title}</p>
       <p className="text-3xl font-bold tabular-nums" style={{ color }}>
         {display}
       </p>
-      <div className="h-1.5 w-full max-w-[200px] overflow-hidden rounded-full bg-ob-bg">
+      <div className="h-1.5 w-full max-w-[200px] overflow-hidden rounded-full bg-ob-well">
         <div
           className="h-full rounded-full transition-[width]"
           style={{ width: `${pct}%`, background: color }}
@@ -187,17 +203,22 @@ function DruglikenessSection({ dl }: { dl: DruglikenessResult }) {
 
 /* ---------- Ionization chart ---------- */
 
-const IONIZATION_COLORS = ["#b91c1c", "#a16207", "#15803d", "#2c5282"];
+/* Tones only — the fill comes from `currentColor`, so the palette lives in
+   one place (the token layer) instead of four hex literals here. */
+const IONIZATION_TONES = ["text-danger", "text-warn", "text-ok", "text-brand"];
 
 function IonizationSection({ analysis, pka }: { analysis: AnalysisResponse; pka: number }) {
   const { t } = useTranslation();
   const rows = useMemo(
     () =>
       (analysis.ionization ?? []).map((point, i) => ({
-        env: t(`result.pharma.ionization_env_${point.env}`).split("\n")[0],
+        // zh locale stores "Stomach\n胃": the last line is the active-language
+        // label, the first is the English one. Taking [0] showed English in a
+        // Chinese UI and made four long ticks collide at 375px.
+        env: t(`result.pharma.ionization_env_${point.env}`).split("\n").pop() ?? point.env,
         pct: point.pct,
         ph: point.ph,
-        color: IONIZATION_COLORS[i % IONIZATION_COLORS.length],
+        color: IONIZATION_TONES[i % IONIZATION_TONES.length],
       })),
     [analysis.ionization, t],
   );
@@ -211,35 +232,35 @@ function IonizationSection({ analysis, pka }: { analysis: AnalysisResponse; pka:
       <p className="text-xs text-ob-faint">
         {tf("result.pharma.ionization_chart_title", { val: pka })}
       </p>
-      <div className="h-56 w-full">
+      <div className="h-56 w-full overflow-hidden text-ob-muted">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={rows} margin={{ left: 0, right: 8, top: 12, bottom: 4 }}>
             <XAxis
               dataKey="env"
-              stroke="#b8b2a8"
-              tick={{ fill: "#5c574f", fontSize: 11 }}
-              axisLine={{ stroke: "#ded8cd" }}
+              stroke="currentColor"
+              tick={{ fill: "currentColor", fontSize: 11 }}
+              axisLine={{ stroke: "currentColor", strokeOpacity: 0.3 }}
               tickLine={false}
             />
             <YAxis
               domain={[0, 105]}
-              stroke="#b8b2a8"
-              tick={{ fill: "#5c574f", fontSize: 11 }}
+              stroke="currentColor"
+              tick={{ fill: "currentColor", fontSize: 11 }}
               axisLine={false}
               tickLine={false}
               tickFormatter={(v: number) => `${v}%`}
             />
             <Tooltip
-              cursor={{ fill: "rgba(28,26,23,0.05)" }}
+              cursor={{ fill: "hsl(var(--ob-text) / 0.05)" }}
               contentStyle={{
-                background: "#fffdf9",
-                border: "1px solid rgba(28,26,23,0.12)",
-                borderRadius: 6,
+                background: "hsl(var(--ob-surface))",
+                border: "1px solid hsl(var(--ob-rule))",
+                borderRadius: 4,
                 fontSize: 12,
-                boxShadow: "0 2px 8px rgba(28,26,23,0.08)",
+                boxShadow: "var(--shadow-pop)",
               }}
-              labelStyle={{ color: "#1c1a17", fontWeight: 600 }}
-              itemStyle={{ color: "#2c5282" }}
+              labelStyle={{ color: "hsl(var(--ob-text))", fontWeight: 600 }}
+              itemStyle={{ color: "hsl(var(--brand-soft))" }}
               formatter={(value: number) => [
                 `${value.toFixed(1)}%`,
                 t("result.pharma.ionization_ylabel"),
@@ -247,13 +268,17 @@ function IonizationSection({ analysis, pka }: { analysis: AnalysisResponse; pka:
             />
             <Bar dataKey="pct" radius={[4, 4, 0, 0]} barSize={44}>
               {rows.map((row) => (
-                <Cell key={row.env} fill={row.color} />
+                <Cell
+                  key={row.env}
+                  className={row.color}
+                  fill="currentColor"
+                />
               ))}
               <LabelList
                 dataKey="pct"
                 position="top"
                 formatter={(v: number) => `${v.toFixed(1)}%`}
-                style={{ fill: "#5c574f", fontSize: 11 }}
+                style={{ fill: "hsl(var(--ob-muted))", fontSize: 11 }}
               />
             </Bar>
           </BarChart>
@@ -266,11 +291,11 @@ function IonizationSection({ analysis, pka }: { analysis: AnalysisResponse; pka:
 /* ---------- Pharma analysis + linkage ---------- */
 
 const PHARMA_ANALYSIS_STYLE: Record<string, string> = {
-  strong_acid: "border-emerald-500/40 bg-emerald-500/10 text-emerald-700",
-  mid_acid: "border-cyan-500/40 bg-cyan-500/10 text-nebula",
-  strong_base: "border-amber-500/50 bg-amber-500/10 text-amber-700",
-  weak_base: "border-cyan-500/40 bg-cyan-500/10 text-nebula",
-  amphoteric: "border-cyan-500/40 bg-cyan-500/10 text-nebula",
+  strong_acid: "border-ok/50 bg-ok/5 text-ok",
+  mid_acid: "border-brand/40 bg-brand/10 text-brand",
+  strong_base: "border-warn/50 bg-warn/5 text-warn",
+  weak_base: "border-brand/40 bg-brand/10 text-brand",
+  amphoteric: "border-brand/40 bg-brand/10 text-brand",
 };
 
 function PharmaAnalysisSection({ analysis }: { analysis: AnalysisResponse }) {
@@ -281,15 +306,15 @@ function PharmaAnalysisSection({ analysis }: { analysis: AnalysisResponse }) {
         <div
           className={`rounded-xl border px-4 py-3 text-sm ${
             PHARMA_ANALYSIS_STYLE[analysis.pharma_analysis] ??
-            "border-cyan-500/40 bg-cyan-500/10 text-nebula"
+            "border-brand/40 bg-brand/10 text-brand"
           }`}
         >
           <GlossaryText text={t(`result.pharma.analysis.${analysis.pharma_analysis}`)} />
         </div>
       )}
       {analysis.linkage && (
-        <div className="rounded-xl border border-cyan-500/30 bg-cyan-500/8 px-4 py-3 text-sm leading-relaxed text-ob-muted">
-          <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-nebula">
+        <div className="rounded-xl border border-brand/30 bg-brand/10 px-4 py-3 text-sm leading-relaxed text-ob-muted">
+          <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-brand">
             {t("result.pharma.linkage.title")}
           </p>
           <GlossaryText text={analysis.linkage} />
@@ -301,22 +326,38 @@ function PharmaAnalysisSection({ analysis }: { analysis: AnalysisResponse }) {
 
 /* ---------- ADME/Tox accordion ---------- */
 
-function toxicityColor(level: string): string {
+type AdmetTone = "ok" | "brand" | "warn" | "danger";
+
+const ADMET_TONE: Record<AdmetTone, string> = {
+  ok: "text-ok",
+  brand: "text-brand",
+  warn: "text-warn",
+  danger: "text-danger",
+};
+
+const TOX_STYLE: Record<AdmetTone, string> = {
+  ok: "border-ok/40 bg-ok/5",
+  brand: "border-brand/40 bg-brand/5",
+  warn: "border-warn/40 bg-warn/5",
+  danger: "border-danger/40 bg-danger/5",
+};
+
+function toxicityTone(level: string): AdmetTone {
   const key = level.trim().toLowerCase();
-  if (key === "高" || key === "high") return "#b91c1c";
-  if (key === "中" || key === "medium") return "#a16207";
-  return "#15803d";
+  if (key === "高" || key === "high") return "danger";
+  if (key === "中" || key === "medium") return "warn";
+  return "ok";
 }
 
 function AdmetSection({ analysis }: { analysis: AnalysisResponse }) {
   const { t } = useTranslation();
   const admet = analysis.admet;
 
-  const sections = [
+  const sections: { id: string; title: string; tone: AdmetTone; body: ReactNode }[] = [
     {
       id: "absorption",
       title: t("result.pharma.admet_absorption"),
-      color: "#15803d",
+      tone: "ok",
       body: (
         <>
           <p className="text-sm leading-relaxed text-ob-muted">
@@ -329,16 +370,16 @@ function AdmetSection({ analysis }: { analysis: AnalysisResponse }) {
     {
       id: "distribution",
       title: t("result.pharma.admet_distribution"),
-      color: "#2c5282",
+      tone: "brand",
       body: (
         <>
           <div className="mb-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
-            <div className="rounded-lg border border-blue-400/20 bg-blue-400/8 px-3 py-2 text-xs">
-              <b style={{ color: "#2c5282" }}>{t("result.pharma.admet_vd")}</b>
+            <div className="rounded-control border border-brand/20 bg-brand/10 px-3 py-2 text-xs">
+              <b className="text-brand">{t("result.pharma.admet_vd")}</b>
               <p className="mt-1 text-ob-muted">{admet.distribution.vd_estimate}</p>
             </div>
-            <div className="rounded-lg border border-blue-400/20 bg-blue-400/8 px-3 py-2 text-xs">
-              <b style={{ color: "#2c5282" }}>{t("result.pharma.admet_ppb")}</b>
+            <div className="rounded-control border border-brand/20 bg-brand/10 px-3 py-2 text-xs">
+              <b className="text-brand">{t("result.pharma.admet_ppb")}</b>
               <p className="mt-1 text-ob-muted">{admet.distribution.ppb}</p>
             </div>
           </div>
@@ -352,14 +393,14 @@ function AdmetSection({ analysis }: { analysis: AnalysisResponse }) {
     {
       id: "metabolism",
       title: t("result.pharma.admet_metabolism"),
-      color: "#a16207",
+      tone: "warn",
       body: (
         <>
           <p className="text-sm leading-relaxed text-ob-muted">
             <GlossaryText text={admet.metabolism.summary} />
           </p>
-          <div className="mt-2 rounded-lg border border-stargold/20 bg-stargold/8 px-3 py-2 text-xs">
-            <b className="text-stargold">{t("result.pharma.admet_cyp")}</b>
+          <div className="mt-2 rounded-control border border-warn/20 bg-warn/10 px-3 py-2 text-xs">
+            <b className="text-warn">{t("result.pharma.admet_cyp")}</b>
             <p className="mt-1 text-ob-muted">{admet.metabolism.cyp_enzymes}</p>
           </div>
           <Caption text={t("result.pharma.admet.metabolism_caption")} />
@@ -369,10 +410,10 @@ function AdmetSection({ analysis }: { analysis: AnalysisResponse }) {
     {
       id: "excretion",
       title: t("result.pharma.admet_excretion"),
-      color: "#2c5282",
+      tone: "brand",
       body: (
         <>
-          <p className="text-sm font-semibold" style={{ color: "#2c5282" }}>
+          <p className="text-sm font-semibold text-brand">
             {t("result.pharma.admet_excretion_route")}：{admet.excretion.route}
           </p>
           <p className="mt-1 text-sm leading-relaxed text-ob-muted">
@@ -385,19 +426,20 @@ function AdmetSection({ analysis }: { analysis: AnalysisResponse }) {
     {
       id: "toxicity",
       title: t("result.pharma.admet_toxicity"),
-      color: "#b91c1c",
+      tone: "danger",
       body: (
         <>
           <div className="flex flex-col gap-2">
             {admet.toxicity.map(([level, desc], i) => {
-              const color = toxicityColor(level);
+              const tone = toxicityTone(level);
               return (
                 <div
                   key={i}
-                  className="rounded-lg px-3 py-2 text-sm"
-                  style={{ background: `${color}14`, border: `1px solid ${color}33` }}
+                  className={`rounded-control border px-3 py-2 text-sm ${TOX_STYLE[tone]}`}
                 >
-                  <b style={{ color }}>{t("result.pharma.admet_risk", { level })}</b>{" "}
+                  <b className={ADMET_TONE[tone]}>
+                    {t("result.pharma.admet_risk", { level })}
+                  </b>{" "}
                   <span className="text-ob-muted">{desc}</span>
                 </div>
               );
@@ -417,7 +459,11 @@ function AdmetSection({ analysis }: { analysis: AnalysisResponse }) {
       <Accordion type="single" collapsible className="w-full">
         {sections.map((section) => (
           <AccordionItem key={section.id} value={section.id} className="border-ob-border">
-            <AccordionTrigger className="text-sm hover:no-underline" style={{ color: section.color }}>
+            <AccordionTrigger
+              className={`text-sm hover:no-underline ${
+                section.tone === "danger" ? "text-danger" : "text-ob-text"
+              }`}
+            >
               {section.title}
             </AccordionTrigger>
             <AccordionContent>{section.body}</AccordionContent>
@@ -445,7 +491,7 @@ export default function PharmacologyPanel({ result, analysis }: PharmacologyPane
     return <div className="glass-card p-4 text-sm text-ob-faint">{t("common.loading")}</div>;
   }
   if (analysis.error && !analysis.data) {
-    return <div className="glass-card p-4 text-sm text-red-700">{analysis.error}</div>;
+    return <div className="glass-card p-4 text-sm text-danger">{analysis.error}</div>;
   }
   if (!analysis.data) return null;
 

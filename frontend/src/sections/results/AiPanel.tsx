@@ -3,6 +3,8 @@ import { useTranslation } from "react-i18next";
 import ReactMarkdown from "react-markdown";
 
 import { api, ApiError } from "@/api/client";
+import { Alert } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
 import type { PredictionResult } from "@/types/api";
 
 interface AiPanelProps {
@@ -71,38 +73,30 @@ export default function AiPanel({ result }: AiPanelProps) {
           <div className="md-body text-sm">
             <ReactMarkdown>{markdown}</ReactMarkdown>
           </div>
-          <button
-            type="button"
+          <Button
+            variant="secondary"
+            size="sm"
             onClick={() => {
               setMarkdown(null);
               setGeneratedLang(null);
             }}
-            className="self-start rounded-lg border border-ob-border bg-ob-surface/70 px-3 py-1.5 text-xs text-ob-muted transition-colors hover:border-nebula/60 hover:text-ob-text"
+            className="self-start"
           >
             {t("result.ai.clear_btn")}
-          </button>
+          </Button>
         </>
       ) : (
         <>
           <p className="text-xs text-ob-faint">{t("result.ai.need_manual")}</p>
-          {noKey && (
-            <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-700">
-              {t("ai.error.no_key")}
-            </div>
-          )}
-          {error && (
-            <div className="rounded-xl border border-red-500/50 bg-red-500/10 px-4 py-3 text-sm text-red-700">
-              {error}
-            </div>
-          )}
-          <button
-            type="button"
-            disabled={busy}
+          {noKey && <Alert tone="warn">{t("ai.error.no_key")}</Alert>}
+          {error && <Alert tone="danger">{error}</Alert>}
+          <Button
+            loading={busy}
             onClick={() => void generate(lang)}
-            className="w-full rounded-xl bg-gradient-to-r from-nebula to-orbit py-2.5 text-sm font-semibold text-white shadow-glow transition-opacity hover:opacity-90 disabled:opacity-40"
+            className="w-full"
           >
-            {busy ? t("result.ai.generating") : `✨ ${t("result.ai.generate_btn")}`}
-          </button>
+            {busy ? t("result.ai.generating") : t("result.ai.generate_btn")}
+          </Button>
         </>
       )}
     </div>

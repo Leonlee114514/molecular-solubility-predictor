@@ -2,11 +2,27 @@ import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { createViewer } from "3dmol";
 import type { GLViewer } from "3dmol";
+import { Pause, Play } from "lucide-react";
 
 import { api } from "@/api/client";
+import { Button } from "@/components/ui/button";
 
 interface Molecule3DProps {
   smiles: string;
+}
+
+/**
+ * 3dmol's `backgroundColor` wants a concrete colour string, not a CSS custom
+ * property, so the token is resolved through the browser once per mount.
+ */
+function paperColor(): string {
+  const probe = document.createElement("span");
+  probe.style.cssText =
+    "position:absolute;visibility:hidden;background:hsl(var(--ob-surface))";
+  document.body.appendChild(probe);
+  const value = getComputedStyle(probe).backgroundColor;
+  probe.remove();
+  return value;
 }
 
 export default function Molecule3D({ smiles }: Molecule3DProps) {
@@ -29,7 +45,7 @@ export default function Molecule3D({ smiles }: Molecule3DProps) {
         if (disposed || !containerRef.current) return;
         containerRef.current.innerHTML = "";
         const viewer = createViewer(containerRef.current, {
-          backgroundColor: "#fffdf9",
+          backgroundColor: paperColor(),
         });
         viewer.addModel(molblock, "mol");
         // Ball-and-stick, same style as the old py3Dmol rendering.
@@ -77,8 +93,8 @@ export default function Molecule3D({ smiles }: Molecule3DProps) {
       <div className="relative">
         <div
           ref={containerRef}
-          className="h-[420px] w-full overflow-hidden rounded-xl border border-ob-border"
-          style={{ background: "#fffdf9" }}
+          className="h-[420px] w-full overflow-hidden rounded-panel border border-ob-border"
+          style={{ background: "hsl(var(--ob-surface))" }}
         />
         {loading && (
           <div className="absolute inset-0 flex items-center justify-center text-sm text-ob-muted">
@@ -91,14 +107,22 @@ export default function Molecule3D({ smiles }: Molecule3DProps) {
           </div>
         )}
       </div>
-      <button
-        type="button"
+      <Button
+        variant="secondary"
+        size="sm"
         onClick={toggleSpin}
         disabled={loading || !!error}
-        className="self-start rounded-lg border border-ob-border bg-ob-surface/70 px-3 py-1.5 text-xs text-ob-muted transition-colors hover:border-nebula/60 hover:text-ob-text disabled:opacity-40"
+        className="self-start"
       >
-        {spinning ? `⏸ ${t("result.preview.spin_stop")}` : `🔁 ${t("result.preview.spin_start")}`}
-      </button>
+        {spinning ? (
+          <Pause className="size-3.5" aria-hidden="true" />
+        ) : (
+          <Play className="size-3.5" aria-hidden="true" />
+        )}
+        {spinning
+          ? t("result.preview.spin_stop")
+          : t("result.preview.spin_start")}
+      </Button>
     </div>
   );
 }

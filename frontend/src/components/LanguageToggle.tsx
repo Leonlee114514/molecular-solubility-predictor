@@ -22,7 +22,7 @@ export default function LanguageToggle() {
       <DropdownMenuTrigger asChild>
         <button
           type="button"
-          className="flex items-center gap-1.5 rounded-lg border border-ob-border bg-ob-surface px-3 py-2 text-xs text-ob-muted transition-colors hover:border-nebula/50 hover:text-ob-text"
+          className="relative flex items-center gap-1.5 rounded-lg border border-ob-border bg-ob-surface px-3 py-2 text-xs text-ob-muted transition-colors before:absolute before:-inset-2 before:content-[''] hover:border-nebula/50 hover:text-ob-text"
         >
           <Globe className="size-3.5" />
           <span>{current === "zh" ? "中文" : "EN"}</span>
@@ -34,17 +34,21 @@ export default function LanguageToggle() {
         className="min-w-[120px] border-ob-border bg-ob-surface"
       >
         <DropdownMenuRadioGroup value={current} onValueChange={switchTo}>
+          {/* No flag emoji here: Windows does not render regional-indicator
+              pairs as flags, so these appeared as the literal letters "CN"/"GB".
+              The radio item already draws its own check indicator and the labels
+              are self-describing. */}
           <DropdownMenuRadioItem
             value="zh"
             className="cursor-pointer text-sm text-ob-muted focus:text-ob-text data-[state=checked]:text-nebula-light"
           >
-            <span className="mr-2">🇨🇳</span> 中文
+            中文
           </DropdownMenuRadioItem>
           <DropdownMenuRadioItem
             value="en"
             className="cursor-pointer text-sm text-ob-muted focus:text-ob-text data-[state=checked]:text-nebula-light"
           >
-            <span className="mr-2">🇬🇧</span> English
+            English
           </DropdownMenuRadioItem>
         </DropdownMenuRadioGroup>
       </DropdownMenuContent>

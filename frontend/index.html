@@ -1,8 +1,13 @@
 <!doctype html>
-<html lang="en">
+<!-- The default UI language is zh (see src/i18n/index.ts). JS keeps this in
+     sync on every language switch so screen readers, hyphenation and CJK font
+     selection follow the active language instead of a stale hardcoded value. -->
+<html lang="zh-CN">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- Matches --ob-bg so the mobile browser chrome blends with the paper theme. -->
+    <meta name="theme-color" content="#f5f2ec" />
     <title>DisSolve</title>
   </head>
   <body>
